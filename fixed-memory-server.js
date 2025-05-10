@@ -8,11 +8,17 @@
  * quindi non ci saranno errori relativi a parametri di connessione mancanti.
  */
 
-// Imposta queste variabili per evitare errori con il driver Neon
+// FIX per neon database - imposta host=localhost ESPLICITAMENTE
+// come richiesto dal messaggio di errore 
 process.env.PGHOST = 'localhost';
 process.env.PGUSER = 'localuser';
 process.env.PGDATABASE = 'localdb';
 process.env.PGPASSWORD = 'localpass';
+
+// Ridefiniamo il DATABASE_URL con i valori locali per evitare errori
+// NOTA: Questo è cruciale per evitare l'errore che richiede host=localhost
+process.env.DATABASE_URL = 'postgresql://localuser:localpass@localhost:5432/localdb';
+console.log("🔌 Configurato DATABASE_URL fittizia:", process.env.DATABASE_URL);
 
 import express from 'express';
 import session from 'express-session';

@@ -3,7 +3,7 @@ services:
   - type: web
     name: iase-project-web
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && chmod +x render-pre-deploy.sh && ./render-pre-deploy.sh && cp fake-neon.js node_modules/@neondatabase/serverless/index.mjs && npm run build
     startCommand: node fixed-memory-server.js
     envVars:
       - key: NODE_ENV
@@ -12,6 +12,14 @@ services:
         value: "true"
       - key: SKIP_DB_CONNECTION
         value: "true"
+      - key: PGHOST
+        value: "localhost"
+      - key: PGUSER
+        value: "localuser"
+      - key: PGDATABASE
+        value: "localdb"
+      - key: PGPASSWORD
+        value: "localpass"
       - key: SESSION_SECRET
         generateValue: true
       - key: ETH_NETWORK_URL
@@ -29,7 +37,7 @@ services:
     name: nft-verification-job
     env: node
     schedule: "0 0 * * *"  # Run at midnight every day
-    buildCommand: npm install
+    buildCommand: npm install && chmod +x render-pre-deploy.sh && ./render-pre-deploy.sh && cp fake-neon.js node_modules/@neondatabase/serverless/index.mjs
     startCommand: node server/services/staking-mem-job.js
     envVars:
       - key: NODE_ENV
@@ -38,6 +46,14 @@ services:
         value: "true"
       - key: SKIP_DB_CONNECTION
         value: "true"
+      - key: PGHOST
+        value: "localhost"
+      - key: PGUSER
+        value: "localuser"
+      - key: PGDATABASE
+        value: "localdb"
+      - key: PGPASSWORD
+        value: "localpass"
       - key: ETH_NETWORK_URL
         value: https://eth.drpc.org
       - key: NFT_CONTRACT_ADDRESS

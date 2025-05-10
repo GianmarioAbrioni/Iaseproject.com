@@ -4,7 +4,7 @@ services:
     name: iase-project-web
     env: node
     buildCommand: npm install
-    startCommand: node server-render.js
+    startCommand: node server-minimal.js
     envVars:
       - key: NODE_ENV
         value: production

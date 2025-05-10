@@ -1,24 +1,37 @@
-FROM node:18-alpine
+# IASE Project - Dockerfile per Render
+# Usa questo Dockerfile se preferisci un approccio containerizzato su Render
+
+FROM node:20-slim
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Installa le dipendenze
 COPY package*.json ./
+RUN npm install
 
-# Install dependencies
-RUN npm ci
-
-# Copy project files
+# Copia il codice sorgente
 COPY . .
 
-# Build the application
-RUN npm run build
+# Imposta variabili d'ambiente
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DEBUG=true
+ENV LOG_LEVEL=verbose
+ENV PUBLIC_PATH=/app/public
+ENV STATIC_PATH=/app/public
+ENV CONFIG_PATH=/app/config
+ENV ALTERNATIVE_PUBLIC_PATH=/app/public
 
-# Expose the port
+# Database (commentare se usi le variabili di Render)
+# ENV PGHOST=dpg-d0ff45buibrs73ekrt6g-a
+# ENV PGUSER=iaseproject
+# ENV PGDATABASE=iaseproject
+# ENV PGPASSWORD=GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1
+# ENV PGPORT=5432
+# ENV DATABASE_URL=postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a/iaseproject
+
+# Esponi la porta
 EXPOSE 3000
 
-# Set environment variables
-ENV NODE_ENV=production
-
-# Start the application
-CMD ["npm", "start"]
+# Esegui l'applicazione 
+CMD ["node", "server-fix.js"]

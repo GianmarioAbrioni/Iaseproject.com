@@ -6,6 +6,14 @@
  * senza dipendenze PostgreSQL mantenendo i dati tra riavvii.
  */
 
+// FIX IMPORTANTE: Imposta esplicitamente 'localhost' come host di database
+// come richiesto dall'errore in Render "please set the host to 'localhost' explicitly"
+process.env.PGHOST = 'localhost';
+process.env.PGUSER = 'localuser';
+process.env.PGDATABASE = 'localdb';
+process.env.PGPASSWORD = 'localpass';
+process.env.DATABASE_URL = 'postgresql://localuser:localpass@localhost:5432/localdb';
+
 // Imposta le variabili d'ambiente per la modalità in-memory
 process.env.USE_MEMORY_DB = "true";
 process.env.NODE_ENV = "production";

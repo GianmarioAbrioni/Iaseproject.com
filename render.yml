@@ -3,8 +3,8 @@ services:
   - type: web
     name: iase-project-web
     env: node
-    buildCommand: npm install && chmod +x render-pre-deploy.sh && ./render-pre-deploy.sh && cp fake-neon.js node_modules/@neondatabase/serverless/index.mjs && npm run build
-    startCommand: node fixed-memory-server.js
+    buildCommand: npm install && npm run build
+    startCommand: node server-standalone.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -37,8 +37,8 @@ services:
     name: nft-verification-job
     env: node
     schedule: "0 0 * * *"  # Run at midnight every day
-    buildCommand: npm install && chmod +x render-pre-deploy.sh && ./render-pre-deploy.sh && cp fake-neon.js node_modules/@neondatabase/serverless/index.mjs
-    startCommand: node server/services/staking-mem-job.js
+    buildCommand: npm install
+    startCommand: node staking-verification-standalone.js
     envVars:
       - key: NODE_ENV
         value: production

@@ -5,6 +5,18 @@
  * per massima compatibilità con Render.
  */
 
+// FIX IMPORTANTE: Imposta esplicitamente 'localhost' come host di database
+// come richiesto dall'errore in Render "please set the host to 'localhost' explicitly"
+process.env.PGHOST = 'localhost';
+process.env.PGUSER = process.env.PGUSER || 'localuser';
+process.env.PGDATABASE = process.env.PGDATABASE || 'localdb';
+process.env.PGPASSWORD = process.env.PGPASSWORD || 'localpass';
+
+// Per sicurezza imposta anche DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:5432/${process.env.PGDATABASE}`;
+}
+
 import express, { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log, serveStatic } from "./vite";

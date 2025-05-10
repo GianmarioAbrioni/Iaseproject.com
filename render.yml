@@ -3,8 +3,8 @@ services:
   - type: web
     name: iase-project-web
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: node server-dist.js
+    buildCommand: npm install
+    startCommand: node server-render.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -42,7 +42,7 @@ services:
     env: node
     schedule: "0 0 * * *"  # Run at midnight every day
     buildCommand: npm install
-    startCommand: node staking-verification-pg.js
+    startCommand: node staking-verification-standalone.js
     envVars:
       - key: NODE_ENV
         value: production

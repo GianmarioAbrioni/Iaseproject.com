@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "username": "test_user",
+      "password": "password_hash",
+      "email": "test@example.com",
+      "walletAddress": "0x1234567890abcdef1234567890abcdef12345678",
+      "id": 1,
+      "createdAt": "2025-05-10T13:18:35.703Z"
+    }
+  ],
+  "nftStakes": [
+    {
+      "nftId": "1",
+      "tokenContract": "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F",
+      "walletAddress": "0x1234567890abcdef1234567890abcdef12345678",
+      "startDate": "2025-05-10T13:18:35.702Z",
+      "active": true,
+      "verified": true,
+      "rarityMultiplier": 1.5,
+      "id": 1,
+      "lastVerification": "2025-05-10T13:18:35.703Z",
+      "createdAt": "2025-05-10T13:18:35.703Z"
+    }
+  ],
+  "stakingRewards": [
+    {
+      "stakeId": 1,
+      "walletAddress": "0x1234567890abcdef1234567890abcdef12345678",
+      "amount": 33.33,
+      "rewardDate": "2025-05-10T13:18:35.703Z",
+      "claimed": false,
+      "id": 1,
+      "createdAt": "2025-05-10T13:18:35.703Z"
+    }
+  ],
+  "nftTraits": [
+    {
+      "nftId": "1",
+      "traitType": "CARD FRAME",
+      "value": "Advanced",
+      "displayType": null,
+      "id": 1,
+      "createdAt": "2025-05-10T13:18:35.703Z"
+    }
+  ],
+  "nextIds": {
+    "users": 2,
+    "nftStakes": 2,
+    "stakingRewards": 2,
+    "nftTraits": 2
+  },
+  "lastSaveTime": "2025-05-10T13:18:35.704Z"
+}

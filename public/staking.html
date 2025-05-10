@@ -1,0 +1,720 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>IASE Units Staking - IASE Project</title>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="IASE Units Staking Platform - Stake your IASE Units NFTs and earn IASE tokens" name="description"/>
+  <meta name="theme-color" content="#121212">
+  <meta name="author" content="IASE Project">
+  
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:title" content="IASE Units Staking - IASE Project">
+  <meta property="og:description" content="IASE Units Staking Platform - Stake your IASE Units NFTs and earn IASE tokens">
+  <meta property="og:image" content="images/logo.png">
+  <meta property="og:url" content="https://iaseproject.com">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter Card data -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="IASE – Intelligent Autonomous Space Entities">
+  <meta name="twitter:description" content="A scientific project exploring distributed AI for autonomous space systems, now integrated with Web3.">
+  <meta name="twitter:image" content="images/logo.png">
+  
+  <!-- Stylesheets -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css">
+  <link href="menu.css" rel="stylesheet"/>
+  <link href="styles.css" rel="stylesheet"/>
+  <link href="css/parallax.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/staking.css">
+  
+  <!-- Favicon -->
+  <link href="favicon.png" rel="icon" type="image/png"/>
+  
+  <!-- Preconnect to domains for performance -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+</head>
+
+<body>
+  <!-- Header Area -->
+  <header class="header-area fade-in">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <h1 class="site-title">IASE Project</h1>
+          <p class="site-description">Intelligent Autonomous Space Entities – A Vision of Autonomous AI in Space</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="ri-home-3-line"></i> IASE 🛰️
+      </a>
+      <button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="projectDropdown" role="button" aria-expanded="false">
+              Project
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="projectDropdown">
+              <li><a class="dropdown-item" href="project-overview.html">Overview</a></li>
+              <li><a class="dropdown-item" href="technology.html">Technology &amp; Applications</a></li>
+              <li><a class="dropdown-item" href="behind.html">Behind IASE</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle active" data-bs-toggle="dropdown" href="#" id="web3Dropdown" role="button" aria-expanded="false">
+              Web3
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="web3Dropdown">
+              <li><a class="dropdown-item" href="web3.html">Web3 Integration</a></li>
+              <li><a class="dropdown-item" href="token.html">Token</a></li>
+              <li><a class="dropdown-item" href="nft.html">NFT Collection</a></li>
+              <li><a class="dropdown-item active" href="staking.html">NFT Staking Platform</a></li>
+              <li><a class="dropdown-item" href="roadmap.html">Roadmap</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="resourcesDropdown" role="button" aria-expanded="false">
+              Resources
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="resourcesDropdown">
+              <li><a class="dropdown-item" href="articles.html">Articles</a></li>
+              <li><a class="dropdown-item" href="publication.html">Publications</a></li>
+              <li><a class="dropdown-item" href="contact.html">Contact &amp; Documents</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Logo Area -->
+  <div class="logo-container animate-on-scroll fade-down">
+    <div class="img-container rounded-circle mx-auto" style="width: 150px; height: 150px;">
+      <img src="images/logo.png" alt="IASE Logo" width="150" height="150" class="rounded-circle">
+    </div>
+  </div>
+
+  <!-- Wallet Connection Section -->
+  <section class="wallet-connection-section">
+    <div class="container">
+      <h2 class="section-title">Connect Your Wallet</h2>
+      
+      <!-- Wallet Status -->
+      <div class="wallet-status">
+        <div class="wallet-status-indicator">
+          <div id="walletIndicator" class="indicator disconnected">
+            <i class="ri-wallet-3-line"></i>
+          </div>
+          <div class="wallet-info">
+            <div id="walletStatusText">Wallet not connected</div>
+            <div id="walletAddress" class="wallet-address"></div>
+          </div>
+        </div>
+        
+        <div class="wallet-controls">
+          <button id="connectWalletBtn" class="btn primary-btn">
+            <i class="ri-plug-line"></i> Connect Wallet
+          </button>
+          <button id="disconnectWalletBtn" class="btn secondary-btn hidden">
+            <i class="ri-link-unlink-m"></i> Disconnect
+          </button>
+        </div>
+      </div>
+      
+      <!-- Authentication Section for Non-Authenticated Users -->
+      <div id="authSection" class="auth-section hidden">
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" data-tab="login">Login</button>
+          <button class="auth-tab-btn" data-tab="register">Register</button>
+        </div>
+        
+        <div class="auth-tab-content">
+          <!-- Login Form -->
+          <div id="loginTab" class="auth-form-container active">
+            <form id="loginForm" class="auth-form">
+              <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" name="username" required>
+              </div>
+              <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" name="password" required>
+              </div>
+              <button type="submit" class="btn primary-btn">Login</button>
+            </form>
+          </div>
+          
+          <!-- Register Form -->
+          <div id="registerTab" class="auth-form-container">
+            <form id="registerForm" class="auth-form">
+              <div class="form-group">
+                <label for="registerUsername">Username</label>
+                <input type="text" id="registerUsername" name="username" required>
+              </div>
+              <div class="form-group">
+                <label for="registerPassword">Password</label>
+                <input type="password" id="registerPassword" name="password" required>
+              </div>
+              <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+              </div>
+              <button type="submit" class="btn primary-btn">Register</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Staking Dashboard Section -->
+  <section id="stakingDashboard" class="staking-dashboard hidden">
+    <div class="container">
+      <div class="dashboard-header">
+        <h2 class="section-title">Staking Dashboard</h2>
+        <div class="dashboard-summary">
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="ri-stack-line"></i>
+            </div>
+            <div class="summary-info">
+              <h3>Staked NFTs</h3>
+              <p id="totalStakedNfts">0</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="ri-coin-line"></i>
+            </div>
+            <div class="summary-info">
+              <h3>Total Rewards</h3>
+              <p id="totalRewards">0 IASE</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-icon">
+              <i class="ri-line-chart-line"></i>
+            </div>
+            <div class="summary-info">
+              <h3>Daily Rewards</h3>
+              <p id="dailyRewards">0 IASE</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="dashboard-tabs">
+        <button class="tab-btn active" data-tab="staked">Staked NFTs</button>
+        <button class="tab-btn" data-tab="available">Available NFTs</button>
+        <button class="tab-btn" data-tab="rewards">Rewards</button>
+      </div>
+      
+      <div class="tab-content active" id="stakedTab">
+        <div id="stakedNftsContainer" class="nft-grid">
+          <!-- Staked NFTs will be displayed here -->
+          <div class="empty-state">
+            <i class="ri-space-ship-line"></i>
+            <h3>No Staked NFTs Found</h3>
+            <p>You don't have any staked NFTs yet. Connect your wallet and stake your IASE Units to start earning rewards.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tab-content" id="availableTab">
+        <div id="availableNftsContainer" class="nft-grid">
+          <!-- Available NFTs will be displayed here -->
+          <div class="empty-state">
+            <i class="ri-nft-line"></i>
+            <h3>No Available NFTs Found</h3>
+            <p>You don't have any IASE Units NFTs in your wallet. Acquire IASE Units from secondary markets to participate in staking.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tab-content" id="rewardsTab">
+        <div class="rewards-summary">
+          <div class="pending-rewards">
+            <h3>Pending Rewards</h3>
+            <div class="reward-amount" id="pendingRewards">0 IASE</div>
+            <button id="claimAllBtn" class="btn primary-btn" disabled>
+              <i class="ri-coin-line"></i> Claim All Rewards
+            </button>
+          </div>
+        </div>
+        
+        <div class="rewards-history">
+          <h3>Rewards History</h3>
+          <div class="rewards-table-container">
+            <table class="rewards-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>NFT ID</th>
+                  <th>Reward Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="rewardsHistoryBody">
+                <!-- Rewards history will be displayed here -->
+              </tbody>
+            </table>
+            
+            <div id="rewardsEmptyState" class="empty-state">
+              <i class="ri-history-line"></i>
+              <h3>No Rewards History</h3>
+              <p>You haven't earned any rewards yet. Stake your IASE Units to start earning IASE tokens.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="how-it-works-section">
+    <div class="container">
+      <div class="section-header text-center mb-5 fade-up animate-on-scroll">
+        <h2 class="section-title">How IASE Units Staking Works</h2>
+        <p class="lead">Earn IASE tokens by staking your NFTs</p>
+      </div>
+      
+      <div class="staking-process">
+        <div class="process-step">
+          <div class="step-number">1</div>
+          <div class="step-icon">
+            <i class="ri-wallet-3-line"></i>
+          </div>
+          <h3>Connect Wallet</h3>
+          <p>Connect your Ethereum wallet that holds IASE Units NFTs</p>
+        </div>
+        
+        <div class="process-step">
+          <div class="step-number">2</div>
+          <div class="step-icon">
+            <i class="ri-nft-line"></i>
+          </div>
+          <h3>Stake NFTs</h3>
+          <p>Select and stake the IASE Units you want to earn rewards from</p>
+        </div>
+        
+        <div class="process-step">
+          <div class="step-number">3</div>
+          <div class="step-icon">
+            <i class="ri-time-line"></i>
+          </div>
+          <h3>Earn Rewards</h3>
+          <p>Accumulate IASE tokens daily based on your staked NFTs</p>
+        </div>
+        
+        <div class="process-step">
+          <div class="step-number">4</div>
+          <div class="step-icon">
+            <i class="ri-coin-line"></i>
+          </div>
+          <h3>Claim Rewards</h3>
+          <p>Withdraw your earned IASE tokens to your wallet anytime</p>
+        </div>
+      </div>
+      
+      <div class="staking-rewards-info">
+        <h3>IASE Units Staking Rewards</h3>
+        <p>Each IASE Unit NFT earns rewards based on its rarity tier. The reward system is designed to provide sustainable and valuable returns to NFT holders.</p>
+        
+        <div class="rewards-grid">
+          <div class="reward-card">
+            <div class="rarity-badge standard">Standard</div>
+            <h4>Standard</h4>
+            <p><strong>33.33 IASE</strong> tokens per day</p>
+            <p><strong>1,000 IASE</strong> tokens per month</p>
+          </div>
+          
+          <div class="reward-card">
+            <div class="rarity-badge advanced">Advanced</div>
+            <h4>Advanced</h4>
+            <p><strong>50 IASE</strong> tokens per day</p>
+            <p><strong>1,500 IASE</strong> tokens per month</p>
+          </div>
+          
+          <div class="reward-card">
+            <div class="rarity-badge elite">Elite</div>
+            <h4>Elite</h4>
+            <p><strong>66.67 IASE</strong> tokens per day</p>
+            <p><strong>2,000 IASE</strong> tokens per month</p>
+          </div>
+          
+          <div class="reward-card">
+            <div class="rarity-badge prototype">Prototype</div>
+            <h4>Prototype</h4>
+            <p><strong>83.33 IASE</strong> tokens per day</p>
+            <p><strong>2,500 IASE</strong> tokens per month</p>
+          </div>
+        </div>
+        
+        <div class="staking-note">
+          <i class="ri-information-line"></i>
+          <p>Your NFTs must remain in your wallet for the duration of the staking period. If you sell or transfer an NFT, it will be automatically unstaked and you'll only receive rewards for the time it was staked.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section">
+    <div class="container">
+      <div class="section-header text-center mb-5 fade-up animate-on-scroll">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="lead">Answers to common questions about IASE Units staking</p>
+      </div>
+      
+      <div class="faq-container">
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>What are IASE Units?</h3>
+            <div class="faq-toggle">
+              <i class="ri-add-line"></i>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>IASE Units are unique NFTs that represent autonomous space entities within the IASE ecosystem. Each unit has different attributes and rarity tiers, which determine their staking rewards.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>What wallet can I use?</h3>
+            <div class="faq-toggle">
+              <i class="ri-add-line"></i>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>You can use any Ethereum-compatible wallet that supports NFTs, such as MetaMask, Trust Wallet, or Coinbase Wallet. Make sure your wallet is connected to the Ethereum mainnet.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>What happens if I sell my NFT?</h3>
+            <div class="faq-toggle">
+              <i class="ri-add-line"></i>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>If you sell or transfer an NFT that is currently staked, it will be automatically unstaked during the next verification cycle (which occurs daily). You will receive rewards only for the period it was staked in your wallet.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>How is the rarity of an NFT determined?</h3>
+            <div class="faq-toggle">
+              <i class="ri-add-line"></i>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Rarity is determined by the combination of traits and attributes each IASE Unit possesses. The rarity tiers are Standard, Advanced, Elite, and Prototype, with Prototype being the rarest. These traits are recorded on the blockchain and cannot be altered.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>How often are rewards distributed?</h3>
+            <div class="faq-toggle">
+              <i class="ri-add-line"></i>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>Rewards accumulate daily but are not automatically distributed. You can claim your rewards at any time through the staking dashboard. The system verifies NFT ownership daily at midnight UTC.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <div class="faq-question">
+            <h3>Are there any fees for staking?</h3>
+            <div class="faq-toggle">
+              <i class="ri-add-line"></i>
+            </div>
+          </div>
+          <div class="faq-answer">
+            <p>There are no platform fees for staking your IASE Units. However, blockchain transactions such as claiming rewards will require gas fees paid in ETH, as these are standard Ethereum network fees.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Area -->
+  <footer class="footer-area">
+    <div class="main-footer-area">
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col-12 col-md-6">
+            <div class="footer-widget">
+              <p>© 2025 IASE Project – All Rights Reserved</p>
+              <div class="social-links mt-4">
+                <a href="https://www.reddit.com/r/IASEproject" target="_blank" aria-label="Reddit">
+                  <i class="ri-reddit-fill"></i>
+                </a>
+                <a href="https://medium.com/@iaseproject" target="_blank" aria-label="Medium">
+                  <i class="ri-medium-fill"></i>
+                </a>
+                <a href="https://x.com/iase_project" target="_blank" aria-label="X (Twitter)">
+                  <i class="ri-twitter-x-fill"></i>
+                </a>
+                <a href="https://t.me/IASEcommunity" target="_blank" aria-label="Telegram">
+                  <i class="ri-telegram-fill"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="footer-widget">
+              <div class="footer-links">
+                <div class="d-flex justify-content-end">
+                  <a href="privacy-policy.html" class="me-4">Privacy Policy</a>
+                  <a href="cookie-policy.html">Cookie Policy</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modals -->
+  <!-- Stake Modal -->
+  <div id="stakeModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" id="closeStakeModal">&times;</span>
+      <h2>Stake IASE Unit</h2>
+      
+      <div class="modal-body">
+        <div class="nft-preview">
+          <img id="stakeNftImage" src="images/placeholder-nft.jpg" alt="NFT Preview">
+          <div class="nft-info">
+            <h3 id="stakeNftTitle">IASE Unit #ID</h3>
+            <p id="stakeNftId">Token ID: </p>
+            <div id="stakeNftRarity" class="rarity-badge standard">Standard</div>
+          </div>
+        </div>
+        
+        <div class="reward-preview">
+          <h4>Reward Information</h4>
+          <div class="reward-amounts">
+            <div class="reward-item">
+              <span>Daily Reward:</span>
+              <strong id="stakeNftDailyReward">33.33 IASE</strong>
+            </div>
+            <div class="reward-item">
+              <span>Monthly Reward:</span>
+              <strong id="stakeNftMonthlyReward">1,000 IASE</strong>
+            </div>
+          </div>
+          <p class="note">Note: Rewards are distributed daily based on your NFT's rarity tier.</p>
+        </div>
+        
+        <div class="modal-actions">
+          <button id="confirmStakeBtn" class="btn primary-btn">
+            <i class="ri-check-line"></i> Confirm Stake
+          </button>
+          <button id="cancelStakeBtn" class="btn outline-btn">
+            <i class="ri-close-line"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Unstake Modal -->
+  <div id="unstakeModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" id="closeUnstakeModal">&times;</span>
+      <h2>Unstake IASE Unit</h2>
+      
+      <div class="modal-body">
+        <div class="nft-preview">
+          <img id="unstakeNftImage" src="images/placeholder-nft.jpg" alt="NFT Preview">
+          <div class="nft-info">
+            <h3 id="unstakeNftTitle">IASE Unit #ID</h3>
+            <p id="unstakeNftId">Token ID: </p>
+            <div id="unstakeNftRarity" class="rarity-badge standard">Standard</div>
+          </div>
+        </div>
+        
+        <div class="reward-preview">
+          <h4>Current Rewards</h4>
+          <div class="reward-amounts">
+            <div class="reward-item">
+              <span>Accumulated Rewards:</span>
+              <strong id="unstakeNftRewards">0 IASE</strong>
+            </div>
+            <div class="reward-item">
+              <span>Staking Since:</span>
+              <strong id="unstakeNftStakingTime">--</strong>
+            </div>
+          </div>
+          <p class="note">Warning: Unstaking will claim all accumulated rewards automatically.</p>
+        </div>
+        
+        <div class="modal-actions">
+          <button id="confirmUnstakeBtn" class="btn warning-btn">
+            <i class="ri-logout-box-line"></i> Unstake & Claim
+          </button>
+          <button id="cancelUnstakeBtn" class="btn outline-btn">
+            <i class="ri-close-line"></i> Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Notification Container -->
+  <div class="notification-container" id="notificationContainer">
+    <!-- Notifications will be added here dynamically -->
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+  <script src="js/webp-detect.js"></script>
+  <script src="js/image-loader.js"></script>
+  <script src="js/space-background.js"></script>
+  <script src="js/parallax.js"></script>
+  <script src="js/wallet-connect.js"></script>
+  <script src="js/claim-service.js"></script>
+  <script src="js/staking.js"></script>
+  <script src="js/roadmap.js"></script>
+  <script src="script.js"></script>
+  <script src="js/init-chatbot.js"></script>
+  
+  <!-- UI Interaction Scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Aggiungi l'event listener al pulsante di connessione wallet
+      const connectWalletBtn = document.getElementById('connectWalletBtn');
+      if (connectWalletBtn) {
+        connectWalletBtn.addEventListener('click', function() {
+          // Verifica se MetaMask è disponibile
+          if (typeof window.ethereum === 'undefined') {
+            // MetaMask non è installato, mostra l'avviso
+            alert('MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.');
+            return;
+          }
+          
+          // MetaMask è disponibile, la connessione verrà gestita da wallet-connect.js
+        });
+      }
+      
+      // Initialize FAQ functionality
+      const faqItems = document.querySelectorAll('.faq-item');
+      
+      faqItems.forEach(item => {
+        const questionEl = item.querySelector('.faq-question');
+        
+        questionEl.addEventListener('click', function() {
+          item.classList.toggle('active');
+        });
+      });
+      
+      // Initialize Dashboard Tabs
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Remove active class from all buttons and contents
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Add active class to clicked button
+          this.classList.add('active');
+          
+          // Show corresponding content
+          const tabId = this.getAttribute('data-tab');
+          document.getElementById(tabId + 'Tab').classList.add('active');
+        });
+      });
+      
+      // Initialize Auth Tabs
+      const authTabButtons = document.querySelectorAll('.auth-tab-btn');
+      const authFormContainers = document.querySelectorAll('.auth-form-container');
+      
+      authTabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Remove active class from all buttons and forms
+          authTabButtons.forEach(btn => btn.classList.remove('active'));
+          authFormContainers.forEach(container => container.classList.remove('active'));
+          
+          // Add active class to clicked button
+          this.classList.add('active');
+          
+          // Show corresponding form
+          const tabId = this.getAttribute('data-tab');
+          document.getElementById(tabId + 'Tab').classList.add('active');
+        });
+      });
+      
+      // Modal handling
+      const stakeModal = document.getElementById('stakeModal');
+      const unstakeModal = document.getElementById('unstakeModal');
+      const closeStakeModal = document.getElementById('closeStakeModal');
+      const closeUnstakeModal = document.getElementById('closeUnstakeModal');
+      const cancelStakeBtn = document.getElementById('cancelStakeBtn');
+      const cancelUnstakeBtn = document.getElementById('cancelUnstakeBtn');
+      
+      // Close stake modal
+      if (closeStakeModal) {
+        closeStakeModal.addEventListener('click', function() {
+          stakeModal.style.display = 'none';
+        });
+      }
+      
+      if (cancelStakeBtn) {
+        cancelStakeBtn.addEventListener('click', function() {
+          stakeModal.style.display = 'none';
+        });
+      }
+      
+      // Close unstake modal
+      if (closeUnstakeModal) {
+        closeUnstakeModal.addEventListener('click', function() {
+          unstakeModal.style.display = 'none';
+        });
+      }
+      
+      if (cancelUnstakeBtn) {
+        cancelUnstakeBtn.addEventListener('click', function() {
+          unstakeModal.style.display = 'none';
+        });
+      }
+      
+      // Close modals when clicking outside
+      window.addEventListener('click', function(event) {
+        if (event.target === stakeModal) {
+          stakeModal.style.display = 'none';
+        }
+        if (event.target === unstakeModal) {
+          unstakeModal.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

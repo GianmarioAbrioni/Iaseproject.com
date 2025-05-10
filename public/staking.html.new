@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="IASE Units Staking Platform - Stake your IASE Units NFTs and earn IASE tokens">
+  <title>IASE Units Staking - IASE Project</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Remixicon -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link href="css/style.css" rel="stylesheet"/>
+  <link href="css/dark-theme.css" rel="stylesheet"/>
+  <link href="css/parallax.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/staking.css">
+  
+  <!-- Favicon -->
+  <link href="favicon.png" rel="icon" type="image/png"/>
+  
+  <!-- Preconnect to domains for performance -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+</head>
+
+<body>
+  <!-- Header Area -->
+<body class="dark-theme staking-page">
+  <!-- Main Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="ri-home-3-line"></i> IASE 🛰️
+      </a>
+      <button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="projectDropdown" role="button" aria-expanded="false">
+              Project
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="projectDropdown">
+              <li><a class="dropdown-item" href="project-overview.html">Overview</a></li>
+              <li><a class="dropdown-item" href="technology.html">Technology &amp; Applications</a></li>
+              <li><a class="dropdown-item" href="behind.html">Behind IASE</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="web3Dropdown" role="button" aria-expanded="false">
+              Web3
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="web3Dropdown">
+              <li><a class="dropdown-item" href="web3.html">Web3 Integration</a></li>
+              <li><a class="dropdown-item" href="token.html">Token</a></li>
+              <li><a class="dropdown-item" href="nft.html">NFT Collection</a></li>
+              <li><a class="dropdown-item active" href="staking.html">NFT Staking Platform</a></li>
+              <li><a class="dropdown-item" href="roadmap.html">Roadmap</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="resourcesDropdown" role="button" aria-expanded="false">
+              Resources
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="resourcesDropdown">
+              <li><a class="dropdown-item" href="articles.html">Articles</a></li>
+              <li><a class="dropdown-item" href="publication.html">Publications</a></li>
+              <li><a class="dropdown-item" href="contact.html">Contact &amp; Documents</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>

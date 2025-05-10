@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>IASE – Intelligent Autonomous Space Entities</title>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="IASE: a scientific project exploring distributed AI for autonomous space systems, now integrated with Web3." name="description"/>
+  <meta name="theme-color" content="#121212">
+  <meta name="author" content="IASE Project">
+  
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:title" content="IASE – Intelligent Autonomous Space Entities">
+  <meta property="og:description" content="A scientific project exploring distributed AI for autonomous space systems, now integrated with Web3.">
+  <meta property="og:image" content="images/logo.png">
+  <meta property="og:url" content="https://iaseproject.com">
+  <meta property="og:type" content="website">
+  
+  <!-- Twitter Card data -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="IASE – Intelligent Autonomous Space Entities">
+  <meta name="twitter:description" content="A scientific project exploring distributed AI for autonomous space systems, now integrated with Web3.">
+  <meta name="twitter:image" content="images/logo.png">
+  
+  <!-- Stylesheets -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css">
+  <link href="menu.css" rel="stylesheet"/>
+  <link href="styles.css" rel="stylesheet"/>
+  <link href="css/parallax.css" rel="stylesheet"/>
+  
+  <!-- Favicon -->
+  <link href="favicon.png" rel="icon" type="image/png"/>
+  
+  <!-- Preconnect to domains for performance -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+</head>
+
+<body>
+  <!-- Header Area -->
+  <header class="header-area fade-in">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-12">
+          <h1 class="site-title">IASE Project</h1>
+          <p class="site-description">Intelligent Autonomous Space Entities – A Vision of Autonomous AI in Space</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="ri-home-3-line"></i> IASE 🛰️
+      </a>
+      <button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" href="index.html">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="projectDropdown" role="button" aria-expanded="false">
+              Project
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="projectDropdown">
+              <li><a class="dropdown-item" href="project-overview.html">Overview</a></li>
+              <li><a class="dropdown-item" href="technology.html">Technology &amp; Applications</a></li>
+              <li><a class="dropdown-item" href="behind.html">Behind IASE</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="web3Dropdown" role="button" aria-expanded="false">
+              Web3
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="web3Dropdown">
+              <li><a class="dropdown-item" href="web3.html">Web3 Integration</a></li>
+              <li><a class="dropdown-item" href="token.html">Token</a></li>
+              <li><a class="dropdown-item" href="nft.html">NFT Collection</a></li>
+              <li><a class="dropdown-item" href="staking.html">NFT Staking Platform</a></li>
+              <li><a class="dropdown-item" href="roadmap.html">Roadmap</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="resourcesDropdown" role="button" aria-expanded="false">
+              Resources
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="resourcesDropdown">
+              <li><a class="dropdown-item" href="articles.html">Articles</a></li>
+              <li><a class="dropdown-item" href="publication.html">Publications</a></li>
+              <li><a class="dropdown-item" href="contact.html">Contact &amp; Documents</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Logo Area -->
+  <div class="logo-container animate-on-scroll fade-down">
+    <div class="img-container rounded-circle mx-auto" style="width: 150px; height: 150px;">
+      <img src="images/logo.png" alt="IASE Logo" width="150" height="150" class="rounded-circle">
+    </div>
+  </div>
+
+  <!-- Enhanced Hero Section with Parallax Space Background -->
+  <section class="hero-section text-center position-relative">
+    <div class="space-background">
+      <!-- Stars will be added dynamically by space-background.js -->
+      <div class="space-fog"></div>
+    </div>
+    <div class="hero-particles" id="hero-particles"></div>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-10">
+          <div class="hero-content">
+            <h2 class="hero-title fade-up animate-on-scroll" data-parallax="0.15" data-direction="up">Welcome to the IASE Project</h2>
+            <p class="hero-description fade-up animate-on-scroll" data-delay="200" data-parallax="0.1" data-direction="up">IASE (Intelligent Autonomous Space Entities) is a visionary scientific framework that explores the use of distributed AI for orbital and deep-space systems. Combining autonomy, quantum-secured communication, and Web3 integration, IASE redefines how intelligent systems operate beyond Earth.</p>
+            <a class="btn btn-primary btn-lg btn-glow mt-4 scale-in animate-on-scroll" data-delay="400" href="project-overview.html">
+              <i class="ri-file-text-line me-2"></i> View the Executive Summary
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid Section -->
+  <section class="features-section py-5">
+    <div class="container">
+      <div class="section-header text-center mb-5 fade-up animate-on-scroll">
+        <h2 class="section-title">Key Components</h2>
+        <p class="lead">The IASE framework integrates several innovative technologies</p>
+      </div>
+      
+      <div class="row g-4">
+        <!-- Feature 1 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card fade-up animate-on-scroll" data-delay="100">
+            <div class="feature-icon scale-in animate-on-scroll" data-delay="150">
+              <i class="ri-brain-line"></i>
+            </div>
+            <h3 class="feature-title">AI Autonomy</h3>
+            <p class="feature-description">Federated learning across distributed space nodes</p>
+          </div>
+        </div>
+        
+        <!-- Feature 2 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card fade-up animate-on-scroll" data-delay="200">
+            <div class="feature-icon scale-in animate-on-scroll" data-delay="250">
+              <i class="ri-lock-2-line"></i>
+            </div>
+            <h3 class="feature-title">Security</h3>
+            <p class="feature-description">Quantum-secured communication protocols</p>
+          </div>
+        </div>
+        
+        <!-- Feature 3 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card fade-up animate-on-scroll" data-delay="300">
+            <div class="feature-icon scale-in animate-on-scroll" data-delay="350">
+              <i class="ri-signal-tower-line"></i>
+            </div>
+            <h3 class="feature-title">Resilience</h3>
+            <p class="feature-description">Fault-tolerant mission control systems</p>
+          </div>
+        </div>
+        
+        <!-- Feature 4 -->
+        <div class="col-md-6 col-lg-3">
+          <div class="feature-card fade-up animate-on-scroll" data-delay="400">
+            <div class="feature-icon scale-in animate-on-scroll" data-delay="450">
+              <i class="ri-global-line"></i>
+            </div>
+            <h3 class="feature-title">Web3</h3>
+            <p class="feature-description">Decentralized governance and token economy</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-center mt-5">
+        <a class="btn btn-outline-primary btn-glow" href="technology.html">
+          <i class="ri-rocket-line me-2"></i> Explore Full Technology Stack
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Split Web3 Section with Parallax -->
+  <section class="web3-section py-5 parallax-section">
+    <div class="space-background" style="opacity: 0.8;">
+      <!-- Stars will be added dynamically by space-background.js -->
+    </div>
+    <div class="container position-relative" style="z-index: 2;">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <div class="web3-content animate-on-scroll">
+            <h2 class="section-title">Web3 Integration</h2>
+            <p class="lead mb-4">The IASE ecosystem leverages blockchain technology to enable community participation and governance.</p>
+            
+            <div class="web3-features">
+              <div class="web3-feature mb-3">
+                <i class="ri-coin-line feature-icon-small me-2"></i>
+                <span>IASE Token powers the ecosystem economy</span>
+              </div>
+              <div class="web3-feature mb-3">
+                <i class="ri-nft-line feature-icon-small me-2"></i>
+                <span>NFT collection with utility and staking features</span>
+              </div>
+              <div class="web3-feature mb-3">
+                <i class="ri-government-line feature-icon-small me-2"></i>
+                <span>Community-driven governance and voting</span>
+              </div>
+              <div class="web3-feature mb-3">
+                <i class="ri-stack-line feature-icon-small me-2"></i>
+                <span>Transparent, on-chain project development</span>
+              </div>
+            </div>
+            
+            <div class="d-flex flex-wrap mt-4 gap-3">
+              <a class="btn btn-primary" href="token.html">
+                <i class="ri-coin-line me-2"></i> Token Details
+              </a>
+              <a class="btn btn-secondary" href="nft.html">
+                <i class="ri-nft-line me-2"></i> NFT Collection
+              </a>
+              <a class="btn btn-info" href="staking.html">
+                <i class="ri-stack-line me-2"></i> Staking Platform
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-lg-6">
+          <div class="web3-image animate-on-scroll">
+            <div class="token-preview-card">
+              <div class="token-preview-header">
+                <div class="img-container">
+                  <img src="images/iase-token-logo.png" alt="IASE Token Logo" class="token-preview-logo">
+                </div>
+                <div class="token-preview-info">
+                  <h3>IASE Token</h3>
+                  <span class="token-preview-chain">BNB Smart Chain</span>
+                </div>
+              </div>
+              <div class="token-preview-stats">
+                <div class="token-stat">
+                  <span class="token-stat-label">Total Supply</span>
+                  <span class="token-stat-value">1,000,000,000</span>
+                </div>
+                <div class="token-stat">
+                  <span class="token-stat-label">Pre-Sale</span>
+                  <span class="token-stat-value">Active</span>
+                </div>
+                <div class="token-stat">
+                  <span class="token-stat-label">NFTs</span>
+                  <span class="token-stat-value">Live on ETH</span>
+                </div>
+              </div>
+              <div class="token-preview-cta">
+                <a href="token.html" class="token-preview-link">Detailed Tokenomics <i class="ri-arrow-right-line"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Articles and Resources Section -->
+  <section class="resources-section py-5 bg-gradient">
+    <div class="container">
+      <div class="section-header text-center mb-5 animate-on-scroll">
+        <h2 class="section-title">Articles & Resources</h2>
+        <p class="lead">Explore our publications to learn more about the IASE vision</p>
+      </div>
+      
+      <div class="row g-4">
+        <!-- Resource Card 1 -->
+        <div class="col-md-6 col-lg-4">
+          <div class="resource-card animate-on-scroll" data-delay="100">
+            <div class="resource-card-icon">
+              <i class="ri-article-line"></i>
+            </div>
+            <h3>Medium Articles</h3>
+            <p>In-depth articles covering IASE technology, tokenomics, and vision</p>
+            <a href="articles.html" class="resource-card-link">Read Articles <i class="ri-arrow-right-line"></i></a>
+          </div>
+        </div>
+        
+        <!-- Resource Card 2 -->
+        <div class="col-md-6 col-lg-4">
+          <div class="resource-card animate-on-scroll" data-delay="200">
+            <div class="resource-card-icon">
+              <i class="ri-file-paper-2-line"></i>
+            </div>
+            <h3>Publications</h3>
+            <p>Scientific publications and research papers on IASE technology</p>
+            <a href="publication.html" class="resource-card-link">View Publications <i class="ri-arrow-right-line"></i></a>
+          </div>
+        </div>
+        
+        <!-- Resource Card 3 -->
+        <div class="col-md-6 col-lg-4">
+          <div class="resource-card animate-on-scroll" data-delay="300">
+            <div class="resource-card-icon">
+              <i class="ri-roadmap-line"></i>
+            </div>
+            <h3>Project Roadmap</h3>
+            <p>The development timeline and future milestones of the IASE project</p>
+            <a href="roadmap.html" class="resource-card-link">View Roadmap <i class="ri-arrow-right-line"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Area -->
+  <footer class="footer-area">
+    <div class="main-footer-area">
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col-12 col-md-6">
+            <div class="footer-widget">
+              <p>© 2025 IASE Project – All Rights Reserved</p>
+              <div class="social-links mt-4">
+                <a href="https://www.reddit.com/r/IASEproject" target="_blank" aria-label="Reddit">
+                  <i class="ri-reddit-fill"></i>
+                </a>
+                <a href="https://medium.com/@iaseproject" target="_blank" aria-label="Medium">
+                  <i class="ri-medium-fill"></i>
+                </a>
+                <a href="https://x.com/iase_project" target="_blank" aria-label="X (Twitter)">
+                  <i class="ri-twitter-x-fill"></i>
+                </a>
+                <a href="https://t.me/IASEcommunity" target="_blank" aria-label="Telegram">
+                  <i class="ri-telegram-fill"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="footer-widget">
+              <div class="footer-links">
+                <div class="d-flex justify-content-end">
+                  <a href="privacy-policy.html" class="me-4">Privacy Policy</a>
+                  <a href="cookie-policy.html">Cookie Policy</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
+  <script src="js/webp-detect.js"></script>
+  <script src="js/image-loader.js"></script>
+  <script src="js/space-background.js"></script>
+  <script src="js/parallax.js"></script>
+  <script src="js/wallet-connect.js"></script>
+  <script src="script.js"></script>
+  <script src="js/init-chatbot.js"></script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Articles – IASE Project</title>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="Read the latest articles and insights from the IASE Project, exploring space technology, AI, and the future of autonomous space missions." name="description"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link href="favicon.png" rel="icon" type="image/png"/>
+  <link href="menu.css" rel="stylesheet"/>
+  <link href="styles.css" rel="stylesheet"/>
+  <link href="css/parallax.css" rel="stylesheet"/>
+  <style>
+    .article-card {
+      background-color: #111;
+      border: 1px solid #00bfff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .article-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 191, 255, 0.1);
+    }
+    
+    .article-card h3 {
+      color: #00bfff;
+      margin-bottom: 1rem;
+    }
+    
+    .article-card a {
+      color: #00bfff;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    
+    .article-card a:hover {
+      color: #ffffff;
+    }
+    
+    .article-meta {
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    
+    .article-description {
+      color: #ccc;
+      line-height: 1.6;
+    }
+    
+    .read-more {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1.5rem;
+      background-color: rgba(0, 191, 255, 0.1);
+      color: #00bfff;
+      font-weight: bold;
+      text-decoration: none;
+      border: 1px solid #00bfff;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+    
+    .read-more:hover {
+      background-color: rgba(0, 191, 255, 0.2);
+      color: #ffffff;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #ccc;
+    }
+    
+    .error-message {
+      text-align: center;
+      padding: 3rem;
+      color: #ff6b6b;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="ri-home-3-line"></i> IASE 🛰️
+      </a>
+      <button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="projectDropdown" role="button" aria-expanded="false">
+              Project
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="projectDropdown">
+              <li><a class="dropdown-item" href="project-overview.html">Overview</a></li>
+              <li><a class="dropdown-item" href="technology.html">Technology &amp; Applications</a></li>
+              <li><a class="dropdown-item" href="behind.html">Behind IASE</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="web3Dropdown" role="button" aria-expanded="false">
+              Web3
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="web3Dropdown">
+              <li><a class="dropdown-item" href="web3.html">Web3 Integration</a></li>
+              <li><a class="dropdown-item" href="token.html">Token</a></li>
+              <li><a class="dropdown-item" href="nft.html">NFT Collection</a></li>
+              <li><a class="dropdown-item" href="staking.html">NFT Staking Platform</a></li>
+              <li><a class="dropdown-item" href="roadmap.html">Roadmap</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle active" data-bs-toggle="dropdown" href="#" id="resourcesDropdown" role="button" aria-expanded="false">
+              Resources
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="resourcesDropdown">
+              <li><a class="dropdown-item active" href="articles.html">Articles</a></li>
+              <li><a class="dropdown-item" href="publication.html">Publications</a></li>
+              <li><a class="dropdown-item" href="contact.html">Contact &amp; Documents</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="parallax-section">
+    <div class="space-background">
+      <!-- Stars will be added dynamically by space-background.js -->
+      <div class="space-fog"></div>
+    </div>
+    <div class="container position-relative" style="z-index: 2;">
+      <h1 data-parallax="0.1" data-direction="up">IASE Articles</h1>
+      <p data-parallax="0.15" data-direction="up">Insights and Publications from the IASE Project</p>
+    </div>
+  </header>
+
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <h2 class="mb-4">Latest Articles</h2>
+        
+        <!-- Articles will be loaded here -->
+        <div id="articles-list" class="mt-4">
+          <div class="loading">
+            <i class="ri-loader-4-line ri-spin ri-2x mb-3"></i>
+            <p>Loading articles...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer-area">
+    <div class="main-footer-area">
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col-12 col-md-6">
+            <div class="footer-widget">
+              <p>© 2025 IASE Project – All Rights Reserved</p>
+              <div class="social-links mt-4">
+                <a href="https://www.reddit.com/r/IASEproject" target="_blank" aria-label="Reddit">
+                  <i class="ri-reddit-fill"></i>
+                </a>
+                <a href="https://medium.com/@iaseproject" target="_blank" aria-label="Medium">
+                  <i class="ri-medium-fill"></i>
+                </a>
+                <a href="https://x.com/iase_project" target="_blank" aria-label="X (Twitter)">
+                  <i class="ri-twitter-x-fill"></i>
+                </a>
+                <a href="https://t.me/IASEcommunity" target="_blank" aria-label="Telegram">
+                  <i class="ri-telegram-fill"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="footer-widget">
+              <div class="footer-links">
+                <div class="d-flex justify-content-end">
+                  <a href="privacy-policy.html" class="me-4">Privacy Policy</a>
+                  <a href="cookie-policy.html">Cookie Policy</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Load articles from JSON file
+    fetch('iase_articles.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.status !== "ok") {
+          document.getElementById("articles-list").innerHTML = '<div class="error-message"><i class="ri-error-warning-line ri-2x mb-3"></i><p>Failed to load articles.</p></div>';
+          return;
+        }
+
+        const container = document.getElementById("articles-list");
+        container.innerHTML = "";
+
+        if (data.items.length === 0) {
+          container.innerHTML = '<div class="text-center text-muted py-5"><p>No articles available at this time.</p></div>';
+          return;
+        }
+
+        data.items.forEach(item => {
+          // Create article card
+          const article = document.createElement("div");
+          article.className = "article-card";
+
+          // Format date
+          const pubDate = new Date(item.pubDate);
+          const formattedDate = pubDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+
+          // Create content
+          article.innerHTML = `
+            <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
+            <div class="article-meta">
+              <span><i class="ri-calendar-line"></i> Published: ${formattedDate}</span>
+            </div>
+            <div class="article-description">
+              <p>${item.description}</p>
+            </div>
+            <a href="${item.link}" target="_blank" class="read-more">Read Full Article</a>
+          `;
+
+          container.appendChild(article);
+        });
+      })
+      .catch(error => {
+        console.error("Error loading articles:", error);
+        document.getElementById("articles-list").innerHTML = '<div class="error-message"><i class="ri-error-warning-line ri-2x mb-3"></i><p>Error loading articles. Please try again later.</p></div>';
+      });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/webp-detect.js"></script>
+  <script src="js/image-loader.js"></script>
+  <script src="js/space-background.js"></script>
+  <script src="js/parallax.js"></script>
+  <script src="js/wallet-connect.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

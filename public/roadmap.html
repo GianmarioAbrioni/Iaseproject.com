@@ -1,0 +1,595 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Roadmap – IASE Project</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="IASE Roadmap – Follow the development stages of the Intelligent Autonomous Space Entities project and Web3 integration." name="description"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet"/>
+<link href="favicon.png" rel="icon" type="image/png"/>
+<link href="menu.css" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<link href="css/parallax.css" rel="stylesheet"/>
+<style>
+    /* Roadmap Styling */
+    .roadmap-section {
+        padding: 4rem 0;
+        position: relative;
+    }
+    
+    .roadmap-section::before {
+        content: '';
+        position: absolute;
+        width: 6px;
+        background-color: rgba(0, 191, 255, 0.2);
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        margin-left: -3px;
+        border-radius: 10px;
+    }
+    
+    .roadmap-item {
+        position: relative;
+        margin-bottom: 3rem;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s ease-out;
+    }
+    
+    .roadmap-item.animated {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .roadmap-content {
+        position: relative;
+        width: 45%;
+        padding: 1.5rem;
+        border-radius: 10px;
+        background-color: #1d1d1d;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .roadmap-content:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    .roadmap-item:nth-child(odd) .roadmap-content {
+        margin-left: auto;
+    }
+    
+    /* Phase circle indicator */
+    .roadmap-circle {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        left: 50%;
+        top: 20px;
+        margin-left: -20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+        color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .roadmap-item:nth-child(odd) .roadmap-circle {
+        left: calc(50% - 20px);
+    }
+    
+    .roadmap-item:nth-child(even) .roadmap-circle {
+        left: calc(50% - 20px);
+    }
+    
+    /* Phase status colors */
+    .roadmap-content.completed {
+        border-left: 5px solid #28a745;
+    }
+    
+    .roadmap-content.in-progress {
+        border-left: 5px solid #00bfff;
+    }
+    
+    .roadmap-content.upcoming {
+        border-left: 5px solid #6c757d;
+    }
+    
+    .roadmap-circle.completed {
+        background-color: #28a745;
+    }
+    
+    .roadmap-circle.in-progress {
+        background-color: #00bfff;
+    }
+    
+    .roadmap-circle.upcoming {
+        background-color: #6c757d;
+    }
+    
+    /* Phase content */
+    .phase-title {
+        margin-bottom: 0.5rem;
+        color: #fff;
+        font-weight: 700;
+    }
+    
+    .phase-period {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 1rem;
+    }
+    
+    .phase-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        border-radius: 20px;
+        margin-bottom: 1rem;
+    }
+    
+    .phase-status.completed {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+    
+    .phase-status.in-progress {
+        background-color: rgba(0, 191, 255, 0.2);
+        color: #00bfff;
+    }
+    
+    .phase-status.upcoming {
+        background-color: rgba(108, 117, 125, 0.2);
+        color: #adb5bd;
+    }
+    
+    /* Milestones */
+    .milestones-list {
+        margin-top: 1rem;
+        height: 0;
+        overflow: hidden;
+        transition: all 0.5s ease;
+    }
+    
+    .milestones-list.show {
+        height: auto;
+    }
+    
+    .milestone {
+        padding: 0.75rem;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        position: relative;
+        padding-left: 1.5rem;
+    }
+    
+    .milestone:before {
+        content: '';
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        left: 0.75rem;
+        top: 1.1rem;
+    }
+    
+    .milestone.completed:before {
+        background-color: #28a745;
+    }
+    
+    .milestone.in-progress:before {
+        background-color: #00bfff;
+    }
+    
+    .milestone.upcoming:before {
+        background-color: #6c757d;
+    }
+    
+    /* Phase toggle button */
+    .phase-toggle {
+        background-color: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .phase-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+    
+    /* Progress indicator */
+    .progress-container {
+        height: 4px;
+        width: 100%;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        margin-top: 1rem;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        width: 0;
+        border-radius: 4px;
+        transition: width 1s ease-in-out;
+    }
+    
+    .progress-bar.completed {
+        background-color: #28a745;
+    }
+    
+    .progress-bar.in-progress {
+        background-color: #00bfff;
+    }
+    
+    .progress-bar.upcoming {
+        background-color: #6c757d;
+    }
+    
+    /* Responsive corrections */
+    @media screen and (max-width: 768px) {
+        .roadmap-section::before {
+            left: 31px;
+        }
+        
+        .roadmap-content {
+            width: calc(100% - 60px);
+            margin-left: 60px !important;
+        }
+        
+        .roadmap-circle {
+            left: 30px !important;
+            margin-left: 0;
+        }
+        
+        .roadmap-item:nth-child(odd) .roadmap-content,
+        .roadmap-item:nth-child(even) .roadmap-content {
+            margin-left: 60px;
+        }
+    }
+</style></head>
+<body>
+<!-- Main Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="index.html">
+      <i class="ri-home-3-line"></i> IASE 🛰️
+    </a>
+    <button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" href="index.html">Home</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="projectDropdown" role="button" aria-expanded="false">
+            Project
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="projectDropdown">
+            <li><a class="dropdown-item" href="project-overview.html">Overview</a></li>
+            <li><a class="dropdown-item" href="technology.html">Technology &amp; Applications</a></li>
+            <li><a class="dropdown-item" href="behind.html">Behind IASE</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle active" data-bs-toggle="dropdown" href="#" id="web3Dropdown" role="button" aria-expanded="false">
+            Web3
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="web3Dropdown">
+            <li><a class="dropdown-item" href="web3.html">Web3 Integration</a></li>
+            <li><a class="dropdown-item" href="token.html">Token</a></li>
+            <li><a class="dropdown-item" href="nft.html">NFT Collection</a></li>
+            <li><a class="dropdown-item" href="staking.html">NFT Staking Platform</a></li>
+            <li><a class="dropdown-item active" href="roadmap.html">Roadmap</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="resourcesDropdown" role="button" aria-expanded="false">
+            Resources
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="resourcesDropdown">
+            <li><a class="dropdown-item" href="articles.html">Articles</a></li>
+            <li><a class="dropdown-item" href="publication.html">Publications</a></li>
+            <li><a class="dropdown-item" href="contact.html">Contact &amp; Documents</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<header class="parallax-section">
+<div class="space-background">
+  <!-- Stars will be added dynamically by space-background.js -->
+  <div class="space-fog"></div>
+</div>
+<div class="container position-relative" style="z-index: 2;">
+  <h1 data-parallax="0.1" data-direction="up">IASE Roadmap</h1>
+  <p data-parallax="0.15" data-direction="up">Milestones &amp; Development Stages</p>
+</div>
+</header>
+<div class="container mb-5">
+  <div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+      <div class="text-center mb-5">
+        <h2 class="mb-4" data-parallax="0.05" data-direction="up">Project Development Timeline</h2>
+        <p class="lead" data-parallax="0.08" data-direction="up">Follow our progress from concept to implementation</p>
+      </div>
+
+      <div class="roadmap-section perspective-container">
+        <!-- Phase 1 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle completed floating" data-float-amplitude="5px">
+            <i class="ri-flask-line"></i>
+          </div>
+          <div class="roadmap-content completed" data-parallax="0.03" data-direction="right">
+            <h3 class="phase-title">Phase 1: Foundation</h3>
+            <div class="phase-period">Q3 2022 - Q1 2023</div>
+            <span class="phase-status completed">Completed</span>
+            <p>Initial scientific research and concept development for the IASE project. Core technical framework outlined.</p>
+            <div class="progress-container">
+              <div class="progress-bar completed" data-progress="100"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="1">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-1">
+              <div class="milestone completed">
+                <strong>Initial Research:</strong> Scientific basis for autonomous space entities outlined
+              </div>
+              <div class="milestone completed">
+                <strong>Technical Paper:</strong> First technical paper published on Zenodo platform
+              </div>
+              <div class="milestone completed">
+                <strong>Requirements Gathering:</strong> Core requirements and technical specifications defined
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle completed floating" data-float-amplitude="4px">
+            <i class="ri-article-line"></i>
+          </div>
+          <div class="roadmap-content completed" data-parallax="0.025" data-direction="left">
+            <h3 class="phase-title">Phase 2: Documentation</h3>
+            <div class="phase-period">Q2 2023 - Q3 2023</div>
+            <span class="phase-status completed">Completed</span>
+            <p>Full documentation released, including whitepaper, website, and education materials. Detailed articles published on Medium.</p>
+            <div class="progress-container">
+              <div class="progress-bar completed" data-progress="100"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="2">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-2">
+              <div class="milestone completed">
+                <strong>Whitepaper Release:</strong> Comprehensive documentation published in English and Italian
+              </div>
+              <div class="milestone completed">
+                <strong>Website Launch:</strong> Official website with full documentation launched
+              </div>
+              <div class="milestone completed">
+                <strong>Medium Articles:</strong> Series of 5 detailed articles published on Medium
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle completed floating" data-float-amplitude="6px">
+            <i class="ri-coin-line"></i>
+          </div>
+          <div class="roadmap-content completed" data-parallax="0.04" data-direction="right">
+            <h3 class="phase-title">Phase 3: Token Creation</h3>
+            <div class="phase-period">Q4 2023</div>
+            <span class="phase-status completed">Completed</span>
+            <p>IASE Token created on BNB Smart Chain with verification and public smart contract deployment.</p>
+            <div class="progress-container">
+              <div class="progress-bar completed" data-progress="100"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="3">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-3">
+              <div class="milestone completed">
+                <strong>Smart Contract Development:</strong> Token smart contract created and audited
+              </div>
+              <div class="milestone completed">
+                <strong>Deployment:</strong> Token deployed on BNB Smart Chain
+              </div>
+              <div class="milestone completed">
+                <strong>Verification:</strong> Smart contract verified and published publicly
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle in-progress">
+            <i class="ri-group-line"></i>
+          </div>
+          <div class="roadmap-content in-progress">
+            <h3 class="phase-title">Phase 4: Pre-Sale & Community</h3>
+            <div class="phase-period">Q1 2024 - Q2 2024</div>
+            <span class="phase-status in-progress">In Progress</span>
+            <p>Token pre-sale launch and community building across multiple platforms. Active engagement on social media.</p>
+            <div class="progress-container">
+              <div class="progress-bar in-progress" data-progress="65"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="4">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-4">
+              <div class="milestone completed">
+                <strong>Pre-sale Launch:</strong> Private and public token pre-sale opened
+              </div>
+              <div class="milestone in-progress">
+                <strong>Community Building:</strong> Active engagement on Reddit, Telegram, and X (Twitter)
+              </div>
+              <div class="milestone in-progress">
+                <strong>Marketing Campaign:</strong> Strategic marketing to reach potential investors and partners
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle in-progress">
+            <i class="ri-nft-line"></i>
+          </div>
+          <div class="roadmap-content in-progress">
+            <h3 class="phase-title">Phase 5: NFT & Staking</h3>
+            <div class="phase-period">Q2 2024 - Q3 2024</div>
+            <span class="phase-status in-progress">In Progress</span>
+            <p>Launch of IASE Units NFT collection with staking capabilities and governance features.</p>
+            <div class="progress-container">
+              <div class="progress-bar in-progress" data-progress="40"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="5">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-5">
+              <div class="milestone completed">
+                <strong>NFT Design:</strong> IASE Units design and metadata finalized
+              </div>
+              <div class="milestone in-progress">
+                <strong>Smart Contract:</strong> NFT contract development with staking capabilities
+              </div>
+              <div class="milestone upcoming">
+                <strong>Marketplace Launch:</strong> Official NFT collection available for minting
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 6 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle upcoming">
+            <i class="ri-government-line"></i>
+          </div>
+          <div class="roadmap-content upcoming">
+            <h3 class="phase-title">Phase 6: Community Governance</h3>
+            <div class="phase-period">Q3 2024 - Q4 2024</div>
+            <span class="phase-status upcoming">Upcoming</span>
+            <p>Decentralized governance implementation, allowing community voting and decision-making on project direction.</p>
+            <div class="progress-container">
+              <div class="progress-bar upcoming" data-progress="10"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="6">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-6">
+              <div class="milestone upcoming">
+                <strong>Governance Framework:</strong> Proposal and voting system development
+              </div>
+              <div class="milestone upcoming">
+                <strong>DAO Structure:</strong> Decentralized governance organization formalized
+              </div>
+              <div class="milestone upcoming">
+                <strong>First Proposals:</strong> Initial community votes on project direction
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 7 -->
+        <div class="roadmap-item">
+          <div class="roadmap-circle upcoming">
+            <i class="ri-rocket-line"></i>
+          </div>
+          <div class="roadmap-content upcoming">
+            <h3 class="phase-title">Phase 7: IASE Simulation Framework</h3>
+            <div class="phase-period">Q1 2025 - Q3 2025</div>
+            <span class="phase-status upcoming">Upcoming</span>
+            <p>Development of the simulation architecture to test distributed AI in orbital and deep-space scenarios.</p>
+            <div class="progress-container">
+              <div class="progress-bar upcoming" data-progress="5"></div>
+            </div>
+            <div class="text-end mt-3">
+              <button class="phase-toggle" data-phase="7">Show Details <i class="ri-arrow-down-s-line"></i></button>
+            </div>
+            <div class="milestones-list" id="milestones-7">
+              <div class="milestone upcoming">
+                <strong>Technical Architecture:</strong> Core simulation framework design
+              </div>
+              <div class="milestone upcoming">
+                <strong>AI Integration:</strong> Federated learning implementation across nodes
+              </div>
+              <div class="milestone upcoming">
+                <strong>Test Scenarios:</strong> Initial space mission scenarios for testing
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer class="footer-area">
+    <div class="main-footer-area">
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col-12 col-md-6">
+            <div class="footer-widget">
+              <p>© 2025 IASE Project – All Rights Reserved</p>
+              <div class="social-links mt-4">
+                <a href="https://www.reddit.com/r/IASEproject" target="_blank" aria-label="Reddit">
+                  <i class="ri-reddit-fill"></i>
+                </a>
+                <a href="https://medium.com/@iaseproject" target="_blank" aria-label="Medium">
+                  <i class="ri-medium-fill"></i>
+                </a>
+                <a href="https://x.com/iase_project" target="_blank" aria-label="X (Twitter)">
+                  <i class="ri-twitter-x-fill"></i>
+                </a>
+                <a href="https://t.me/IASEcommunity" target="_blank" aria-label="Telegram">
+                  <i class="ri-telegram-fill"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="footer-widget">
+              <div class="footer-links">
+                <div class="d-flex justify-content-end">
+                  <a href="privacy-policy.html" class="me-4">Privacy Policy</a>
+                  <a href="cookie-policy.html">Cookie Policy</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
+<script src="js/webp-detect.js"></script>
+<script src="js/image-loader.js"></script>
+<script src="js/space-background.js"></script>
+<script src="js/parallax.js"></script>
+<script src="js/wallet-connect.js"></script>
+<script src="script.js"></script>
+<script src="js/roadmap.js"></script>
+<script src="js/init-chatbot.js"></script>
+</body>
+</html>

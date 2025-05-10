@@ -1,0 +1,195 @@
+/**
+ * Parallax and Animation Effects Styling
+ * For IASE Project Website
+ */
+
+/* Parallax background sections */
+.parallax-background {
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Depth layers for parallax */
+.layer {
+  position: relative;
+  will-change: transform;
+  transition: transform 0.1s ease-out;
+}
+
+.depth-1 {
+  z-index: 10;
+}
+
+.depth-2 {
+  z-index: 20;
+}
+
+.depth-3 {
+  z-index: 30;
+}
+
+/* Space background effect */
+.space-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(125deg, #050520 0%, #0B0B30 100%);
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-section .space-background {
+  height: 120%; /* Extra height for parallax effect */
+}
+
+.star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: twinkle var(--duration, 4s) infinite ease-in-out;
+  animation-delay: var(--delay, 0s);
+  z-index: 0;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Fog/nebula effect for space scenes */
+.space-fog {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 30% 50%, rgba(76, 0, 255, 0.15), transparent 70%),
+    radial-gradient(circle at 70% 50%, rgba(0, 247, 255, 0.15), transparent 70%),
+    radial-gradient(circle at 50% 20%, rgba(255, 0, 200, 0.1), transparent 60%);
+  opacity: 0.6;
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+  animation: fog-drift 40s infinite alternate ease-in-out;
+}
+
+@keyframes fog-drift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 10%; }
+}
+
+/* Floating elements */
+.floating {
+  animation: float 4s ease-in-out infinite;
+  position: relative;
+  transform-origin: center center;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(1deg); }
+  50% { transform: translateY(-20px) rotate(0deg); }
+  75% { transform: translateY(-10px) rotate(-1deg); }
+}
+
+/* Enhanced floating for token logo */
+.token-preview-logo.floating {
+  animation: float-spin 8s infinite ease-in-out;
+  filter: drop-shadow(0 0 10px rgba(0, 187, 255, 0.5));
+}
+
+@keyframes float-spin {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(2deg); }
+  50% { transform: translateY(-15px) rotate(0deg); }
+  75% { transform: translateY(-10px) rotate(-2deg); }
+}
+
+/* Parallax sections */
+.parallax-section {
+  position: relative;
+  overflow: hidden;
+  padding: 8rem 0;
+  z-index: 1;
+}
+
+.web3-section.parallax-section {
+  background-color: rgba(15, 15, 40, 0.9);
+  color: white;
+  padding: 4rem 0;
+}
+
+.parallax-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.parallax-content {
+  position: relative;
+  z-index: 2;
+}
+
+/* Utility classes for perspective effects */
+.perspective-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.token-preview-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+}
+
+.token-preview-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(0, 100, 255, 0.4);
+}
+
+/* Enhanced styling for token preview */
+.token-preview-header {
+  background: linear-gradient(135deg, #1a1a3a 0%, #0d0d2a 100%);
+  padding: 20px;
+  border-radius: 12px 12px 0 0;
+}
+
+.token-preview-stats {
+  background-color: rgba(30, 30, 60, 0.8);
+  backdrop-filter: blur(5px);
+}
+
+.token-stat {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.token-stat-value {
+  font-weight: bold;
+  color: #4fc3f7;
+}
+
+.token-preview-cta {
+  background: linear-gradient(to right, #1a1a3a 0%, #0d0d2a 100%);
+  padding: 15px;
+  border-radius: 0 0 12px 12px;
+}
+
+.token-preview-link {
+  color: #4fc3f7;
+  transition: color 0.3s ease;
+}
+
+.token-preview-link:hover {
+  color: #81d4fa;
+}

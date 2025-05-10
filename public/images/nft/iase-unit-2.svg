@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#050520" />
+    <stop offset="100%" stop-color="#0B0B30" />
+  </linearGradient>
+  <rect width="600" height="600" fill="url(#bg)" />
+  
+  <!-- Stars background -->
+  <g id="stars">
+    <circle cx="50" cy="70" r="1" fill="#ffffff" opacity="0.6" />
+    <circle cx="120" cy="40" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="200" cy="90" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="300" cy="30" r="2" fill="#ffffff" opacity="0.8" />
+    <circle cx="400" cy="80" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="500" cy="60" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="550" cy="120" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="80" cy="180" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="150" cy="250" r="2" fill="#ffffff" opacity="0.8" />
+    <circle cx="250" cy="180" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="350" cy="220" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="450" cy="160" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="60" cy="300" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="130" cy="380" r="2" fill="#ffffff" opacity="0.8" />
+    <circle cx="220" cy="320" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="320" cy="360" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="420" cy="330" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="500" cy="280" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="530" cy="400" r="2" fill="#ffffff" opacity="0.8" />
+    <circle cx="450" cy="440" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="380" cy="490" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="280" cy="470" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="180" cy="520" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="100" cy="480" r="2" fill="#ffffff" opacity="0.8" />
+    <circle cx="70" cy="550" r="1.2" fill="#ffffff" opacity="0.6" />
+    <circle cx="170" cy="570" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="270" cy="530" r="1.5" fill="#ffffff" opacity="0.7" />
+    <circle cx="370" cy="560" r="1" fill="#ffffff" opacity="0.5" />
+    <circle cx="470" cy="550" r="2" fill="#ffffff" opacity="0.8" />
+    <circle cx="550" cy="530" r="1.2" fill="#ffffff" opacity="0.6" />
+  </g>
+  
+  <!-- Main Unit Structure -->
+  <g id="ai-unit" transform="translate(300, 300)">
+    <!-- Central Core - Standard has simpler design -->
+    <circle cx="0" cy="0" r="70" fill="#122150" stroke="#87ceeb" stroke-width="2" />
+    <circle cx="0" cy="0" r="60" fill="#0d1838" stroke="#87ceeb" stroke-width="1" />
+    
+    <!-- Core Energy - Standard has less vibrant energy -->
+    <circle cx="0" cy="0" r="40" fill="url(#coreGradient)" />
+    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#87ceeb" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#4682b4" stop-opacity="0.3" />
+    </linearGradient>
+    
+    <!-- Core Details -->
+    <circle cx="0" cy="0" r="20" fill="#87ceeb" opacity="0.6" />
+    
+    <!-- Orbital Ring - Standard has simpler ring -->
+    <circle cx="0" cy="0" r="110" fill="none" stroke="#4682b4" stroke-width="1" stroke-dasharray="2,3" opacity="0.5" />
+    
+    <!-- Standard Panels - Simpler design for Standard Tier -->
+    <g id="panels">
+      <!-- Top Panel -->
+      <rect x="-25" y="-140" width="50" height="30" rx="3" fill="#87ceeb" opacity="0.3" stroke="#87ceeb" stroke-width="1" />
+      
+      <!-- Right Panel -->
+      <rect x="110" y="-25" width="30" height="50" rx="3" fill="#87ceeb" opacity="0.3" stroke="#87ceeb" stroke-width="1" />
+      
+      <!-- Bottom Panel -->
+      <rect x="-25" y="110" width="50" height="30" rx="3" fill="#87ceeb" opacity="0.3" stroke="#87ceeb" stroke-width="1" />
+      
+      <!-- Left Panel -->
+      <rect x="-140" y="-25" width="30" height="50" rx="3" fill="#87ceeb" opacity="0.3" stroke="#87ceeb" stroke-width="1" />
+    </g>
+    
+    <!-- Connecting Lines -->
+    <line x1="0" y1="-70" x2="0" y2="-110" stroke="#87ceeb" stroke-width="1" opacity="0.5" />
+    <line x1="70" y1="0" x2="110" y2="0" stroke="#87ceeb" stroke-width="1" opacity="0.5" />
+    <line x1="0" y1="70" x2="0" y2="110" stroke="#87ceeb" stroke-width="1" opacity="0.5" />
+    <line x1="-70" y1="0" x2="-110" y2="0" stroke="#87ceeb" stroke-width="1" opacity="0.5" />
+    
+    <!-- Energy Flows - Simpler for Standard -->
+    <circle cx="0" cy="0" r="90" fill="none" stroke="#87ceeb" stroke-width="1" opacity="0.2" />
+  </g>
+  
+  <!-- IASE NFT Unit ID -->
+  <g id="unit-label" transform="translate(300, 550)">
+    <rect x="-100" y="-25" width="200" height="40" rx="20" fill="#0a0a20" opacity="0.8" stroke="#87ceeb" stroke-width="1" />
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">IASE UNIT #843</text>
+  </g>
+  
+  <!-- Standard Tier Label -->
+  <g id="tier-label" transform="translate(300, 45)">
+    <rect x="-70" y="-20" width="140" height="40" rx="20" fill="#0a0a20" opacity="0.8" stroke="#87ceeb" stroke-width="1" />
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="16" fill="#87ceeb" text-anchor="middle" dominant-baseline="middle">STANDARD</text>
+  </g>
+</svg>

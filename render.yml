@@ -4,11 +4,13 @@ services:
     name: iase-project-web
     env: node
     buildCommand: npm install && npm run build
-    startCommand: node simple-memory-server.js
+    startCommand: node fixed-memory-server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: USE_MEMORY_DB
+        value: "true"
+      - key: SKIP_DB_CONNECTION
         value: "true"
       - key: SESSION_SECRET
         generateValue: true
@@ -28,11 +30,13 @@ services:
     env: node
     schedule: "0 0 * * *"  # Run at midnight every day
     buildCommand: npm install
-    startCommand: USE_MEMORY_DB=true node server/services/staking-job.js
+    startCommand: node server/services/staking-mem-job.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: USE_MEMORY_DB
+        value: "true"
+      - key: SKIP_DB_CONNECTION
         value: "true"
       - key: ETH_NETWORK_URL
         value: https://eth.drpc.org

@@ -3,7 +3,7 @@ services:
   - type: web
     name: iase-project-web
     env: node
-    buildCommand: npm install
+    buildCommand: npm install && npm install dotenv
     startCommand: node server-fix.js
     envVars:
       # Configurazione ambiente

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta content="Discover IASE Token, the native currency of the IASE autonomous ecosystem. Learn how to add it to MetaMask and explore its future utility in space AI infrastructure." name="description"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<link href="favicon.png" rel="icon" type="image/png"/>
+<link href="favicon.png" rel="apple-touch-icon"/>
+<link href="favicon.png" rel="icon" sizes="96x96" type="image/png"/>
+<title>IASE Project - Token</title>
+<link href="styles.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #121212;
+            color: #f0f0f0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        header {
+            padding: 2rem 0;
+            text-align: center;
+            background-color: #1a1a1a;
+            color: #00bfff;
+        }
+        section {
+            padding: 3rem 1rem;
+        }
+        .step {
+            margin-bottom: 2rem;
+            border-left: 4px solid #00bfff;
+            padding-left: 1rem;
+        }
+        .step.complete {
+            border-color: #555;
+            color: #999;
+        }
+        .step.now {
+            background-color: #1d1d1d;
+            border-left: 4px solid #00ffcc;
+            padding: 1rem;
+            border-radius: 6px;
+        }
+        h2, h3 {
+            color: #00bfff;
+            margin-bottom: 1rem;
+        }
+        footer {
+            background-color: #222;
+            padding: 2rem 0;
+            text-align: center;
+            color: #ccc;
+        }
+    </style>
+<link href="menu.css" rel="stylesheet"/></head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
+<a class="navbar-brand" href="index.html">
+  <i class="fas fa-home"></i> IASE 🛰️
+</a>
+<button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button">
+<span class="navbar-toggler-icon"></span>
+</button>
+<div class="collapse navbar-collapse" id="navbarContent">
+<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+<li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+<li class="nav-item dropdown">
+<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="projectDropdown" role="button">
+          Project
+        </a>
+<ul class="dropdown-menu">
+<li><a class="dropdown-item" href="project-overview.html">Overview</a></li>
+<li><a class="dropdown-item" href="technology.html">Technology &amp; Applications</a></li>
+<li><a class="dropdown-item" href="Behind.html">Behind IASE</a></li>
+</ul>
+</li>
+<li class="nav-item dropdown">
+<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="web3Dropdown" role="button">
+          Web3
+        </a>
+<ul class="dropdown-menu">
+<li><a class="dropdown-item" href="Web3.html">Web3 Integration</a></li>
+<li><a class="dropdown-item" href="token.html">Token</a></li>
+<li><a class="dropdown-item" href="Nft.html">NFT &amp; Staking</a></li>
+<li><a class="dropdown-item" href="roadmap.html">Roadmap</a></li>
+</ul>
+</li>
+<li class="nav-item dropdown">
+<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="resourcesDropdown" role="button">
+          Resources
+        </a>
+<ul class="dropdown-menu">
+<li><a class="dropdown-item" href="articles.html">Articles</a></li>
+<li><a class="dropdown-item" href="publication.html">Publications</a></li>
+<li><a class="dropdown-item" href="contact.html">Contact &amp; Documents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+<header>
+<h1>IASE Token</h1>
+<p>Utility, Pre-Sale and Technical Details of the IASE Crypto Asset</p>
+</header>
+<script>
+function toggleMenu() {
+    var menu = document.getElementById('menu');
+    menu.classList.toggle('show');
+}
+</script>
+
+<!-- SEZIONE CENTRALE TOKEN -->
+<div style="padding: 40px 20px; text-align: center; color: white;">
+<!-- LOGO -->
+<img alt="IASE Token Logo" src="images/iase-token-logo.png" style="max-width: 150px; margin-bottom: 20px;"/>
+<!-- DESCRIZIONE -->
+<h1>IASE Token</h1>
+<p style="max-width: 700px; margin: auto; font-size: 18px;">
+    IASE Token is the core currency of the IASE autonomous ecosystem, enabling future interactions between AI units and decentralized infrastructures in space and beyond. It is now live on the BNB Smart Chain.
+  </p>
+<!-- === ADD TO METAMASK === -->
+<div style="margin-top: 30px;">
+<button onclick="addTokenToMetaMask()" style="padding: 10px 20px; background-color: #f0b90b; color: black; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">
+    Add IASE Token to MetaMask
+  </button>
+<p id="metamask-status" style="margin-top: 10px; color: white;"></p>
+<p style="margin-top: 10px; font-size: 0.9em; color: #ccc; font-style: italic;">
+  * Note: Only MetaMask supports automatic token import.  
+  If you're using a different wallet, you'll need to add the token manually.  
+  You can find a simple guide in the FAQ section at the bottom of this page.
+</p>
+</div>
+<script>
+  async function addTokenToMetaMask() {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask) {
+      try {
+        const wasAdded = await window.ethereum.request({
+          method: 'wallet_watchAsset',
+          params: {
+            type: 'ERC20',
+            options: {
+              address: '0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE',
+              symbol: 'IASE',
+              decimals: 18,
+              image: 'https://iaseproject.com/images/iase-token-logo.png',
+            },
+          },
+        });
+
+        document.getElementById("metamask-status").innerText = wasAdded
+          ? "IASE Token successfully added to MetaMask."
+          : "Token import cancelled by user.";
+      } catch (error) {
+        console.error(error);
+        document.getElementById("metamask-status").innerText = "Error: " + error.message;
+      }
+    } else {
+      document.getElementById("metamask-status").innerHTML = `
+  MetaMask is not available or not connected.<br>
+  Make sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.<br>
+  <a href="https://metamask.io/download.html" target="_blank" style="color: #f0b90b;">Click here to install MetaMask or open the app.</a>
+`;
+    }
+  }
+</script>
+<!-- INFO TOKEN -->
+<div style="margin-top: 40px; background-color: #333; padding: 30px; border-radius: 10px; max-width: 800px; margin-left: auto; margin-right: auto;">
+<h2>Token Information</h2>
+<p><strong>Contract:</strong>
+<a href="https://bscscan.com/token/0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE" style="color: #1DA1F2; word-break: break-all;" target="_blank">
+      0x5A17...52CE
+    </a>
+<button onclick="copyToClipboard()" style="background: none; border: none; cursor: pointer;">
+<img alt="Copy" src="https://cdn-icons-png.flaticon.com/512/1827/1827951.png" style="margin-left: 6px; vertical-align: middle;" width="18"/>
+</button>
+</p>
+<p><strong>Network:</strong> BNB Smart Chain</p>
+<p><strong>Symbol:</strong> IASE</p>
+<p><strong>Decimals:</strong> 18</p>
+<p><strong>Total Supply:</strong> 1,000,000,000 IASE</p>
+<p>
+<a href="https://poocoin.app/tokens/0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE" style="color: #1DA1F2;" target="_blank">View on Poocoin</a> |
+    <a href="https://bscscan.com/token/0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE" style="color: #1DA1F2;" target="_blank">View on BscScan</a>
+</p>
+</div>
+<script>
+  function copyToClipboard() {
+    const contractAddress = "0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE";
+    navigator.clipboard.writeText(contractAddress).then(() => {
+      alert("IASE contract address copied to clipboard!");
+    });
+  }
+</script>
+<!-- PREVENDITA -->
+<div style="margin-top: 40px; background-color: #333; padding: 30px; border-radius: 10px; max-width: 800px; margin-left: auto; margin-right: auto;">
+<h2>Pre-Sale is Live</h2>
+<p style="font-size: 18px;">
+  Join the IASE journey early by purchasing tokens directly through the official smart contract form before the public listing expands!
+</p>
+<p><strong>Conversion Rate:</strong> 0.1 BNB = 100,000 IASE</p>
+<p><strong>Purchase Limit:</strong> Min 0.05 BNB – Max 10 BNB per wallet</p>
+<p><strong>Soft Cap:</strong> 25 BNB</p>
+<p><strong>Hard Cap:</strong> 150 BNB</p>
+<div style="margin-top: 30px; padding: 20px; background-color: #222; border-radius: 10px;">
+<h3 style="margin-bottom: 10px;">Buy Tokens</h3>
+<p>Connect your wallet and purchase IASE directly by entering the amount of BNB you want to spend. Tokens will be instantly sent to your wallet.</p>
+<!-- WALLET CONNECT + FORM -->
+<div id="wallet-interface" style="margin-top: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+<button id="connectButton" style="padding: 10px 15px; background-color: orange; color: black; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; display: inline-block;">
+    Connect Wallet
+  </button>
+<div id="walletInfo" style="display: none; margin-top: 15px; color: #ccc;">
+    Wallet connected: <span id="shortWallet"></span>
+</div>
+<form id="presaleForm" style="display: none; margin-top: 20px;">
+<label for="bnbAmount">Amount in BNB (min 0.05 – max 10):</label><br/>
+<input id="bnbAmount" max="10" min="0.05" oninvalid="return false;" placeholder="Enter amount in BNB" required="" step="0.01" style="padding: 8px; width: 200px; margin-top: 5px; border-radius: 5px;" type="number"/><br/><br/>
+<div id="estimate" style="color: #f0b90b; margin-bottom: 10px;"></div>
+<button style="padding: 10px 20px; background-color: #4caf50; color: #fff; border: none; border-radius: 5px; cursor: pointer;" type="submit">
+      Buy IASE Tokens
+    </button>
+</form>
+</div>
+<!-- FINESTRA AVVISO RANGE -->
+<div id="rangeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.8); z-index:1000;">
+<div style="background:#fff; color:#000; padding:20px; max-width:400px; margin:100px auto; border-radius:10px; text-align:center;">
+<p id="rangeModalText" style="font-size:16px;">Amount must be between 0.05 and 10 BNB.</p>
+<button onclick="document.getElementById('rangeModal').style.display='none';" style="margin-top:20px; padding:8px 16px; background-color:#ff9800; color:#fff; border:none; border-radius:5px; cursor:pointer;">OK</button>
+</div>
+</div>
+<script>
+const conversionRate = 1000000; // 1 BNB = 1,000,000 IASE
+const minBNB = 0.05;
+const maxBNB = 10;
+
+// Mostra finestra range personalizzata
+const showRangeModal = (msg) => {
+  document.getElementById('rangeModalText').innerText = msg;
+  document.getElementById('rangeModal').style.display = 'block';
+};
+
+// Connessione wallet
+const connectWallet = async () => {
+  if (window.ethereum) {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const userAddress = accounts[0];
+    window.userAddress = userAddress;
+      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+      document.getElementById('shortWallet').innerText = shortAddress;
+
+      document.getElementById('walletInfo').style.display = 'block';
+      document.getElementById('connectButton').style.display = 'none';
+      document.getElementById('presaleForm').style.display = 'block';
+
+      // Ascolta eventi di disconnessione
+      window.ethereum.on('accountsChanged', function (accounts) {
+        if (!accounts.length) {
+          document.getElementById('walletInfo').style.display = 'none';
+          document.getElementById('connectButton').style.display = 'block';
+          document.getElementById('presaleForm').style.display = 'none';
+        }
+      });
+    } catch (error) {
+      alert('Connection rejected.');
+    }
+  } else {
+    alert("MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.");
+  }
+};
+
+// Bottone connessione
+document.getElementById('connectButton').addEventListener('click', connectWallet);
+
+// Calcolo conversione + validazione live
+document.getElementById('bnbAmount').addEventListener('input', function () {
+  const bnb = parseFloat(this.value.replace(",", "."));
+  const estimateDiv = document.getElementById('estimate');
+
+  if (bnb >= minBNB && bnb <= maxBNB) {
+    const iase = bnb * conversionRate;
+    estimateDiv.innerText = `You will receive: ${iase.toLocaleString()} IASE`;
+  } else if (bnb > maxBNB) {
+    estimateDiv.innerText = `Max limit is ${maxBNB} BNB`;
+  } else if (bnb > 0 && bnb < minBNB) {
+    estimateDiv.innerText = `Min limit is ${minBNB} BNB`;
+  } else {
+    estimateDiv.innerText = '';
+  }
+});
+
+// Gestione click diretto sul pulsante con validazione custom
+document.querySelector('#presaleForm button[type="submit"]').addEventListener('click', function (e) {
+  const amount = parseFloat(document.getElementById('bnbAmount').value.replace(",", "."));
+  if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
+    e.preventDefault(); // Evita che il form HTML5 blocchi o resetti
+    showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
+    return false;
+  }
+});
+
+// Se l'importo è valido, qui puoi eventualmente chiamare la funzione di invio al contratto
+document.getElementById('presaleForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const amount = parseFloat(document.getElementById('bnbAmount').value.replace(",", "."));
+  if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
+    showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
+    return;
+  }
+
+  const web3 = new Web3(window.ethereum);
+  const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+  try {
+    const tx = await contract.methods.buyTokens().send({
+      from: window.userAddress,
+      value: web3.utils.toWei(amount.toString(), 'ether')
+    });
+
+    // Mostra notifica di successo
+    const estimateDiv = document.getElementById('estimate');
+    estimateDiv.innerText = "Purchase completed! Tokens have been sent.";
+
+    // Chiudi modale e resetta campo input
+    document.getElementById("rangeModal").style.display = "none";
+    document.getElementById("bnbAmount").value = "";
+    estimateDiv.style.color = "#00ff99";
+
+    // Reset UI
+    document.getElementById('walletInfo').style.display = 'block';
+    document.getElementById('connectButton').style.display = 'none';
+    document.getElementById('presaleForm').style.display = 'block';
+
+
+  } catch (error) {
+    console.error("Transaction error:", error);
+
+    // Messaggio errore
+    document.getElementById("rangeModal").style.display = "none";
+    document.body.style.overflow = 'auto';
+
+    // Mostra errore sulla UI
+    const estimateDiv = document.getElementById('estimate');
+    estimateDiv.innerText = "Transaction failed. Please try again.";
+    estimateDiv.style.color = "#ff4444";
+  }
+});
+
+
+// Blocco tasto INVIO fuori range
+document.getElementById('bnbAmount').addEventListener('keypress', function (e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const amount = parseFloat(this.value.replace(",", "."));
+    if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
+      showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
+      return false;
+    }
+  }
+});</script>
+</div>
+</div>
+
+<h1>IASE Roadmap</h1>
+<p>Milestones &amp; Development Stages</p>
+
+<div class="container">
+<section>
+<h2>Timeline</h2>
+<div class="step complete">
+<h5>✓ Concept and Scientific Research</h5>
+<p>Initial concept developed and research published on Zenodo.</p>
+</div>
+<div class="step complete">
+<h5>✓ Website, Articles &amp; Whitepaper</h5>
+<p>Official site launched with full documentation and 5 detailed Medium articles.</p>
+</div>
+<div class="step complete">
+<h5>✓ Token Creation on BNB Chain</h5>
+<p>IASE Token deployed and verified. Smart contract publicly available.</p>
+</div>
+<div class="step now">
+<h5>→ Pre-Sale &amp; Community Growth</h5>
+<p>Token pre-sale in progress. Community engagement and communication on social platforms.</p>
+</div>
+<div class="step now">
+<h5>→ NFT Collection &amp; Staking</h5>
+<p>Launch of IASE Units, the official NFT series with staking and governance features.</p>
+</div>
+<div class="step">
+<h5>Upcoming: Community Governance</h5>
+<p>Open proposals, voting system and decentralized decision-making mechanisms.</p>
+</div>
+<div class="step">
+<h5>Upcoming: IASE Simulation Framework</h5>
+<p>Development of the IASE simulation architecture to test distributed intelligence in space scenarios.</p>
+</div>
+</section>
+</div>
+</div>
+<!-- FAQ SECTION -->
+<div style="padding: 40px 20px; color: white; max-width: 800px; margin: 0 auto;">
+<h2 style="text-align: center; margin-bottom: 30px; color: #00bfff;">
+    IASE Token – FAQ (Frequently Asked Questions)
+  </h2>
+<style>
+    .faq-item {
+      border-bottom: 1px solid #444;
+      padding: 15px 0;
+    }
+
+    .faq-question {
+      font-weight: bold;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .faq-question::after {
+      content: '▼';
+      position: absolute;
+      right: 0;
+      font-size: 12px;
+      transition: transform 0.3s;
+    }
+
+    .faq-question.active::after {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      display: none;
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    .faq-answer ul {
+      margin-left: 20px;
+    }
+  </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const questions = document.querySelectorAll('.faq-question');
+      questions.forEach(q => {
+        q.addEventListener('click', () => {
+          q.classList.toggle('active');
+          const answer = q.nextElementSibling;
+          answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+        });
+      });
+    });
+  </script>
+<div class="faq-item">
+<div class="faq-question">1. How can I import the IASE Token into my wallet?</div>
+<div class="faq-answer">
+      MetaMask allows automatic import via the button at the top of this page.<br/><br/>
+      If you are using a different wallet, you’ll need to manually import the token by entering the following details:
+      <ul>
+<li><strong>Network:</strong> BNB Smart Chain (BSC)</li>
+<li style="word-break: break-word; font-size: 14px;">
+<strong>Contract Address:</strong> 0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE
+</li>
+<li><strong>Token Symbol:</strong> IASE</li>
+<li><strong>Decimals:</strong> 18</li>
+</ul>
+      Open your wallet, find the “Import Token” or “Add Custom Token” section, and enter the details above to add IASE Token to your wallet.
+    </div>
+</div>
+<div class="faq-item">
+<div class="faq-question">2. Can I participate using any wallet?</div>
+<div class="faq-answer">
+      Yes. You can use any BNB Chain-compatible wallet (such as MetaMask, Trust Wallet, SafePal, etc.).<br/>
+      However, the automatic import feature is only supported by MetaMask.<br/>
+      All wallets must support Web3 connection for the pre-sale form to function.
+    </div>
+</div>
+<div class="faq-item">
+<div class="faq-question">3. What happens if the minimum or maximum purchase limits are not respected?</div>
+<div class="faq-answer">
+      The system will block any transaction attempt outside the allowed range (min 0.05 BNB, max 10 BNB per wallet).<br/>
+      You’ll be notified instantly and prevented from proceeding until you enter a valid amount.
+    </div>
+</div>
+<div class="faq-item">
+<div class="faq-question">4. What happens after I send BNB during the pre-sale?</div>
+<div class="faq-answer">
+      Your IASE Tokens will be automatically sent to your wallet address after your BNB contribution is received and validated.<br/>
+      Make sure to double-check your wallet is connected before submitting.
+    </div>
+</div>
+</div>
+<footer class="text-center mt-5">
+<div style="background-color:#222; padding: 2rem 0; color: #ccc;">
+<p>© 2025 IASE Project – All Rights Reserved</p>
+<p style="margin: 0;">
+<a href="https://www.reddit.com/r/IASEproject" style="color: #00bfff; text-decoration: none;" target="_blank">Reddit</a> |
+      <a href="https://medium.com/@iaseproject" style="color: #00bfff; text-decoration: none;" target="_blank">Medium</a> |
+      <a href="https://x.com/iase_project" style="color: #00bfff; text-decoration: none;" target="_blank">X</a> |
+      <a href="https://t.me/IASEtoken" style="color: #00bfff; text-decoration: none;" target="_blank">Telegram</a>
+</p>
+</div>
+<div style="margin-top: 20px;">
+<a href="privacy-policy.html" style="color:#aaa; margin-right: 15px;">Privacy Policy</a>
+<a href="cookie-policy.html" style="color:#aaa;">Cookie Policy</a>
+</div>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+<script>
+const CONTRACT_ADDRESS = "0x54799bAf11ff48a2662F0f65C09A18D96851cF3B";
+const ABI = [
+	{
+		"inputs": [],
+		"name": "buyTokens",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_token",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_endTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawUnsoldTokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "contributions",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "endTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getTokenBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxBNB",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxPerWallet",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "minBNB",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "rate",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "token",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+  
+
+</script></body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</html>

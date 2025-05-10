@@ -1,0 +1,28 @@
+
+/* MENU STYLES */
+.navbar {
+  background-color: #000 !important;
+}
+
+.navbar .nav-link,
+.navbar .navbar-brand {
+  color: #f0f0f0 !important;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navbar .nav-link:hover,
+.navbar .dropdown-item:hover {
+  color: #00bfff !important;
+}
+
+.navbar .dropdown-menu {
+  background-color: #111;
+  border: 1px solid #333;
+}
+
+.navbar .dropdown-item {
+  color: #f0f0f0 !important;
+  font-weight: 400;
+}

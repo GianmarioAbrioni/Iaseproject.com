@@ -1,29 +1,52 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+/**
+ * IASE Project - Configurazione PostgreSQL
+ *
+ * Configurazione standard per la connessione al database PostgreSQL su Render.
+ * Usa il driver pg standard (non Neon) per massima compatibilità.
+ */
+import pg from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// Configurazione SSL per Render
+const isProduction = process.env.NODE_ENV === 'production';
+const sslConfig = isProduction ? { rejectUnauthorized: false } : false;
+
+// Configurazione di connessione PostgreSQL
+const pgConfig = {
+  // Usa DATABASE_URL se specificato, altrimenti configura per l'interno di Render
+  connectionString: process.env.DATABASE_URL || "postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a/iaseproject",
+  // Impostazioni di connessione
+  max: 20, // massimo numero di client nel pool
+  idleTimeoutMillis: 30000, // tempo massimo di inattività
+  connectionTimeoutMillis: 10000, // timeout connessione
+  ssl: sslConfig
+};
 
 // Verifica presenza variabile ambiente DATABASE_URL
 if (!process.env.DATABASE_URL) {
-  console.error("⚠️ DATABASE_URL non impostata - utilizzando database interno");
+  console.warn("⚠️ DATABASE_URL non impostata - utilizzando configurazione interna");
 }
 
-// Pool di connessione
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 20, // massimo numero di client nel pool
-  idleTimeoutMillis: 30000, // tempo massimo di inattività
-  connectionTimeoutMillis: 10000 // timeout connessione
-});
+// Inizializza il pool di connessione PostgreSQL
+console.log("📊 Inizializzazione connessione al database PostgreSQL");
+export const pool = new pg.Pool(pgConfig);
 
 // Test connessione al database
 pool.query('SELECT NOW()')
-  .then(() => console.log('✅ Connessione al database PostgreSQL stabilita con successo'))
+  .then(res => {
+    console.log(`✅ Connessione al database PostgreSQL stabilita: ${res.rows[0].now}`);
+  })
   .catch(err => {
-    console.error('⚠️ Connessione database:', err.message);
-    console.log('ℹ️ Il database verrà configurato automaticamente su Render');
+    console.error(`❌ Errore di connessione al database: ${err.message}`);
+    
+    // Registra dettagli di connessione per debug (senza esporre la password)
+    const configForLog = { ...pgConfig };
+    if (configForLog.connectionString) {
+      configForLog.connectionString = configForLog.connectionString.replace(/:[^:@]*@/, ':***@');
+    }
+    console.log('ℹ️ Configurazione connessione:', configForLog);
   });
 
-export const db = drizzle({ client: pool, schema });
+// Configura Drizzle ORM
+export const db = drizzle(pool, { schema });

@@ -1,8 +1,8 @@
 /**
- * IASE Project - Server Entry Point (PostgreSQL)
+ * IASE Project - Server Entry Point (PostgreSQL - Compiled)
  * 
- * Questo file avvia l'applicazione IASE Project con PostgreSQL su Render.
- * Utilizza il database PostgreSQL come storage principale per tutte le operazioni.
+ * Versione ottimizzata per la produzione con path assoluti
+ * per garantire la compatibilità con Render.
  */
 
 // FIX IMPORTANTE: Imposta esplicitamente host di database
@@ -28,22 +28,5 @@ console.log("⚙️ Modalità: POSTGRESQL Database");
 console.log("🌐 Ambiente: PRODUCTION");
 console.log(`📊 Database: ${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`);
 
-// Importa il server standard (non quello no-db)
-// Usa il file JavaScript invece del TypeScript
-const serverPath = "./dist/index.js";
-import(serverPath)
-  .then(() => {
-    console.log("✅ Applicazione avviata con successo utilizzando PostgreSQL");
-  })
-  .catch((err) => {
-    console.error("❌ Errore durante l'avvio:", err);
-    // Prova path alternativo se il primo fallisce
-    import("./server/index.js")
-      .then(() => {
-        console.log("✅ Applicazione avviata con successo utilizzando path alternativo");
-      })
-      .catch((err2) => {
-        console.error("❌ Errore anche con path alternativo:", err2);
-        process.exit(1);
-      });
-  });
+// Importa il server compilato
+import "./dist/index.js";

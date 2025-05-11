@@ -385,8 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Verifica iniziale dello stato wallet
   checkWalletStatus();
   
-  // Configura verifica periodica dello stato wallet
-  setInterval(checkWalletStatus, 3000);
+  // NOTA: La verifica periodica è ora gestita da staking-wallet-connector.js
   
   /**
    * Verifica lo stato attuale del wallet
@@ -432,10 +431,21 @@ document.addEventListener('DOMContentLoaded', () => {
       dashboardWalletAddress.textContent = shortAddress;
     }
     
+    // Aggiorna stato wallet nel wallet-connection-section
+    const walletStatusText = document.getElementById('walletStatusText');
+    const walletAddress = document.getElementById('walletAddress');
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
+    
+    if (walletStatusText) walletStatusText.textContent = 'Wallet connected';
+    if (walletStatusText) walletStatusText.classList.add('connected');
+    if (walletAddress) walletAddress.textContent = address.substring(0, 6) + '...' + address.substring(address.length - 4);
+    if (connectWalletBtn) connectWalletBtn.classList.add('hidden');
+    if (disconnectWalletBtn) disconnectWalletBtn.classList.remove('hidden');
+    
     // Carica gli NFT disponibili
-    setTimeout(() => {
-      loadAvailableNfts();
-    }, 500);
+    console.log('Loading NFTs after wallet connection');
+    loadAvailableNfts();
   }
   
   /**
@@ -448,6 +458,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stakingDashboard) {
       stakingDashboard.classList.add('hidden');
     }
+    
+    // Aggiorna stato wallet nel wallet-connection-section
+    const walletStatusText = document.getElementById('walletStatusText');
+    const walletAddress = document.getElementById('walletAddress');
+    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
+    
+    if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
+    if (walletStatusText) walletStatusText.classList.remove('connected');
+    if (walletAddress) walletAddress.textContent = '';
+    if (connectWalletBtn) connectWalletBtn.classList.remove('hidden');
+    if (disconnectWalletBtn) disconnectWalletBtn.classList.add('hidden');
   }
   
   /**
@@ -540,16 +562,31 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function loadStakedNfts() {
     try {
-      const response = await fetch('/api/staking/staked');
+      // Ottieni l'indirizzo wallet connesso
+      const walletAddress = window.WALLET_STATE?.address || 
+                           window.ethereum?.selectedAddress ||
+                           window.userWalletAddress;
+      
+      if (!walletAddress) {
+        console.log("Nessun wallet connesso, impossibile caricare NFT in staking");
+        return;
+      }
+      
+      console.log("Fetching staked NFTs for wallet:", walletAddress);
+      const response = await fetch(`/api/staking/get-staked-nfts?wallet=${walletAddress}`);
       
       if (!response.ok) {
         throw new Error('Errore durante il recupero degli NFT in staking');
       }
       
       const data = await response.json();
+      console.log("Staked NFTs data received:", data);
       stakedNfts = data.stakes || [];
       
       renderStakedNfts();
+      
+      // Aggiorna anche il sommario della dashboard
+      updateDashboardSummary();
       
     } catch (error) {
       console.error('Load staked NFTs error:', error);
@@ -717,8 +754,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Pulisci il container
     if (!availableNftGrid) {
-      console.error("NFT grid not found in the DOM");
-      return;
+      console.error("NFT grid not found, trying with ID from HTML");
+      availableNftGrid = document.getElementById('availableNftsContainer');
+      if (!availableNftGrid) {
+        console.error("NFT grid not found in the DOM");
+        return;
+      }
+    }
+    
+    // Mostra la dashboard quando si rendereizzano gli NFT
+    const stakingDashboard = document.getElementById('stakingDashboard');
+    if (stakingDashboard && stakingDashboard.classList.contains('hidden')) {
+      console.log("Removing hidden class from staking dashboard");
+      stakingDashboard.classList.remove('hidden');
     }
     
     availableNftGrid.innerHTML = '';
@@ -726,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!availableNfts || availableNfts.length === 0) {
       availableNftGrid.innerHTML = `
         <div class="empty-state">
-          <i class="fas fa-search"></i>
+          <i class="ri-search-line"></i>
           <h3>Nessun NFT disponibile</h3>
           <p>Collega il tuo wallet per visualizzare i tuoi IASE Units disponibili per lo staking.</p>
         </div>

@@ -63,6 +63,20 @@ document.addEventListener('DOMContentLoaded', function() {
  * Inserisce componente wallet nell'header
  */
 function insertWalletComponent() {
+  // Sulla pagina di staking, non inseriamo il wallet nella navbar
+  // Questo perché la pagina staking ha già il suo pulsante di connessione specifico
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  if (currentPage === 'staking.html') {
+    // Nella pagina staking, aggiungi solo gli event listener al pulsante esistente
+    const connectEthWalletBtn = document.getElementById('connectWalletBtn');
+    if (connectEthWalletBtn) {
+      connectEthWalletBtn.addEventListener('click', connectWallet);
+      console.log('Event listener per connessione wallet aggiunto al pulsante nella pagina staking');
+    }
+    return;
+  }
+  
+  // Per altre pagine, continua con l'inserimento del componente nella navbar
   // Verifica se il componente esiste già
   if (document.getElementById('wallet-component')) return;
   

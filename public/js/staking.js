@@ -4,50 +4,65 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Elementi UI
-  const authSection = document.getElementById('authSection');
-  const stakingDashboard = document.getElementById('stakingDashboard');
-  const loginForm = document.getElementById('loginForm');
-  const registerForm = document.getElementById('registerForm');
-  const authTabs = document.querySelectorAll('.auth-tab-btn');
-  const dashboardTabs = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
-  const stakedNftGrid = document.getElementById('stakedNftGrid');
-  const availableNftGrid = document.getElementById('availableNftGrid');
-  const rewardsHistoryTable = document.getElementById('rewardsHistoryTable');
-  const emptyRewardsState = document.getElementById('emptyRewardsState');
-  const claimAllBtn = document.getElementById('claimAllBtn');
-  const totalStakedNfts = document.getElementById('totalStakedNfts');
-  const totalRewards = document.getElementById('totalRewards');
-  const dailyRewards = document.getElementById('dailyRewards');
-  const pendingRewards = document.getElementById('pendingRewards');
-  
-  // Modali
-  const stakingModal = document.getElementById('stakingModal');
-  const unstakingModal = document.getElementById('unstakingModal');
-  const confirmStakeBtn = document.getElementById('confirmStakeBtn');
-  const confirmUnstakeBtn = document.getElementById('confirmUnstakeBtn');
-  // Element might not exist yet, we'll check before using it
-  const claimAndUnstakeBtn = document.getElementById('claimAndUnstakeBtn');
-  const closeModalBtns = document.querySelectorAll('.close-modal, .close-modal-btn');
-  
-  // Correggi gli IDs per riferimenti corretti agli elementi HTML
-  if (!stakedNftGrid && document.getElementById('stakedNftsContainer')) {
-    stakedNftGrid = document.getElementById('stakedNftsContainer');
-  }
-  
-  if (!availableNftGrid && document.getElementById('availableNftsContainer')) {
-    availableNftGrid = document.getElementById('availableNftsContainer');
-  }
-  
-  if (!emptyRewardsState && document.getElementById('rewardsEmptyState')) {
-    emptyRewardsState = document.getElementById('rewardsEmptyState');
-  }
+  console.log("🚀 IASE Staking Platform initialized");
   
   // Stato dell'applicazione
+  window.stakedNfts = [];
+  window.availableNfts = [];
+  
+  // Elementi UI - dichiarazione globale per accessibilità da altre funzioni
+  window.authSection = document.getElementById('authSection');
+  window.stakingDashboard = document.getElementById('stakingDashboard');
+  window.loginForm = document.getElementById('loginForm');
+  window.registerForm = document.getElementById('registerForm');
+  window.authTabs = document.querySelectorAll('.auth-tab-btn');
+  window.dashboardTabs = document.querySelectorAll('.tab-btn');
+  window.tabContents = document.querySelectorAll('.tab-content');
+  window.stakedNftGrid = document.getElementById('stakedNftGrid');
+  window.availableNftGrid = document.getElementById('availableNftGrid');
+  window.rewardsHistoryTable = document.getElementById('rewardsHistoryBody');
+  window.emptyRewardsState = document.getElementById('rewardsEmptyState');
+  window.claimAllBtn = document.getElementById('claimAllBtn');
+  window.totalStakedNfts = document.getElementById('totalStakedNfts');
+  window.totalRewards = document.getElementById('totalRewards');
+  window.dailyRewards = document.getElementById('dailyRewards');
+  window.pendingRewards = document.getElementById('pendingRewards');
+  
+  // Modali per azioni di staking
+  window.stakingModal = document.getElementById('stakingModal');
+  window.unstakingModal = document.getElementById('unstakingModal');
+  window.confirmStakeBtn = document.getElementById('confirmStakeBtn');
+  window.confirmUnstakeBtn = document.getElementById('confirmUnstakeBtn');
+  window.claimAndUnstakeBtn = document.getElementById('claimAndUnstakeBtn');
+  window.closeModalBtns = document.querySelectorAll('.close-modal, .close-modal-btn');
+  
+  // Correggi gli IDs per riferimenti corretti agli elementi HTML
+  if (!window.stakedNftGrid && document.getElementById('stakedNftsContainer')) {
+    console.log("Found stakedNftsContainer, using as reference");
+    window.stakedNftGrid = document.getElementById('stakedNftsContainer');
+  }
+  
+  if (!window.availableNftGrid && document.getElementById('availableNftsContainer')) {
+    console.log("Found availableNftsContainer, using as reference");
+    window.availableNftGrid = document.getElementById('availableNftsContainer');
+  }
+  
+  if (!window.emptyRewardsState && document.getElementById('rewardsEmptyState')) {
+    window.emptyRewardsState = document.getElementById('rewardsEmptyState');
+  }
+  
+  // Logging di diagnostica degli elementi trovati
+  console.log("📊 UI References:");
+  console.log("- Staking Dashboard:", window.stakingDashboard ? "Found" : "Not found");
+  console.log("- Available NFTs Container:", window.availableNftGrid ? "Found" : "Not found");
+  console.log("- Staked NFTs Container:", window.stakedNftGrid ? "Found" : "Not found");
+  
+  // Esporta funzioni importanti per accessibilità globale
+  window.loadAvailableNfts = loadAvailableNfts;
+  window.renderAvailableNfts = renderAvailableNfts;
+  
+  // Cleanup di dichiarazioni duplicate
   let currentUser = null;
-  let stakedNfts = [];
-  let availableNfts = [];
   let selectedNft = null;
   let selectedStake = null;
   
@@ -615,21 +630,26 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("🔍 Fetching available NFTs for wallet:", walletAddress);
       
       // Show staking dashboard in advance to improve perceived loading time
-      const stakingDashboard = document.getElementById('stakingDashboard');
-      if (stakingDashboard) {
+      if (window.stakingDashboard) {
         console.log("Showing staking dashboard early for better UX");
-        stakingDashboard.classList.remove('hidden');
+        window.stakingDashboard.classList.remove('hidden');
+      }
+      
+      // Get or create the NFT container
+      if (!window.availableNftGrid) {
+        window.availableNftGrid = document.getElementById('availableNftsContainer');
       }
       
       // Show loading indicator in the NFT container
-      const availableNftGrid = document.getElementById('availableNftsContainer');
-      if (availableNftGrid) {
-        availableNftGrid.innerHTML = `
+      if (window.availableNftGrid) {
+        window.availableNftGrid.innerHTML = `
           <div class="loading-container">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Caricamento NFT in corso...</p>
+            <p class="mt-2">Loading NFTs...</p>
           </div>
         `;
+      } else {
+        console.error("Cannot find availableNftsContainer for loading indicator");
       }
       
       // Add contract address to query if provided
@@ -669,10 +689,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Supporta sia "nfts" che "available" nella risposta per retrocompatibilità
-      availableNfts = data.nfts || data.available || [];
+      window.availableNfts = data.nfts || data.available || [];
       
       // Log finale del numero di NFT caricati
-      console.log(`📊 Totale NFT caricati: ${availableNfts.length}`);
+      console.log(`📊 Totale NFT caricati: ${window.availableNfts.length}`);
       
       // Render available NFTs
       renderAvailableNfts();
@@ -835,23 +855,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function renderAvailableNfts() {
-    console.log("🖼️ Rendering NFTs:", availableNfts);
+    console.log("🖼️ Rendering NFTs:", window.availableNfts);
     
     // Pulisci il container
-    if (!availableNftGrid) {
+    if (!window.availableNftGrid) {
       console.log("NFT grid element reference not found, getting from DOM");
-      availableNftGrid = document.getElementById('availableNftsContainer');
-      if (!availableNftGrid) {
+      window.availableNftGrid = document.getElementById('availableNftsContainer');
+      if (!window.availableNftGrid) {
         console.error("⚠️ CRITICAL: NFT grid element not found in the DOM!");
         
         // Try to find where the container should be and create it if missing
-        const nftSection = document.getElementById('nftSection');
+        const nftSection = document.getElementById('availableTab') || document.getElementById('nftSection');
         if (nftSection) {
           console.log("Creating missing NFT container");
-          availableNftGrid = document.createElement('div');
-          availableNftGrid.id = 'availableNftsContainer';
-          availableNftGrid.className = 'nft-grid';
-          nftSection.appendChild(availableNftGrid);
+          window.availableNftGrid = document.createElement('div');
+          window.availableNftGrid.id = 'availableNftsContainer';
+          window.availableNftGrid.className = 'nft-grid';
+          nftSection.appendChild(window.availableNftGrid);
         } else {
           console.error("Cannot render NFTs: Both NFT grid and section are missing");
           return;
@@ -860,24 +880,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Mostra la dashboard quando si rendereizzano gli NFT
-    const stakingDashboard = document.getElementById('stakingDashboard');
-    if (stakingDashboard && stakingDashboard.classList.contains('hidden')) {
+    if (window.stakingDashboard && window.stakingDashboard.classList.contains('hidden')) {
       console.log("Removing hidden class from staking dashboard");
-      stakingDashboard.classList.remove('hidden');
+      window.stakingDashboard.classList.remove('hidden');
+    }
+    
+    // Attiva il tab corretto
+    const availableTab = document.getElementById('availableTab');
+    if (availableTab && !availableTab.classList.contains('active')) {
+      console.log("Activating available NFTs tab");
+      
+      // Rimuovi active da tutti i tab
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      
+      // Attiva il tab degli NFT disponibili
+      availableTab.classList.add('active');
     }
     
     // Clear container
-    availableNftGrid.innerHTML = '';
+    window.availableNftGrid.innerHTML = '';
     
-    if (!availableNfts || availableNfts.length === 0) {
+    if (!window.availableNfts || window.availableNfts.length === 0) {
       console.log("No NFTs available to render");
-      availableNftGrid.innerHTML = `
+      window.availableNftGrid.innerHTML = `
         <div class="empty-state">
           <i class="ri-search-line"></i>
-          <h3>Nessun NFT disponibile</h3>
-          <p>Collega il tuo wallet Ethereum per visualizzare i tuoi IASE Units disponibili per lo staking.</p>
+          <h3>No Available NFTs</h3>
+          <p>Connect your Ethereum wallet to see your IASE Units available for staking.</p>
           <button id="manualRefreshNfts" class="btn primary-btn mt-3">
-            <i class="ri-refresh-line"></i> Aggiorna
+            <i class="ri-refresh-line"></i> Refresh
           </button>
         </div>
       `;
@@ -900,10 +931,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    console.log(`Rendering ${availableNfts.length} NFTs to container`);
+    console.log(`Rendering ${window.availableNfts.length} NFTs to container`);
     
     // Renderizza ogni NFT
-    availableNfts.forEach(nft => {
+    window.availableNfts.forEach(nft => {
       try {
         // Determina l'immagine e i dettagli dell'NFT
         const nftId = nft.id;
@@ -938,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
           openStakeModal(nft);
         });
         
-        availableNftGrid.appendChild(card);
+        window.availableNftGrid.appendChild(card);
       } catch (err) {
         console.error(`Error rendering NFT card:`, err, nft);
       }

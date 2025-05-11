@@ -628,7 +628,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const data = await response.json();
       console.log("NFTs data received:", data);
-      availableNfts = data.nfts || [];
+      // Supporta sia "nfts" che "available" nella risposta per retrocompatibilità
+      availableNfts = data.nfts || data.available || [];
       
       // Render available NFTs
       renderAvailableNfts();

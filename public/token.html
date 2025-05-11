@@ -890,7 +890,7 @@ const updateTokenUI = () => {
     const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
     document.getElementById('shortWallet').innerText = shortAddress;
     document.getElementById('walletInfo').style.display = 'block';
-    document.getElementById('connectButton').style.display = 'none';
+    document.getElementById('connectButtonBNB').style.display = 'none';
     
     // Show presale form ONLY if on BSC network
     if (isBscNetwork()) {
@@ -1090,7 +1090,7 @@ document.getElementById('presaleForm').addEventListener('submit', async function
 
     // Reset UI
     document.getElementById('walletInfo').style.display = 'block';
-    document.getElementById('connectButton').style.display = 'none';
+    document.getElementById('connectButtonBNB').style.display = 'none';
     document.getElementById('presaleForm').style.display = 'block';
 
 

@@ -373,28 +373,99 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  // Wallet connecting and staking are handled by wallet-connect.js
-  // Handle UI updates when wallet is connected
-  document.addEventListener('walletConnected', (event) => {
-    const { address } = event.detail;
-    
-    // Se l'utente è già autenticato, collega l'indirizzo wallet all'account
-    if (currentUser) {
-      linkWalletToAccount(address);
-    } else {
-      // Altrimenti mostra la sezione di autenticazione
-      authSection.classList.remove('hidden');
-    }
-  });
+  // Gestione eventi wallet - ascolto sia i nuovi che i vecchi eventi
+  document.addEventListener('wallet:connected', handleWalletConnected);
+  document.addEventListener('wallet:disconnected', handleWalletDisconnected);
+  document.addEventListener('wallet:networkChanged', handleNetworkChanged);
   
-  document.addEventListener('walletDisconnected', () => {
-    // Reset UI quando il wallet viene disconnesso
-    stakingDashboard.classList.add('hidden');
+  // Compatibilità con eventi vecchio formato
+  document.addEventListener('walletConnected', handleWalletConnected);
+  document.addEventListener('walletDisconnected', handleWalletDisconnected);
+  
+  // Verifica iniziale dello stato wallet
+  checkWalletStatus();
+  
+  // Configura verifica periodica dello stato wallet
+  setInterval(checkWalletStatus, 3000);
+  
+  /**
+   * Verifica lo stato attuale del wallet
+   */
+  function checkWalletStatus() {
+    const isWalletConnected = window.ethereum && window.ethereum.selectedAddress;
+    const isUiShowing = !stakingDashboard.classList.contains('hidden');
     
-    if (currentUser) {
-      authSection.classList.remove('hidden');
+    if (isWalletConnected && !isUiShowing) {
+      // Wallet connesso ma UI non aggiornata
+      console.log('Wallet connesso ma UI non aggiornata, correggendo stato...');
+      handleWalletConnected({
+        detail: {
+          address: window.ethereum.selectedAddress,
+          network: window.ethereum.chainId
+        }
+      });
+    } else if (!isWalletConnected && isUiShowing) {
+      // Wallet disconnesso ma UI mostra connesso
+      console.log('Wallet disconnesso ma UI mostra connesso, correggendo stato...');
+      handleWalletDisconnected();
     }
-  });
+  }
+  
+  /**
+   * Gestisce evento connessione wallet
+   */
+  function handleWalletConnected(event) {
+    const address = event.detail?.address || window.ethereum?.selectedAddress;
+    if (!address) return;
+    
+    console.log('Evento connessione wallet rilevato, indirizzo:', address);
+    
+    // Mostra dashboard di staking
+    if (stakingDashboard) {
+      stakingDashboard.classList.remove('hidden');
+    }
+    
+    // Imposta indirizzo wallet nella dashboard
+    const dashboardWalletAddress = document.getElementById('dashboardWalletAddress');
+    if (dashboardWalletAddress) {
+      const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+      dashboardWalletAddress.textContent = shortAddress;
+    }
+    
+    // Carica gli NFT disponibili
+    setTimeout(() => {
+      loadAvailableNfts();
+    }, 500);
+  }
+  
+  /**
+   * Gestisce evento disconnessione wallet
+   */
+  function handleWalletDisconnected() {
+    console.log('Evento disconnessione wallet rilevato');
+    
+    // Nascondi dashboard di staking
+    if (stakingDashboard) {
+      stakingDashboard.classList.add('hidden');
+    }
+  }
+  
+  /**
+   * Gestisce evento cambio rete
+   */
+  function handleNetworkChanged(event) {
+    const network = event.detail?.network || window.ethereum?.chainId;
+    console.log('Evento cambio rete rilevato:', network);
+    
+    // Verifica se è la rete corretta per lo staking (Ethereum)
+    const isCorrectNetwork = network === '0x1';
+    
+    // Mostra/nascondi avviso rete sbagliata
+    const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+    if (wrongNetworkAlert) {
+      wrongNetworkAlert.classList.toggle('hidden', isCorrectNetwork);
+    }
+  }
   
   // FAQ accordions - Rimosso perché gestito dal script inline in staking.html
   
@@ -488,8 +559,18 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function loadAvailableNfts() {
     try {
-      console.log("Fetching available NFTs...");
-      const response = await fetch('/api/staking/nfts');
+      // Ottieni l'indirizzo wallet connesso
+      const walletAddress = window.WALLET_STATE?.address || 
+                           window.ethereum?.selectedAddress ||
+                           window.userWalletAddress;
+      
+      if (!walletAddress) {
+        console.log("Nessun wallet connesso, impossibile caricare NFT");
+        return;
+      }
+      
+      console.log("Fetching available NFTs for wallet:", walletAddress);
+      const response = await fetch(`/api/staking/get-available-nfts?wallet=${walletAddress}`);
       
       if (!response.ok) {
         throw new Error('Errore durante il recupero degli NFT');
@@ -497,10 +578,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const data = await response.json();
       console.log("NFTs data received:", data);
-      availableNfts = data.available || [];
+      availableNfts = data.nfts || [];
       
-      // In questa applicazione demo, renderizziamo subito
-      // In una implementazione reale, filtreremmo per NFT della collezione IASE
+      // Renderizza gli NFT disponibili
       renderAvailableNfts();
       
       // Mostra sezione NFT (hidden by default)
@@ -514,6 +594,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stakingDashboard) {
         stakingDashboard.classList.remove('hidden');
       }
+      
+      // Carica anche gli NFT in staking e aggiorna la dashboard
+      loadStakedNfts();
+      updateDashboardSummary();
       
     } catch (error) {
       console.error('Load available NFTs error:', error);

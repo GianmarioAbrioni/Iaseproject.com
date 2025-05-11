@@ -594,45 +594,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  async function loadAvailableNfts() {
+  /**
+   * Load available NFTs for the connected wallet address
+   * @param {string} contractAddress - Optional NFT contract address to filter by
+   * @param {string} walletAddressOverride - Optional wallet address override
+   */
+  async function loadAvailableNfts(contractAddress = null, walletAddressOverride = null) {
     try {
-      // Ottieni l'indirizzo wallet connesso
-      const walletAddress = window.WALLET_STATE?.address || 
+      // Get connected wallet address
+      const walletAddress = walletAddressOverride || 
+                           window.WALLET_STATE?.address || 
                            window.ethereum?.selectedAddress ||
                            window.userWalletAddress;
       
       if (!walletAddress) {
-        console.log("Nessun wallet connesso, impossibile caricare NFT");
+        console.log("No wallet connected, cannot load NFTs");
         return;
       }
       
       console.log("Fetching available NFTs for wallet:", walletAddress);
-      const response = await fetch(`/api/staking/get-available-nfts?wallet=${walletAddress}`);
+      
+      // Add contract address to query if provided
+      let apiUrl = `/api/staking/get-available-nfts?wallet=${walletAddress}`;
+      if (contractAddress) {
+        apiUrl += `&contract=${contractAddress}`;
+      }
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
-        throw new Error('Errore durante il recupero degli NFT');
+        throw new Error('Error retrieving NFTs');
       }
       
       const data = await response.json();
       console.log("NFTs data received:", data);
       availableNfts = data.nfts || [];
       
-      // Renderizza gli NFT disponibili
+      // Render available NFTs
       renderAvailableNfts();
       
-      // Mostra sezione NFT (hidden by default)
+      // Show NFT section (hidden by default)
       const nftSection = document.getElementById('nftSection');
       if (nftSection) {
         nftSection.classList.remove('hidden');
       }
       
-      // Mostra dashboard se è nascosto
+      // Show dashboard if hidden
       const stakingDashboard = document.getElementById('stakingDashboard');
       if (stakingDashboard) {
         stakingDashboard.classList.remove('hidden');
       }
       
-      // Carica anche gli NFT in staking e aggiorna la dashboard
+      // Also load staked NFTs and update dashboard summary
       loadStakedNfts();
       updateDashboardSummary();
       

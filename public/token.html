@@ -27,6 +27,7 @@
   <link href="menu.css" rel="stylesheet"/>
   <link href="styles.css" rel="stylesheet"/>
   <link href="css/parallax.css" rel="stylesheet"/>
+  <link href="css/token-page.css" rel="stylesheet"/>
   
   <!-- Web3 Script -->
   <!-- Custom Token Page Styles -->
@@ -821,29 +822,142 @@ const showRangeModal = (msg) => {
   document.getElementById('rangeModal').style.display = 'block';
 };
 
+// BSC Network Data
+const BSC_NETWORK = {
+  chainId: '0x38',
+  chainName: 'BNB Smart Chain',
+  nativeCurrency: {
+    name: 'BNB',
+    symbol: 'BNB',
+    decimals: 18
+  },
+  rpcUrls: ['https://bsc-dataseed.binance.org/'],
+  blockExplorerUrls: ['https://bscscan.com/']
+};
+
+// Check if current network is BSC
+const isBscNetwork = () => {
+  return window.ethereum && window.ethereum.chainId === BSC_NETWORK.chainId;
+};
+
+// Switch to BSC Network
+const switchToBscNetwork = async () => {
+  if (!window.ethereum) return false;
+  
+  try {
+    // Try to switch to BSC
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: BSC_NETWORK.chainId }]
+    });
+    return true;
+  } catch (switchError) {
+    // This error code indicates that the chain has not been added to MetaMask
+    if (switchError.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [BSC_NETWORK]
+        });
+        return true;
+      } catch (addError) {
+        console.error('Error adding BSC network', addError);
+        return false;
+      }
+    }
+    console.error('Error switching to BSC network', switchError);
+    return false;
+  }
+};
+
+// Update UI based on wallet and network status
+const updateTokenUI = () => {
+  if (window.ethereum && window.ethereum.selectedAddress) {
+    // Wallet is connected
+    const userAddress = window.ethereum.selectedAddress;
+    window.userAddress = userAddress;
+    const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+    document.getElementById('shortWallet').innerText = shortAddress;
+    document.getElementById('walletInfo').style.display = 'block';
+    document.getElementById('connectButton').style.display = 'none';
+    
+    // Show presale form ONLY if on BSC network
+    if (isBscNetwork()) {
+      document.getElementById('presaleForm').style.display = 'block';
+      // Hide network warning if exists
+      const networkWarning = document.getElementById('network-warning');
+      if (networkWarning) networkWarning.style.display = 'none';
+    } else {
+      document.getElementById('presaleForm').style.display = 'none';
+      // Show network warning if exists
+      const networkWarning = document.getElementById('network-warning');
+      if (networkWarning) {
+        networkWarning.style.display = 'block';
+      } else {
+        // Create network warning
+        const warning = document.createElement('div');
+        warning.id = 'network-warning';
+        warning.className = 'alert alert-warning mb-4';
+        warning.innerHTML = `
+          <strong>Wrong Network!</strong> Please switch to BNB Smart Chain to buy IASE tokens.
+          <button id="switch-to-bsc" class="btn btn-sm btn-primary ml-2">Switch to BSC</button>
+        `;
+        
+        // Insert warning before presale form
+        const presaleForm = document.getElementById('presaleForm');
+        presaleForm.parentNode.insertBefore(warning, presaleForm);
+        
+        // Add event listener to switch button
+        document.getElementById('switch-to-bsc').addEventListener('click', async () => {
+          const success = await switchToBscNetwork();
+          if (success) {
+            updateTokenUI();
+          }
+        });
+      }
+    }
+  } else {
+    // Wallet is disconnected
+    document.getElementById('walletInfo').style.display = 'none';
+    document.getElementById('connectButton').style.display = 'block';
+    document.getElementById('presaleForm').style.display = 'none';
+    
+    // Hide network warning if exists
+    const networkWarning = document.getElementById('network-warning');
+    if (networkWarning) networkWarning.style.display = 'none';
+  }
+};
+
 // Connessione wallet
 const connectWallet = async () => {
   if (window.ethereum) {
     try {
+      // Request accounts
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const userAddress = accounts[0];
-    window.userAddress = userAddress;
-      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
-      document.getElementById('shortWallet').innerText = shortAddress;
-
-      document.getElementById('walletInfo').style.display = 'block';
-      document.getElementById('connectButton').style.display = 'none';
-      document.getElementById('presaleForm').style.display = 'block';
-
-      // Ascolta eventi di disconnessione
-      window.ethereum.on('accountsChanged', function (accounts) {
-        if (!accounts.length) {
-          document.getElementById('walletInfo').style.display = 'none';
-          document.getElementById('connectButton').style.display = 'block';
-          document.getElementById('presaleForm').style.display = 'none';
+      
+      // Check if BSC network, switch if needed
+      if (!isBscNetwork()) {
+        const switchResult = await switchToBscNetwork();
+        if (!switchResult) {
+          alert('Please switch to BSC network to buy IASE tokens');
         }
+      }
+      
+      // Update UI after connection and potential network switch
+      updateTokenUI();
+      
+      // Listen for account changes
+      window.ethereum.on('accountsChanged', function (accounts) {
+        updateTokenUI();
       });
+      
+      // Listen for network changes
+      window.ethereum.on('chainChanged', function (chainId) {
+        updateTokenUI();
+      });
+      
     } catch (error) {
+      console.error('Connection error:', error);
       alert('Connection rejected.');
     }
   } else {
@@ -853,6 +967,23 @@ const connectWallet = async () => {
 
 // Bottone connessione
 document.getElementById('connectButton').addEventListener('click', connectWallet);
+
+// Check initial wallet and network status on page load
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.ethereum && window.ethereum.selectedAddress) {
+    // If wallet already connected, update UI
+    updateTokenUI();
+    
+    // Set up listeners for account and network changes
+    window.ethereum.on('accountsChanged', function (accounts) {
+      updateTokenUI();
+    });
+    
+    window.ethereum.on('chainChanged', function (chainId) {
+      updateTokenUI();
+    });
+  }
+});
 
 // Calcolo conversione + validazione live
 document.getElementById('bnbAmount').addEventListener('input', function () {

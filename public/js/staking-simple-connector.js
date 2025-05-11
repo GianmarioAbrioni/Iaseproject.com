@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
+  // NFT Collection contract address
+  const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+  
   // Get UI elements
   const connectBtn = document.getElementById('connectWalletBtn');
   const disconnectBtn = document.getElementById('disconnectWalletBtn');
@@ -35,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const walletAddress = document.getElementById('walletAddress');
   const stakingDashboard = document.getElementById('stakingDashboard');
   const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+  const walletStatusIndicator = document.querySelector('.wallet-status-indicator');
   
   // Check if MetaMask is installed
   const isMetaMaskInstalled = () => {
@@ -48,6 +52,19 @@ document.addEventListener('DOMContentLoaded', function() {
            window.ethereum.selectedAddress.length > 0;
   };
   
+  // Update wallet status indicator color
+  function updateStatusIndicator(connected) {
+    if (!walletStatusIndicator) return;
+    
+    if (connected) {
+      walletStatusIndicator.classList.remove('status-red');
+      walletStatusIndicator.classList.add('status-green');
+    } else {
+      walletStatusIndicator.classList.remove('status-green');
+      walletStatusIndicator.classList.add('status-red');
+    }
+  }
+  
   // Update UI based on wallet state
   function updateUI() {
     if (isWalletConnected()) {
@@ -56,6 +73,9 @@ document.addEventListener('DOMContentLoaded', function() {
       const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
       const chainId = window.ethereum.chainId;
       const isCorrectNetwork = chainId === NETWORK_DATA.ETHEREUM_MAINNET.chainId;
+      
+      // Update status indicator to green
+      updateStatusIndicator(true);
       
       // Update text and address displays
       if (walletStatusText) walletStatusText.textContent = 'Wallet connected';
@@ -95,10 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Load available NFTs only on correct network
       if (isCorrectNetwork && typeof loadAvailableNfts === 'function') {
-        loadAvailableNfts();
+        setTimeout(() => {
+          loadAvailableNfts(IASE_NFT_CONTRACT, address);
+        }, 1000);
       }
     } else {
       // Wallet disconnected
+      // Update status indicator to red
+      updateStatusIndicator(false);
+      
       if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
       if (walletAddress) walletAddress.textContent = '';
       
@@ -208,22 +233,43 @@ document.addEventListener('DOMContentLoaded', function() {
     switchNetworkBtn.addEventListener('click', switchToEthereum);
   }
   
-  // Monitor account changes in MetaMask
-  if (window.ethereum) {
-    window.ethereum.on('accountsChanged', function(accounts) {
-      console.log('🔄 Accounts changed:', accounts);
-      if (accounts.length === 0) {
-        console.log('👋 User disconnected wallet');
-      }
-      updateUI();
-    });
+  // Elegant handling of Metamask events
+  function setupMetamaskListeners() {
+    if (!window.ethereum) return;
     
-    window.ethereum.on('chainChanged', function(chainId) {
-      console.log('🔄 Chain changed:', chainId);
-      updateUI();
-    });
+    // Clean up any existing listeners to avoid duplicates
+    window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+    window.ethereum.removeListener('chainChanged', handleChainChanged);
     
-    // Check for initial connection state
+    // Add fresh listeners
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+    
+    // Check current connection state immediately
+    checkInitialConnection();
+  }
+  
+  // Handle account changes
+  function handleAccountsChanged(accounts) {
+    console.log('🔄 Accounts changed:', accounts);
+    if (accounts.length === 0) {
+      console.log('👋 User disconnected wallet');
+      // Simple UI update on disconnect - no alerts
+      updateUI();
+    } else {
+      console.log('✓ Account switched to:', accounts[0]);
+      updateUI();
+    }
+  }
+  
+  // Handle chain/network changes
+  function handleChainChanged(chainId) {
+    console.log('🔄 Network changed:', chainId);
+    updateUI();
+  }
+  
+  // Check initial connection state
+  function checkInitialConnection() {
     window.ethereum.request({ method: 'eth_accounts' })
       .then(accounts => {
         if (accounts.length > 0) {
@@ -234,6 +280,27 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(err => console.error('Error checking accounts:', err));
   }
   
-  // Initial UI update
-  updateUI();
+  // Add CSS for the status indicators
+  function addStatusIndicatorStyles() {
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      .status-green {
+        background-color: #4CAF50 !important;
+      }
+      .status-red {
+        background-color: #F44336 !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+  
+  // Initialize everything
+  function init() {
+    addStatusIndicatorStyles();
+    setupMetamaskListeners();
+    updateUI();
+  }
+  
+  // Run initialization
+  init();
 });

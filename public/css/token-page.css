@@ -1,0 +1,38 @@
+/*
+ * IASE Token Page styles
+ */
+
+.buy-section .alert {
+  background-color: rgba(255, 203, 71, 0.2);
+  border: 1px solid rgba(255, 203, 71, 0.5);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  color: #FFD54F;
+}
+
+.buy-section .alert-warning {
+  background-color: rgba(255, 152, 0, 0.2);
+  border: 1px solid rgba(255, 152, 0, 0.5);
+  color: #FFA726;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.buy-section .alert-warning button {
+  background: linear-gradient(135deg, #FF9800, #FF5722);
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.buy-section .alert-warning button:hover {
+  background: linear-gradient(135deg, #FF5722, #F4511E);
+  transform: translateY(-1px);
+}

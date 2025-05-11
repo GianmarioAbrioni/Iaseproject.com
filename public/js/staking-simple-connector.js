@@ -194,40 +194,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Disconnect wallet function (UI only)
+  // Disconnect wallet function (actual implementation)
   function disconnectEthWallet() {
-    console.log('Wallet disconnected (UI)');
+    console.log('🔌 Tentativo di disconnessione wallet');
     
-    // MetaMask has no real disconnect API
-    // We can simulate disconnection by resetting our UI
     if (window.ethereum) {
-      // We can't directly modify selectedAddress, but we can override it temporarily
-      // This is a hack to make our UI behave as if disconnected
-      const originalAddress = window.ethereum.selectedAddress;
-      Object.defineProperty(window.ethereum, 'selectedAddress', { 
-        get: function() { return null; },
-        configurable: true // Allow it to be restored by future events
-      });
+      console.log('Esecuzione disconnessione wallet');
       
-      // Update the UI
-      updateUI();
+      // Metodo 1: Reimpostiamo i flag interni per la UI
+      if (typeof window.ethereum._state !== 'undefined' && 
+          typeof window.ethereum._state.isConnected !== 'undefined') {
+        window.ethereum._state.isConnected = false;
+      }
       
-      // Restore the original behavior after a brief delay
-      setTimeout(() => {
-        if (window.ethereum) {
-          Object.defineProperty(window.ethereum, 'selectedAddress', { 
-            get: function() { return originalAddress; },
-            configurable: true
-          });
-        }
-      }, 100);
+      // Metodo 2: reset del localStorage (MetaMask memorizza dati qui)
+      try {
+        localStorage.removeItem('WALLETCONNECT_DEEPLINK_CHOICE');
+        localStorage.removeItem('walletconnect');
+        localStorage.removeItem('METAMASK_CONNECTINFO');
+        localStorage.removeItem('METAMASK_CONNECT_INFO');
+        localStorage.removeItem('wagmi.connected');
+        localStorage.removeItem('wagmi.wallet');
+        localStorage.removeItem('metamask.providers');
+        localStorage.removeItem('METAMASK_ACTIVE_CONNECTION');
+        console.log('✓ Rimossi dati di connessione dal localStorage');
+      } catch (e) {
+        console.error('Errore nella pulizia localStorage', e);
+      }
       
-      // Force a UI refresh (the real wallet state will be detected on next events)
-      setTimeout(() => {
-        if (typeof updateUI === 'function') {
-          updateUI();
-        }
-      }, 200);
+      // Metodo 3: Forza refresh completo della pagina
+      window.location.reload();
     }
   }
   

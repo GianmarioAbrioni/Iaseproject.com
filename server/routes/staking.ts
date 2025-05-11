@@ -108,7 +108,8 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     
     // Indirizzi e configurazione della collezione IASE
     const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
-    const ETHEREUM_RPC_URL = process.env.ETH_NETWORK_URL || "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161";
+    const infuraApiKey = process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
+    const ETHEREUM_RPC_URL = process.env.ETH_NETWORK_URL || `https://mainnet.infura.io/v3/${infuraApiKey}`;
     const ETHEREUM_RPC_FALLBACK = process.env.ETH_NETWORK_FALLBACK || "https://rpc.ankr.com/eth";
     
     // ABI minimo necessario per un contratto ERC721 con Enumerable
@@ -124,11 +125,26 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       // Connetti al provider Ethereum con la nuova API key Infura
       let provider;
       try {
-        const infuraApiKey = process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
-        const infuraUrl = `https://mainnet.infura.io/v3/${infuraApiKey}`;
+        // Utilizziamo l'API key già definita sopra
+        const infuraUrl = ETHEREUM_RPC_URL;
         
-        provider = new ethers.JsonRpcProvider(infuraUrl);
         console.log(`🌐 Tentativo connessione alla rete con Infura API: ${infuraUrl}`);
+        provider = new ethers.JsonRpcProvider(infuraUrl);
+        
+        // Aggiungiamo un timeout per la connessione
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Timeout connessione a Infura")), 5000);
+        });
+        
+        // Testiamo immediatamente la connessione
+        const connectionTest = Promise.race([
+          provider.getBlockNumber(),
+          timeoutPromise
+        ]);
+        
+        await connectionTest;
+        console.log(`✅ Provider Infura connesso correttamente`);
+        
       } catch (providerError) {
         console.error(`❌ Errore connessione provider primario: ${providerError}`);
         console.log(`⚠️ Tentativo con provider fallback: ${ETHEREUM_RPC_FALLBACK}`);

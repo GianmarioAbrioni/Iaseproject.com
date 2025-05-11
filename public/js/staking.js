@@ -612,24 +612,67 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      console.log("Fetching available NFTs for wallet:", walletAddress);
+      console.log("🔍 Fetching available NFTs for wallet:", walletAddress);
+      
+      // Show staking dashboard in advance to improve perceived loading time
+      const stakingDashboard = document.getElementById('stakingDashboard');
+      if (stakingDashboard) {
+        console.log("Showing staking dashboard early for better UX");
+        stakingDashboard.classList.remove('hidden');
+      }
+      
+      // Show loading indicator in the NFT container
+      const availableNftGrid = document.getElementById('availableNftsContainer');
+      if (availableNftGrid) {
+        availableNftGrid.innerHTML = `
+          <div class="loading-container">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Caricamento NFT in corso...</p>
+          </div>
+        `;
+      }
       
       // Add contract address to query if provided
       let apiUrl = `/api/staking/get-available-nfts?wallet=${walletAddress}`;
       if (contractAddress) {
         apiUrl += `&contract=${contractAddress}`;
+        console.log("Using specific contract address:", contractAddress);
       }
       
+      console.log("📡 API request URL:", apiUrl);
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
-        throw new Error('Error retrieving NFTs');
+        throw new Error(`Error retrieving NFTs: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log("NFTs data received:", data);
+      console.log("📦 NFTs data received:", data);
+      
+      // Log completo della risposta per debugging
+      console.log("📝 Full API response:", JSON.stringify(data));
+      
+      // Verifica il wallet tornato dalla risposta come conferma
+      if (data.wallet) {
+        console.log(`✅ API confirms request for wallet: ${data.wallet}`);
+      }
+      
+      // Log dettagliato per il debugging
+      if (data.nfts && data.nfts.length > 0) {
+        console.log("✅ NFTs trovati nella proprietà 'nfts':", data.nfts.length);
+        data.nfts.forEach(nft => console.log(`NFT trovato: ID #${nft.id}, Nome: ${nft.name}, Rarità: ${nft.rarity}`));
+      } else if (data.available && data.available.length > 0) {
+        console.log("✅ NFTs trovati nella proprietà 'available':", data.available.length);
+        data.available.forEach(nft => console.log(`NFT trovato: ID #${nft.id}, Nome: ${nft.name}, Rarità: ${nft.rarity}`));
+      } else {
+        console.log("⚠️ Nessun NFT trovato nella risposta");
+      }
+      
       // Supporta sia "nfts" che "available" nella risposta per retrocompatibilità
       availableNfts = data.nfts || data.available || [];
+      
+      // Log finale del numero di NFT caricati
+      console.log(`📊 Totale NFT caricati: ${availableNfts.length}`);
       
       // Render available NFTs
       renderAvailableNfts();
@@ -640,19 +683,47 @@ document.addEventListener('DOMContentLoaded', () => {
         nftSection.classList.remove('hidden');
       }
       
-      // Show dashboard if hidden
+      // Also load staked NFTs and update dashboard summary
+      loadStakedNfts();
+      updateDashboardSummary();
+      
+      // Mostra notifica di successo solo se abbiamo trovato NFT
+      if (availableNfts.length > 0) {
+        showNotification('success', 'NFT caricati', `Trovati ${availableNfts.length} NFT disponibili per lo staking`);
+      }
+      
+    } catch (error) {
+      console.error('⚠️ Load available NFTs error:', error);
+      showNotification('error', 'Errore caricamento', `Impossibile caricare gli NFT disponibili: ${error.message}`);
+      
+      // Ensure dashboard is still shown even if there's an error
       const stakingDashboard = document.getElementById('stakingDashboard');
       if (stakingDashboard) {
         stakingDashboard.classList.remove('hidden');
       }
       
-      // Also load staked NFTs and update dashboard summary
-      loadStakedNfts();
-      updateDashboardSummary();
-      
-    } catch (error) {
-      console.error('Load available NFTs error:', error);
-      showNotification('error', 'Errore caricamento', 'Impossibile caricare gli NFT disponibili');
+      // Show empty state in NFT container
+      const availableNftGrid = document.getElementById('availableNftsContainer');
+      if (availableNftGrid) {
+        availableNftGrid.innerHTML = `
+          <div class="empty-state error">
+            <i class="ri-error-warning-line"></i>
+            <h3>Errore caricamento NFT</h3>
+            <p>Si è verificato un errore durante il caricamento degli NFT: ${error.message}</p>
+            <button id="retryNftLoad" class="btn primary-btn mt-3">
+              <i class="ri-refresh-line"></i> Riprova
+            </button>
+          </div>
+        `;
+        
+        // Add retry button listener
+        const retryBtn = document.getElementById('retryNftLoad');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', () => {
+            loadAvailableNfts(contractAddress, walletAddress);
+          });
+        }
+      }
     }
   }
   
@@ -764,15 +835,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function renderAvailableNfts() {
-    console.log("Rendering NFTs:", availableNfts);
+    console.log("🖼️ Rendering NFTs:", availableNfts);
     
     // Pulisci il container
     if (!availableNftGrid) {
-      console.error("NFT grid not found, trying with ID from HTML");
+      console.log("NFT grid element reference not found, getting from DOM");
       availableNftGrid = document.getElementById('availableNftsContainer');
       if (!availableNftGrid) {
-        console.error("NFT grid not found in the DOM");
-        return;
+        console.error("⚠️ CRITICAL: NFT grid element not found in the DOM!");
+        
+        // Try to find where the container should be and create it if missing
+        const nftSection = document.getElementById('nftSection');
+        if (nftSection) {
+          console.log("Creating missing NFT container");
+          availableNftGrid = document.createElement('div');
+          availableNftGrid.id = 'availableNftsContainer';
+          availableNftGrid.className = 'nft-grid';
+          nftSection.appendChild(availableNftGrid);
+        } else {
+          console.error("Cannot render NFTs: Both NFT grid and section are missing");
+          return;
+        }
       }
     }
     
@@ -783,49 +866,85 @@ document.addEventListener('DOMContentLoaded', () => {
       stakingDashboard.classList.remove('hidden');
     }
     
+    // Clear container
     availableNftGrid.innerHTML = '';
     
     if (!availableNfts || availableNfts.length === 0) {
+      console.log("No NFTs available to render");
       availableNftGrid.innerHTML = `
         <div class="empty-state">
           <i class="ri-search-line"></i>
           <h3>Nessun NFT disponibile</h3>
-          <p>Collega il tuo wallet per visualizzare i tuoi IASE Units disponibili per lo staking.</p>
+          <p>Collega il tuo wallet Ethereum per visualizzare i tuoi IASE Units disponibili per lo staking.</p>
+          <button id="manualRefreshNfts" class="btn primary-btn mt-3">
+            <i class="ri-refresh-line"></i> Aggiorna
+          </button>
         </div>
       `;
+      
+      // Add refresh button listener
+      const refreshBtn = document.getElementById('manualRefreshNfts');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          const walletAddress = window.WALLET_STATE?.address || 
+                               window.ethereum?.selectedAddress ||
+                               window.userWalletAddress;
+          if (walletAddress) {
+            loadAvailableNfts(IASE_NFT_CONTRACT, walletAddress);
+          } else {
+            showNotification('warning', 'Wallet non connesso', 'Collega il tuo wallet Ethereum prima di aggiornare');
+          }
+        });
+      }
+      
       return;
     }
     
+    console.log(`Rendering ${availableNfts.length} NFTs to container`);
+    
     // Renderizza ogni NFT
     availableNfts.forEach(nft => {
-      // Determina l'immagine e i dettagli dell'NFT
-      const nftId = nft.id;
-      const nftTitle = nft.name || `IASE Unit #${nftId}`;
-      const nftImage = nft.image || 'images/nft-placeholder.jpg';
-      const rarityClass = (nft.rarity || 'standard').toLowerCase();
-      
-      const card = document.createElement('div');
-      card.className = 'nft-card';
-      card.innerHTML = `
-        <img src="${nftImage}" alt="${nftTitle}" class="nft-image" onerror="this.src='images/nft-placeholder.jpg'">
-        <div class="nft-details">
-          <h3 class="nft-title">${nftTitle}</h3>
-          <p class="nft-id">ID: ${nftId}</p>
-          <span class="rarity-badge ${rarityClass}">${nft.rarity || 'Standard'}</span>
-          <div class="nft-card-actions mt-3">
-            <button class="btn primary-btn stake-action-btn" data-action="stake" data-nft-id="${nftId}">
-              <i class="fas fa-lock"></i> Metti in Staking
-            </button>
+      try {
+        // Determina l'immagine e i dettagli dell'NFT
+        const nftId = nft.id;
+        const nftTitle = nft.name || `IASE Unit #${nftId}`;
+        const nftImage = nft.image || 'images/nft-placeholder.jpg';
+        const rarityClass = (nft.rarity || 'standard').toLowerCase();
+        
+        console.log(`Creating card for NFT #${nftId} (${nftTitle})`);
+        
+        const card = document.createElement('div');
+        card.className = 'nft-card';
+        card.innerHTML = `
+          <div class="nft-image-container">
+            <img src="${nftImage}" alt="${nftTitle}" class="nft-image" 
+                 onerror="this.onerror=null; this.src='images/nft-placeholder.jpg';">
           </div>
-        </div>
-      `;
-      
-      // Aggiungi event listener
-      const stakeBtn = card.querySelector('[data-action="stake"]');
-      stakeBtn.addEventListener('click', () => openStakeModal(nft));
-      
-      availableNftGrid.appendChild(card);
+          <div class="nft-details">
+            <h3 class="nft-title">${nftTitle}</h3>
+            <p class="nft-id">ID: ${nftId}</p>
+            <span class="rarity-badge ${rarityClass}">${nft.rarity || 'Standard'}</span>
+            <div class="nft-card-actions mt-3">
+              <button class="btn primary-btn stake-action-btn" data-action="stake" data-nft-id="${nftId}">
+                <i class="ri-lock-line"></i> Metti in Staking
+              </button>
+            </div>
+          </div>
+        `;
+        
+        // Aggiungi event listener per staking
+        card.querySelector('[data-action="stake"]').addEventListener('click', () => {
+          console.log(`Stake button clicked for NFT #${nftId}`);
+          openStakeModal(nft);
+        });
+        
+        availableNftGrid.appendChild(card);
+      } catch (err) {
+        console.error(`Error rendering NFT card:`, err, nft);
+      }
     });
+    
+    console.log("✅ NFT rendering completed");
   }
   
   function renderRewardsHistory(rewards) {

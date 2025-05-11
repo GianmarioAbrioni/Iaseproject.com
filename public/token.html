@@ -880,62 +880,70 @@ const isReallyConnected = () => {
 
 // Update UI based on wallet and network status
 const updateTokenUI = () => {
+  console.log("⚙️ Updating token UI...");
+  
   // Always check for real connection status first
   const walletConnected = isReallyConnected();
+  console.log("Wallet connected:", walletConnected);
   
   if (walletConnected) {
     // Wallet is connected
     const userAddress = window.ethereum.selectedAddress;
     window.userAddress = userAddress;
     const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+    
+    // Update wallet info display
+    console.log("Updating wallet display for address:", shortAddress);
     document.getElementById('shortWallet').innerText = shortAddress;
     document.getElementById('walletInfo').style.display = 'block';
     document.getElementById('connectButtonBNB').style.display = 'none';
     
-    // Show presale form ONLY if on BSC network
-    if (isBscNetwork()) {
-      document.getElementById('presaleForm').style.display = 'block';
-      // Hide network warning if exists
-      const networkWarning = document.getElementById('network-warning');
-      if (networkWarning) networkWarning.style.display = 'none';
-    } else {
-      document.getElementById('presaleForm').style.display = 'none';
-      // Show network warning if exists
-      const networkWarning = document.getElementById('network-warning');
-      if (networkWarning) {
-        networkWarning.style.display = 'block';
+    // Check network and show/hide appropriate elements
+    const onBscNetwork = isBscNetwork();
+    console.log("On BSC network:", onBscNetwork);
+    
+    // Always show the wrong-network alert when not on BSC
+    const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+    if (wrongNetworkAlert) {
+      if (!onBscNetwork) {
+        console.log("Showing network warning alert");
+        wrongNetworkAlert.classList.remove('d-none');
       } else {
-        // Create network warning
-        const warning = document.createElement('div');
-        warning.id = 'network-warning';
-        warning.className = 'alert alert-warning mb-4';
-        warning.innerHTML = `
-          <strong>Wrong Network!</strong> Please switch to BNB Smart Chain to buy IASE tokens.
-          <button id="switch-to-bsc" class="btn btn-sm btn-primary ml-2">Switch to BSC</button>
-        `;
-        
-        // Insert warning before presale form
-        const presaleForm = document.getElementById('presaleForm');
-        presaleForm.parentNode.insertBefore(warning, presaleForm);
-        
-        // Add event listener to switch button
-        document.getElementById('switch-to-bsc').addEventListener('click', async () => {
-          const success = await switchToBscNetwork();
-          if (success) {
-            updateTokenUI();
-          }
-        });
+        console.log("Hiding network warning alert");
+        wrongNetworkAlert.classList.add('d-none');
       }
+    }
+    
+    // Show presale form ONLY if on BSC network
+    const presaleForm = document.getElementById('presaleForm');
+    if (presaleForm) {
+      if (onBscNetwork) {
+        console.log("Showing presale form");
+        presaleForm.style.display = 'block';
+      } else {
+        console.log("Hiding presale form");
+        presaleForm.style.display = 'none';
+      }
+    } else {
+      console.error("Presale form element not found!");
     }
   } else {
     // Wallet is disconnected
+    console.log("Wallet disconnected, updating UI");
     document.getElementById('walletInfo').style.display = 'none';
-    document.getElementById('connectButton').style.display = 'block';
-    document.getElementById('presaleForm').style.display = 'none';
+    document.getElementById('connectButtonBNB').style.display = 'block';
     
-    // Hide network warning if exists
-    const networkWarning = document.getElementById('network-warning');
-    if (networkWarning) networkWarning.style.display = 'none';
+    // Ensure presale form is hidden
+    const presaleForm = document.getElementById('presaleForm');
+    if (presaleForm) {
+      presaleForm.style.display = 'none';
+    }
+    
+    // Hide wrong network alert
+    const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+    if (wrongNetworkAlert) {
+      wrongNetworkAlert.classList.add('d-none');
+    }
   }
   
   // Schedule periodic UI updates to catch any manual disconnections

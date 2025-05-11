@@ -199,8 +199,36 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Wallet disconnected (UI)');
     
     // MetaMask has no real disconnect API
-    // We can only update our UI
-    updateUI();
+    // We can simulate disconnection by resetting our UI
+    if (window.ethereum) {
+      // We can't directly modify selectedAddress, but we can override it temporarily
+      // This is a hack to make our UI behave as if disconnected
+      const originalAddress = window.ethereum.selectedAddress;
+      Object.defineProperty(window.ethereum, 'selectedAddress', { 
+        get: function() { return null; },
+        configurable: true // Allow it to be restored by future events
+      });
+      
+      // Update the UI
+      updateUI();
+      
+      // Restore the original behavior after a brief delay
+      setTimeout(() => {
+        if (window.ethereum) {
+          Object.defineProperty(window.ethereum, 'selectedAddress', { 
+            get: function() { return originalAddress; },
+            configurable: true
+          });
+        }
+      }, 100);
+      
+      // Force a UI refresh (the real wallet state will be detected on next events)
+      setTimeout(() => {
+        if (typeof updateUI === 'function') {
+          updateUI();
+        }
+      }, 200);
+    }
   }
   
   // Switch to Ethereum network

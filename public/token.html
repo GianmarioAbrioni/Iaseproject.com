@@ -870,9 +870,20 @@ const switchToBscNetwork = async () => {
   }
 };
 
+// Check if wallet is really connected
+const isReallyConnected = () => {
+  // We need additional checks because sometimes the UI state and actual state get out of sync
+  return window.ethereum && 
+         window.ethereum.selectedAddress && 
+         window.ethereum.selectedAddress.length > 0;
+};
+
 // Update UI based on wallet and network status
 const updateTokenUI = () => {
-  if (window.ethereum && window.ethereum.selectedAddress) {
+  // Always check for real connection status first
+  const walletConnected = isReallyConnected();
+  
+  if (walletConnected) {
     // Wallet is connected
     const userAddress = window.ethereum.selectedAddress;
     window.userAddress = userAddress;
@@ -926,6 +937,33 @@ const updateTokenUI = () => {
     const networkWarning = document.getElementById('network-warning');
     if (networkWarning) networkWarning.style.display = 'none';
   }
+  
+  // Schedule periodic UI updates to catch any manual disconnections
+  scheduleNextUpdate();
+};
+
+// Periodic check to ensure UI state matches wallet state
+let tokenUpdateTimer = null;
+function scheduleNextUpdate() {
+  // Clear any existing timer
+  if (tokenUpdateTimer) {
+    clearTimeout(tokenUpdateTimer);
+  }
+  
+  // Schedule next update in 3 seconds
+  tokenUpdateTimer = setTimeout(() => {
+    const walletConnected = isReallyConnected();
+    const uiConnected = document.getElementById('walletInfo').style.display === 'block';
+    
+    // If there's a mismatch between UI and actual wallet state, update UI
+    if (walletConnected !== uiConnected) {
+      console.log('UI wallet state mismatch detected, updating...');
+      updateTokenUI();
+    } else {
+      // Schedule next check
+      scheduleNextUpdate();
+    }
+  }, 3000);
 };
 
 // Connessione wallet

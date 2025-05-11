@@ -547,7 +547,7 @@ function toggleMenu() {
           
           <!-- WALLET CONNECT + FORM -->
           <div id="wallet-interface" class="d-flex flex-column align-items-center">
-            <button id="connectButton" class="connect-btn mb-3 connect-wallet-btn" data-network="bnb">
+            <button id="connectButtonBNB" class="connect-btn mb-3" data-network="bnb">
               <i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet
             </button>
             
@@ -966,8 +966,8 @@ function scheduleNextUpdate() {
   }, 3000);
 };
 
-// Connessione wallet
-const connectWallet = async () => {
+// Connessione wallet BNB
+const connectWalletBNB = async () => {
   if (window.ethereum) {
     try {
       // Request accounts
@@ -1004,7 +1004,7 @@ const connectWallet = async () => {
 };
 
 // Bottone connessione
-document.getElementById('connectButton').addEventListener('click', connectWallet);
+document.getElementById('connectButtonBNB').addEventListener('click', connectWalletBNB);
 
 // Check initial wallet and network status on page load
 document.addEventListener('DOMContentLoaded', () => {

@@ -4,13 +4,17 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('📱 Staking Simple Connector initialized');
+  console.log('📱 Staking ETH Connector initialized');
   
   // Remove wallet from navbar if present
   const navbarWallet = document.getElementById('wallet-component');
   if (navbarWallet) {
     navbarWallet.style.display = 'none';
   }
+  
+  // Esporta la funzione connectWalletETH al global scope
+  window.connectWalletETH = connectEthWallet;
+  window.disconnectWalletETH = disconnectEthWallet;
   
   // Network configuration data
   const NETWORK_DATA = {
@@ -32,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
   
   // Get UI elements
-  const connectBtn = document.getElementById('connectWalletBtn');
+  const connectBtn = document.getElementById('connectButtonETH');
   const disconnectBtn = document.getElementById('disconnectWalletBtn');
   const walletStatusText = document.getElementById('walletStatusText');
   const walletAddress = document.getElementById('walletAddress');
@@ -242,14 +246,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Add event listeners
-  if (connectBtn) {
-    connectBtn.addEventListener('click', connectEthWallet);
-  }
+  // Inizializza listeners per gli eventi di metamask
+  setupMetamaskListeners();
   
-  if (disconnectBtn) {
-    disconnectBtn.addEventListener('click', disconnectEthWallet);
-  }
+  // Add event listeners (rimossi perché li gestisce la pagina HTML direttamente)
   
   // Add event listener to network switch button
   const switchNetworkBtn = document.getElementById('switch-network-btn');

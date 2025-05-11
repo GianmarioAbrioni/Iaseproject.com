@@ -137,10 +137,10 @@
         </div>
         
         <div class="wallet-controls">
-          <button id="connectWalletBtn" class="btn primary-btn connect-wallet-btn" data-network="ethereum">
+          <button id="connectButtonETH" class="btn primary-btn" data-network="ethereum">
             <i class="ri-plug-line"></i> Connect ETH Wallet
           </button>
-          <button id="disconnectWalletBtn" class="btn secondary-btn hidden disconnect-wallet-btn" onclick="disconnectWallet()">
+          <button id="disconnectWalletBtn" class="btn secondary-btn hidden disconnect-wallet-btn" onclick="disconnectWalletETH()">
             <i class="ri-link-unlink-m"></i> Disconnect
           </button>
           
@@ -616,6 +616,7 @@
   <script src="js/image-loader.js"></script>
   <script src="js/space-background.js"></script>
   <script src="js/parallax.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js" integrity="sha256-2EQjxBz2R8wM7V60XtGCJmYUFfQJVY74nuBcP2LmCOk=" crossorigin="anonymous"></script>
   <script src="js/staking-simple-connector.js"></script>
   <script src="js/claim-service.js"></script>
   <script src="js/staking.js"></script>
@@ -627,9 +628,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Aggiungi l'event listener al pulsante di connessione wallet
-      const connectWalletBtn = document.getElementById('connectWalletBtn');
-      if (connectWalletBtn) {
-        connectWalletBtn.addEventListener('click', function() {
+      const connectETHBtn = document.getElementById('connectButtonETH');
+      if (connectETHBtn) {
+        connectETHBtn.addEventListener('click', function() {
           // Verifica se MetaMask è disponibile
           if (typeof window.ethereum === 'undefined') {
             // MetaMask non è installato, mostra l'avviso
@@ -637,7 +638,8 @@
             return;
           }
           
-          // MetaMask è disponibile, la connessione verrà gestita da universal-wallet-connector.js
+          // MetaMask è disponibile, esegui la funzione di connessione ETH
+          connectWalletETH();
         });
       }
       

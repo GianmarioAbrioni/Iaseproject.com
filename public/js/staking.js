@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Aggiorna stato wallet nel wallet-connection-section
     const walletStatusText = document.getElementById('walletStatusText');
     const walletAddress = document.getElementById('walletAddress');
-    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const connectWalletBtn = document.getElementById('connectButtonETH');
     const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
     
     if (walletStatusText) walletStatusText.textContent = 'Wallet connected';

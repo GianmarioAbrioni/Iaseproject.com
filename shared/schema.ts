@@ -13,17 +13,17 @@ export const users = pgTable("users", {
 
 export const nftStakes = pgTable("nft_stakes", {
   id: serial("id").primaryKey(),
-  walletAddress: text("walletAddress").notNull(),
-  nftId: text("nftId").notNull(),
-  nftContractAddress: text("nftContractAddress").notNull().default("0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F"),
-  rarityTier: text("rarityTier").default("standard").notNull(),  // standard, advanced, elite, prototype
-  startTime: timestamp("startTime").defaultNow().notNull(), // allineato con la tabella SQL
-  endTime: timestamp("endTime"),
+  walletAddress: text("wallet_address").notNull(),
+  nftId: text("nft_id").notNull(),
+  nftContractAddress: text("nft_contract_address").notNull().default("0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F"),
+  rarityTier: text("rarity_tier").default("standard").notNull(),  // standard, advanced, elite, prototype
+  startTime: timestamp("start_time").defaultNow().notNull(), // allineato con la tabella SQL
+  endTime: timestamp("end_time"),
   active: boolean("active").default(true).notNull(), // allineato con la tabella SQL
-  lastVerificationTime: timestamp("lastVerificationTime"),
-  rarityMultiplier: doublePrecision("rarityMultiplier").default(1.0),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  lastVerificationTime: timestamp("last_verification_time"),
+  rarityMultiplier: doublePrecision("rarity_multiplier").default(1.0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   userId: integer("user_id").references(() => users.id),
 });
 

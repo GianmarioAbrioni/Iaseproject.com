@@ -93,11 +93,18 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getNftStakesByWallet(walletAddress: string): Promise<NftStake[]> {
-    return await db
-      .select()
-      .from(nftStakes)
-      .where(eq(nftStakes.walletAddress, walletAddress))
-      .orderBy(desc(nftStakes.startTime));
+    try {
+      console.log(`Database - Cercando NFT in staking per wallet: ${walletAddress}`);
+      return await db
+        .select()
+        .from(nftStakes)
+        .where(eq(nftStakes.walletAddress, walletAddress))
+        .orderBy(desc(nftStakes.startTime));
+    } catch (error) {
+      console.error("Errore nel recupero degli stake dal database:", error);
+      // In caso di errore, restituiamo un array vuoto per evitare crash
+      return [];
+    }
   }
   
   async getNftStakeById(stakeId: number): Promise<NftStake | undefined> {

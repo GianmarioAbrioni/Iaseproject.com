@@ -54,7 +54,9 @@ try {
 }
 
 // Configurazione
-const ETH_NETWORK_URL = process.env.ETH_NETWORK_URL || "https://eth.drpc.org";
+const infuraApiKey = process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
+const ETH_NETWORK_URL = process.env.ETH_NETWORK_URL || `https://mainnet.infura.io/v3/${infuraApiKey}`;
+const ETH_NETWORK_FALLBACK = process.env.ETH_NETWORK_FALLBACK || "https://rpc.ankr.com/eth";
 const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
 const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
 const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
@@ -98,9 +100,18 @@ async function verifyStakes() {
     return;
   }
   
-  // Connessione a Ethereum
-  console.log(`🔌 Connessione a Ethereum: ${ETH_NETWORK_URL}`);
-  const provider = new ethers.providers.JsonRpcProvider(ETH_NETWORK_URL);
+  // Connessione a Ethereum con fallback
+  console.log(`🔌 Tentativo connessione a Ethereum: ${ETH_NETWORK_URL}`);
+  let provider;
+  
+  try {
+    provider = new ethers.providers.JsonRpcProvider(ETH_NETWORK_URL);
+    console.log("✅ Connesso al provider principale");
+  } catch (error) {
+    console.error(`⚠️ Errore connessione principale: ${error.message}`);
+    console.log(`🔄 Tentativo con provider fallback: ${ETH_NETWORK_FALLBACK}`);
+    provider = new ethers.providers.JsonRpcProvider(ETH_NETWORK_FALLBACK);
+  }
   
   // ABI minimo per leggere tokenURI e ownerOf
   const nftAbi = [

@@ -25,8 +25,16 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
   try {
     console.log(`🔍 Verifica NFT #${tokenId} per wallet ${walletAddress}`);
     
-    // Connetti al provider Ethereum
-    const provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrl);
+    // Connetti al provider Ethereum con fallback
+    let provider;
+    try {
+      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrl);
+      console.log(`🌐 NFT Verification connesso a ${CONFIG.eth.networkUrl}`);
+    } catch (providerError) {
+      console.error(`❌ Errore con provider primario: ${providerError}`);
+      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrlFallback);
+      console.log(`🌐 NFT Verification connesso al fallback ${CONFIG.eth.networkUrlFallback}`);
+    }
     
     // Crea un'istanza del contratto NFT
     const nftContract = new ethers.Contract(

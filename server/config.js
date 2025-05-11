@@ -18,7 +18,8 @@ console.log(`🔧 Ambiente: ${ENV}`);
 export const CONFIG = {
   // Configurazione smart contract
   eth: {
-    networkUrl: process.env.ETH_NETWORK_URL || "https://eth.drpc.org",
+    networkUrl: process.env.ETH_NETWORK_URL || `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66"}`,
+    networkUrlFallback: process.env.ETH_NETWORK_FALLBACK || "https://rpc.ankr.com/eth",
     nftContractAddress: process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F",
   },
   

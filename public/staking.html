@@ -29,6 +29,7 @@
   <link href="styles.css" rel="stylesheet"/>
   <link href="css/parallax.css" rel="stylesheet"/>
   <link rel="stylesheet" href="css/staking.css">
+  <link rel="stylesheet" href="css/wallet.css">
   
   <!-- Favicon -->
   <link href="favicon.png" rel="icon" type="image/png"/>
@@ -130,7 +131,7 @@
           <button id="connectWalletBtn" class="btn primary-btn connect-wallet-btn" data-network="ethereum">
             <i class="ri-plug-line"></i> Connect ETH Wallet
           </button>
-          <button id="disconnectWalletBtn" class="btn secondary-btn hidden disconnect-wallet-btn">
+          <button id="disconnectWalletBtn" class="btn secondary-btn hidden disconnect-wallet-btn" onclick="disconnectWallet()">
             <i class="ri-link-unlink-m"></i> Disconnect
           </button>
           
@@ -607,6 +608,7 @@
   <script src="js/space-background.js"></script>
   <script src="js/parallax.js"></script>
   <script src="js/wallet-connector.js"></script>
+  <script src="js/wallet-status-updater.js"></script>
   <script src="js/claim-service.js"></script>
   <script src="js/staking.js"></script>
   <script src="js/roadmap.js"></script>

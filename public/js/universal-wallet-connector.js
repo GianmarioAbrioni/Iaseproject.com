@@ -547,6 +547,38 @@ function dispatchWalletEvent(eventName, detail = {}) {
     bubbles: true,
     cancelable: true
   }));
+  
+  // Emetti anche gli eventi standardizzati per il wallet-status-updater
+  if (eventName === WALLET_EVENTS.CONNECTED) {
+    // Evento di connessione wallet per staking.html
+    const walletConnectedEvent = new CustomEvent('wallet:connected', {
+      detail: detail,
+      bubbles: true,
+      cancelable: true
+    });
+    document.dispatchEvent(walletConnectedEvent);
+    console.log('☑️ Wallet:connected event dispatched:', detail);
+  } 
+  else if (eventName === WALLET_EVENTS.DISCONNECTED) {
+    // Evento di disconnessione wallet per staking.html
+    const walletDisconnectedEvent = new CustomEvent('wallet:disconnected', {
+      detail: detail,
+      bubbles: true,
+      cancelable: true
+    });
+    document.dispatchEvent(walletDisconnectedEvent);
+    console.log('☑️ Wallet:disconnected event dispatched');
+  }
+  else if (eventName === WALLET_EVENTS.NETWORK_CHANGED) {
+    // Evento di cambio rete per staking.html
+    const networkChangedEvent = new CustomEvent('wallet:networkChanged', {
+      detail: detail,
+      bubbles: true,
+      cancelable: true
+    });
+    document.dispatchEvent(networkChangedEvent);
+    console.log('☑️ Wallet:networkChanged event dispatched:', detail);
+  }
 }
 
 /**

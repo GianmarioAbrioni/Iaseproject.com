@@ -1,0 +1,95 @@
+/**
+ * IASE Project - Stili Wallet Connection
+ */
+
+/* Stili Base */
+.hidden {
+  display: none !important;
+}
+
+/* Stili Wallet Status */
+.wallet-status-indicator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 15px rgba(0, 136, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.wallet-info {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.indicator {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.indicator.connected {
+  background-color: #4CAF50;
+  box-shadow: 0 0 10px #4CAF50;
+  animation: pulse-green 2s infinite;
+}
+
+.indicator.disconnected {
+  background-color: #F44336;
+  box-shadow: 0 0 10px #F44336;
+}
+
+.indicator.wrong-network {
+  background-color: #FFC107;
+  box-shadow: 0 0 10px #FFC107;
+  animation: pulse-warning 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+@keyframes pulse-warning {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}
+
+#walletStatusText {
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+#walletStatusText.connected {
+  color: #4CAF50;
+}
+
+.wallet-address {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}

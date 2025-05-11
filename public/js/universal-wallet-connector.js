@@ -526,6 +526,22 @@ function initWalletListeners() {
         networkName: WALLET_STATE.networkName
       });
     });
+    
+    // Aggiunta: controllo periodico per verificare disconnessioni esterne
+    // Questo rileva quando il wallet viene disconnesso direttamente dal browser
+    setInterval(async () => {
+      if (WALLET_STATE.connected) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length === 0) {
+            console.log('Rilevata disconnessione esterna del wallet');
+            disconnectWallet();
+          }
+        } catch (error) {
+          console.error('Errore nel controllo periodico del wallet:', error);
+        }
+      }
+    }, 3000); // Controlla ogni 3 secondi
   }
 }
 

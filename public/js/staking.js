@@ -31,6 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const claimAndUnstakeBtn = document.getElementById('claimAndUnstakeBtn');
   const closeModalBtns = document.querySelectorAll('.close-modal, .close-modal-btn');
   
+  // Correggi gli IDs per riferimenti corretti agli elementi HTML
+  if (!stakedNftGrid && document.getElementById('stakedNftsContainer')) {
+    stakedNftGrid = document.getElementById('stakedNftsContainer');
+  }
+  
+  if (!availableNftGrid && document.getElementById('availableNftsContainer')) {
+    availableNftGrid = document.getElementById('availableNftsContainer');
+  }
+  
+  if (!emptyRewardsState && document.getElementById('rewardsEmptyState')) {
+    emptyRewardsState = document.getElementById('rewardsEmptyState');
+  }
+  
   // Stato dell'applicazione
   let currentUser = null;
   let stakedNfts = [];
@@ -475,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function loadAvailableNfts() {
     try {
+      console.log("Fetching available NFTs...");
       const response = await fetch('/api/staking/nfts');
       
       if (!response.ok) {
@@ -482,9 +496,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const data = await response.json();
+      console.log("NFTs data received:", data);
       availableNfts = data.available || [];
       
+      // In questa applicazione demo, renderizziamo subito
+      // In una implementazione reale, filtreremmo per NFT della collezione IASE
       renderAvailableNfts();
+      
+      // Mostra sezione NFT (hidden by default)
+      const nftSection = document.getElementById('nftSection');
+      if (nftSection) {
+        nftSection.classList.remove('hidden');
+      }
+      
+      // Mostra dashboard se è nascosto
+      const stakingDashboard = document.getElementById('stakingDashboard');
+      if (stakingDashboard) {
+        stakingDashboard.classList.remove('hidden');
+      }
       
     } catch (error) {
       console.error('Load available NFTs error:', error);
@@ -600,10 +629,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function renderAvailableNfts() {
+    console.log("Rendering NFTs:", availableNfts);
+    
     // Pulisci il container
+    if (!availableNftGrid) {
+      console.error("NFT grid not found in the DOM");
+      return;
+    }
+    
     availableNftGrid.innerHTML = '';
     
-    if (availableNfts.length === 0) {
+    if (!availableNfts || availableNfts.length === 0) {
       availableNftGrid.innerHTML = `
         <div class="empty-state">
           <i class="fas fa-search"></i>
@@ -615,20 +651,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Renderizza ogni NFT
-    availableNfts.forEach(nftId => {
+    availableNfts.forEach(nft => {
       // Determina l'immagine e i dettagli dell'NFT
-      // In produzione, dovresti ottenere questi dati dal contratto o da un'API
-      const nftImage = `img/nfts/iase-unit-${nftId.slice(-3)}.jpg`;
-      const nftTitle = `IASE Unit #${nftId.slice(-4)}`;
+      const nftId = nft.id;
+      const nftTitle = nft.name || `IASE Unit #${nftId}`;
+      const nftImage = nft.image || 'images/nft-placeholder.jpg';
+      const rarityClass = (nft.rarity || 'standard').toLowerCase();
       
       const card = document.createElement('div');
       card.className = 'nft-card';
       card.innerHTML = `
-        <img src="${nftImage}" alt="${nftTitle}" class="nft-image" onerror="this.src='img/nft-placeholder.jpg'">
+        <img src="${nftImage}" alt="${nftTitle}" class="nft-image" onerror="this.src='images/nft-placeholder.jpg'">
         <div class="nft-details">
           <h3 class="nft-title">${nftTitle}</h3>
           <p class="nft-id">ID: ${nftId}</p>
-          <div class="nft-card-actions">
+          <span class="rarity-badge ${rarityClass}">${nft.rarity || 'Standard'}</span>
+          <div class="nft-card-actions mt-3">
             <button class="btn primary-btn stake-action-btn" data-action="stake" data-nft-id="${nftId}">
               <i class="fas fa-lock"></i> Metti in Staking
             </button>
@@ -638,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Aggiungi event listener
       const stakeBtn = card.querySelector('[data-action="stake"]');
-      stakeBtn.addEventListener('click', () => openStakeModal(nftId));
+      stakeBtn.addEventListener('click', () => openStakeModal(nft));
       
       availableNftGrid.appendChild(card);
     });

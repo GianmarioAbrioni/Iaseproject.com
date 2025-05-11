@@ -72,6 +72,19 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => {
         console.log('Loading NFTs after wallet connection');
         loadAvailableNfts();
+        
+        // Sblocca UI elementi nascosti
+        const stakingDashboard = document.getElementById('stakingDashboard');
+        if (stakingDashboard) {
+          console.log('Mostrando dashboard di staking');
+          stakingDashboard.classList.remove('hidden');
+        }
+        
+        const nftSection = document.getElementById('nftSection');
+        if (nftSection) {
+          console.log('Mostrando sezione NFT');
+          nftSection.classList.remove('hidden');
+        }
       }, 1000);
     }
   }
@@ -217,6 +230,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (stakingSteps) {
       stakingSteps.classList.remove('wallet-connected');
+    }
+    
+    // Nascondi dashboard e sezione NFT
+    const nftSection = document.getElementById('nftSection');
+    if (nftSection) {
+      nftSection.classList.add('hidden');
+    }
+    
+    const stakingDashboard = document.getElementById('stakingDashboard');
+    if (stakingDashboard) {
+      stakingDashboard.classList.add('hidden');
     }
   }
 });

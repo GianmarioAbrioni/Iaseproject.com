@@ -89,8 +89,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function createStarryBackground(element) {
     console.log('Creating starry background for element:', element);
     
-    // Number of stars to generate - further reduced for better performance
-    const starCount = window.innerWidth < 768 ? 15 : window.innerWidth < 1200 ? 30 : 50;
+    // Drastically reduce star count for better performance
+    const starCount = window.innerWidth < 768 ? 5 : window.innerWidth < 1200 ? 10 : 15;
     
     // Clear any existing stars
     const existingStars = element.querySelectorAll('.star');
@@ -144,15 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     container.appendChild(star);
   }
   
-  // Handle window resize with debouncing for better performance
-  let resizeTimeout;
-  window.addEventListener('resize', function() {
-    // Cancel any pending resize handler
-    clearTimeout(resizeTimeout);
-    
-    // Set a new timeout to avoid excessive redraws during resize
-    resizeTimeout = setTimeout(function() {
-      spaceBackgrounds.forEach(createStarryBackground);
-    }, 300); // 300ms delay after resize ends
-  });
+  // Completely disable resize handler for maximum performance
+  // Don't recreate stars on resize as it's very expensive
+  // This also fixes the problem with menu opening which triggers resize events
 });

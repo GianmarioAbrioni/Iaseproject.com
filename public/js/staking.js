@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Esporta funzioni importanti per accessibilità globale
   window.loadAvailableNfts = loadAvailableNfts;
   window.renderAvailableNfts = renderAvailableNfts;
+  window.openStakingModal = openStakingModal; // Aggiungiamo questa funzione per la nuova integrazione
   
   // Cleanup di dichiarazioni duplicate
   let currentUser = null;
@@ -253,12 +254,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Errore durante la rimozione dello staking');
+        throw new Error(errorData.error || 'Error removing NFT from staking');
       }
       
       const result = await response.json();
       unstakingModal.style.display = 'none';
-      showNotification('success', 'Staking terminato', `NFT #${selectedStake.nftId} rimosso dallo staking`);
+      showNotification('success', 'Staking Ended', `NFT #${selectedStake.nftId} has been unstaked`);
       
       // Aggiorna le liste
       loadStakedNfts();
@@ -267,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
     } catch (error) {
       console.error('Unstaking error:', error);
-      showNotification('error', 'Errore rimozione staking', error.message);
+      showNotification('error', 'Unstaking Error', error.message);
     }
   });
   
@@ -550,20 +551,20 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Errore durante il collegamento del wallet');
+        throw new Error(errorData.error || 'Error connecting wallet');
       }
       
       const result = await response.json();
       currentUser = result.user;
       
-      showNotification('success', 'Wallet collegato', 'Il tuo wallet è stato collegato con successo all\'account.');
+      showNotification('success', 'Wallet Connected', 'Your wallet has been successfully linked to your account.');
       
       // Inizializza dashboard
       initializeStakingDashboard();
       
     } catch (error) {
       console.error('Link wallet error:', error);
-      showNotification('error', 'Errore collegamento wallet', error.message);
+      showNotification('error', 'Wallet Link Error', error.message);
     }
   }
   
@@ -583,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
                            window.userWalletAddress;
       
       if (!walletAddress) {
-        console.log("Nessun wallet connesso, impossibile caricare NFT in staking");
+        console.log("No wallet connected, cannot load staked NFTs");
         return;
       }
       
@@ -591,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`/api/staking/get-staked-nfts?wallet=${walletAddress}`);
       
       if (!response.ok) {
-        throw new Error('Errore durante il recupero degli NFT in staking');
+        throw new Error('Error retrieving staked NFTs');
       }
       
       const data = await response.json();
@@ -605,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
     } catch (error) {
       console.error('Load staked NFTs error:', error);
-      showNotification('error', 'Errore caricamento', 'Impossibile caricare gli NFT in staking');
+      showNotification('error', 'Loading Error', 'Unable to load staked NFTs');
     }
   }
   
@@ -709,12 +710,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Mostra notifica di successo solo se abbiamo trovato NFT
       if (availableNfts.length > 0) {
-        showNotification('success', 'NFT caricati', `Trovati ${availableNfts.length} NFT disponibili per lo staking`);
+        showNotification('success', 'NFTs Loaded', `Found ${availableNfts.length} NFTs available for staking`);
       }
       
     } catch (error) {
       console.error('⚠️ Load available NFTs error:', error);
-      showNotification('error', 'Errore caricamento', `Impossibile caricare gli NFT disponibili: ${error.message}`);
+      showNotification('error', 'Loading Error', `Unable to load available NFTs: ${error.message}`);
       
       // Ensure dashboard is still shown even if there's an error
       const stakingDashboard = document.getElementById('stakingDashboard');
@@ -728,10 +729,10 @@ document.addEventListener('DOMContentLoaded', () => {
         availableNftGrid.innerHTML = `
           <div class="empty-state error">
             <i class="ri-error-warning-line"></i>
-            <h3>Errore caricamento NFT</h3>
-            <p>Si è verificato un errore durante il caricamento degli NFT: ${error.message}</p>
+            <h3>NFT Loading Error</h3>
+            <p>An error occurred while loading NFTs: ${error.message}</p>
             <button id="retryNftLoad" class="btn primary-btn mt-3">
-              <i class="ri-refresh-line"></i> Riprova
+              <i class="ri-refresh-line"></i> Retry
             </button>
           </div>
         `;
@@ -824,20 +825,20 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="rarity-badge ${stake.rarityTier.toLowerCase()}">${stake.rarityTier}</div>
           <div class="nft-rewards">
             <div class="reward-rate">
-              <span class="reward-label">Ricompensa giornaliera:</span>
+              <span class="reward-label">Daily Reward:</span>
               <span class="reward-value">${stake.dailyRewardRate.toFixed(2)} IASE</span>
             </div>
             <div class="reward-rate">
-              <span class="reward-label">Ricompensa pendente:</span>
+              <span class="reward-label">Pending Reward:</span>
               <span class="reward-value">${stake.pendingReward ? stake.pendingReward.toFixed(2) : '0.00'} IASE</span>
             </div>
           </div>
           <div class="nft-card-actions">
             <button class="btn outline-btn stake-action-btn" data-action="claim" data-stake-id="${stake.id}">
-              <i class="fas fa-hand-holding-usd"></i> Riscuoti
+              <i class="fas fa-hand-holding-usd"></i> Claim
             </button>
             <button class="btn secondary-btn stake-action-btn" data-action="unstake" data-stake-id="${stake.id}">
-              <i class="fas fa-unlock"></i> Rimuovi
+              <i class="fas fa-unlock"></i> Unstake
             </button>
           </div>
         </div>
@@ -997,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${formattedDate}</td>
         <td>IASE Unit #${reward.nftId.slice(-4)}</td>
         <td>${reward.amount.toFixed(2)} IASE</td>
-        <td><span class="rarity-badge standard">Riscosso</span></td>
+        <td><span class="rarity-badge standard">Claimed</span></td>
       `;
       rewardsHistoryTable.appendChild(row);
     });
@@ -1005,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function handleClaimRewards(stake) {
     try {
-      showNotification('info', 'Riscossione ricompense...', 'Attendere...');
+      showNotification('info', 'Claiming rewards...', 'Please wait...');
       
       // Prima otteniamo l'importo riscuotibile
       const response = await fetch('/api/staking/get-claimable-amount', {
@@ -1018,26 +1019,26 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Errore durante la verifica delle ricompense disponibili');
+        throw new Error(errorData.error || 'Error verifying available rewards');
       }
       
       const { claimableAmount } = await response.json();
       
       if (claimableAmount <= 0) {
-        showNotification('warning', 'Nessuna ricompensa', 'Non ci sono ricompense da riscuotere per questo NFT');
+        showNotification('warning', 'No Rewards Available', 'There are no rewards to claim for this NFT');
         return;
       }
       
       // Utilizza il servizio di claim
-      showNotification('info', 'Elaborazione transazione...', 'Conferma la transazione nel tuo wallet');
+      showNotification('info', 'Processing Transaction...', 'Please confirm the transaction in your wallet');
       const claimResult = await window.claimIASEReward(stake.id, claimableAmount);
       
       if (!claimResult.success) {
-        throw new Error(claimResult.error || 'Errore durante la riscossione delle ricompense');
+        throw new Error(claimResult.error || 'Error claiming rewards');
       }
       
-      showNotification('success', 'Ricompense riscosse', 
-        `Hai riscosso ${claimableAmount.toFixed(2)} IASE token per il tuo NFT!`);
+      showNotification('success', 'Rewards Claimed', 
+        `You have claimed ${claimableAmount.toFixed(2)} IASE tokens for your NFT!`);
       
       // Aggiungi link a transaction scanner
       console.log(`Transaction hash: ${claimResult.transaction}`);
@@ -1053,27 +1054,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  function openStakeModal(nftId) {
-    // Costruisci un mock dell'NFT 
-    // In produzione, dovresti ottenere questi dati dal contratto o da un'API
-    const nftImage = `img/nfts/iase-unit-${nftId.slice(-3)}.jpg`;
-    const nftTitle = `IASE Unit #${nftId.slice(-4)}`;
+  /**
+   * Apre il modale di staking per un NFT selezionato
+   * @param {Object|string} nft - L'oggetto NFT completo o l'ID dell'NFT
+   */
+  function openStakeModal(nft) {
+    console.log(`🔒 Apertura modale di staking per NFT`, nft);
     
-    // Determina la rarità in base all'ID (solo per demo)
-    // Lo stesso algoritmo usato nel backend
-    const nftIdHash = parseInt(nftId.replace(/\D/g, '').slice(-2) || '0');
-    const rarityTiers = ["standard", "advanced", "elite", "prototype"];
-    const rarityWeights = [70, 20, 8, 2];
+    // Determina se è stato passato un oggetto completo o solo un ID
+    let nftId, nftImage, nftTitle, rarityTier;
     
-    let cumulativeWeight = 0;
-    let rarityTier = "standard";
-    
-    for (let i = 0; i < rarityTiers.length; i++) {
-      cumulativeWeight += rarityWeights[i];
-      if (nftIdHash % 100 < cumulativeWeight) {
-        rarityTier = rarityTiers[i];
-        break;
+    if (typeof nft === 'string') {
+      // Se è stato passato solo l'ID
+      nftId = nft;
+      nftImage = `img/nfts/iase-unit-${nftId.slice(-3)}.jpg`;
+      nftTitle = `IASE Unit #${nftId.slice(-4)}`;
+      
+      // Determina la rarità in base all'ID (solo per fallback)
+      const nftIdHash = parseInt(nftId.replace(/\D/g, '').slice(-2) || '0');
+      const rarityTiers = ["standard", "advanced", "elite", "prototype"];
+      const rarityWeights = [70, 20, 8, 2];
+      
+      let cumulativeWeight = 0;
+      rarityTier = "standard";
+      
+      for (let i = 0; i < rarityTiers.length; i++) {
+        cumulativeWeight += rarityWeights[i];
+        if (nftIdHash % 100 < cumulativeWeight) {
+          rarityTier = rarityTiers[i];
+          break;
+        }
       }
+    } else {
+      // Se è stato passato un oggetto NFT completo
+      nftId = nft.id || nft.tokenId;
+      nftImage = nft.image || `img/nfts/iase-unit-${nftId.slice(-3)}.jpg`;
+      nftTitle = nft.name || `IASE Unit #${nftId.slice(-4)}`;
+      rarityTier = nft.rarity || 'standard';
     }
     
     // Calcola ricompense in base alla rarità
@@ -1087,28 +1104,45 @@ document.addEventListener('DOMContentLoaded', () => {
       'prototype': 2.5
     };
     
-    const multiplier = rarityMultipliers[rarityTier.toLowerCase()];
+    const multiplier = rarityMultipliers[rarityTier.toLowerCase()] || 1;
     const dailyReward = baseDailyReward * multiplier;
     const monthlyReward = baseMonthlyReward * multiplier;
     
     // Popola la modale
-    document.getElementById('modalNftImage').src = nftImage;
-    document.getElementById('modalNftImage').onerror = function() {
-      this.src = 'img/nft-placeholder.jpg';
-    };
-    document.getElementById('modalNftTitle').textContent = nftTitle;
-    document.getElementById('modalNftId').textContent = `ID: ${nftId}`;
-    document.getElementById('modalNftRarity').textContent = rarityTier;
-    document.getElementById('modalNftRarity').className = `rarity-badge ${rarityTier.toLowerCase()}`;
-    document.getElementById('modalDailyReward').textContent = `${dailyReward.toFixed(2)} IASE`;
-    document.getElementById('modalMonthlyReward').textContent = `${monthlyReward.toFixed(2)} IASE`;
+    const modalNftImage = document.getElementById('modalNftImage');
+    if (modalNftImage) {
+      modalNftImage.src = nftImage;
+      modalNftImage.onerror = function() {
+        this.src = 'img/nft-placeholder.jpg';
+      };
+    }
     
-    // Salva riferimento all'NFT selezionato
+    const modalNftTitle = document.getElementById('modalNftTitle');
+    if (modalNftTitle) modalNftTitle.textContent = nftTitle;
+    
+    const modalNftId = document.getElementById('modalNftId');
+    if (modalNftId) modalNftId.textContent = `ID: ${nftId}`;
+    
+    const modalNftRarity = document.getElementById('modalNftRarity');
+    if (modalNftRarity) {
+      modalNftRarity.textContent = rarityTier;
+      modalNftRarity.className = `rarity-badge ${rarityTier.toLowerCase()}`;
+    }
+    
+    const modalDailyReward = document.getElementById('modalDailyReward');
+    if (modalDailyReward) modalDailyReward.textContent = `${dailyReward.toFixed(2)} IASE`;
+    
+    const modalMonthlyReward = document.getElementById('modalMonthlyReward');
+    if (modalMonthlyReward) modalMonthlyReward.textContent = `${monthlyReward.toFixed(2)} IASE`;
+    
+    // Salva riferimento all'NFT selezionato con più metadati
     selectedNft = {
       id: nftId,
       title: nftTitle,
+      name: nftTitle,
       image: nftImage,
       rarityTier: rarityTier,
+      rarity: rarityTier,
       dailyReward: dailyReward
     };
     
@@ -1152,6 +1186,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Utility per notifiche
+  /**
+   * Calcola il rate giornaliero di ricompensa in base alla rarità
+   * @param {string} rarity - La rarità dell'NFT
+   * @returns {number} - La ricompensa giornaliera
+   */
+  function getRewardRateForRarity(rarity) {
+    const rarityLower = rarity.toLowerCase();
+    const rewardRates = {
+      'standard': 33.33,
+      'advanced': 50,
+      'elite': 66.67,
+      'prototype': 83.33
+    };
+    
+    return rewardRates[rarityLower] || 33.33; // Default a Standard se rarità non riconosciuta
+  }
+  
   function showNotification(type, title, message, duration = 5000) {
     const container = document.getElementById('notificationContainer');
     

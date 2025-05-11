@@ -894,9 +894,15 @@ const updateTokenUI = () => {
     
     // Update wallet info display
     console.log("Updating wallet display for address:", shortAddress);
-    document.getElementById('shortWallet').innerText = shortAddress;
-    document.getElementById('walletInfo').style.display = 'block';
-    document.getElementById('connectButtonBNB').style.display = 'none';
+    
+    // Make sure elements exist before trying to update them
+    const shortWalletElement = document.getElementById('shortWallet');
+    const walletInfoElement = document.getElementById('walletInfo');
+    const connectButtonElement = document.getElementById('connectButtonBNB');
+    
+    if (shortWalletElement) shortWalletElement.innerText = shortAddress;
+    if (walletInfoElement) walletInfoElement.style.display = 'block';
+    if (connectButtonElement) connectButtonElement.style.display = 'none';
     
     // Check network and show/hide appropriate elements
     const onBscNetwork = isBscNetwork();
@@ -920,6 +926,14 @@ const updateTokenUI = () => {
       if (onBscNetwork) {
         console.log("Showing presale form");
         presaleForm.style.display = 'block';
+        
+        // Ensure form is fully initialized
+        const bnbAmountElement = document.getElementById('bnbAmount');
+        if (bnbAmountElement) {
+          console.log("BNB amount input field is present");
+        } else {
+          console.error("BNB amount input field not found!");
+        }
       } else {
         console.log("Hiding presale form");
         presaleForm.style.display = 'none';
@@ -930,8 +944,13 @@ const updateTokenUI = () => {
   } else {
     // Wallet is disconnected
     console.log("Wallet disconnected, updating UI");
-    document.getElementById('walletInfo').style.display = 'none';
-    document.getElementById('connectButtonBNB').style.display = 'block';
+    
+    // Handle elements safely
+    const walletInfoElement = document.getElementById('walletInfo');
+    const connectButtonElement = document.getElementById('connectButtonBNB');
+    
+    if (walletInfoElement) walletInfoElement.style.display = 'none';
+    if (connectButtonElement) connectButtonElement.style.display = 'block';
     
     // Ensure presale form is hidden
     const presaleForm = document.getElementById('presaleForm');
@@ -989,14 +1008,7 @@ const connectWalletBNB = async () => {
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
       console.log("Current chain ID:", chainId);
       
-      // Get a reference to presale form
-      const presaleForm = document.getElementById('presaleForm');
-      if (presaleForm) {
-        console.log("Pre-showing presale form (will be hidden if needed)");
-        presaleForm.style.display = 'block';
-      }
-      
-      // Check if we're on BSC network
+      // Check if we're on BSC network - do this before showing the form
       const onBscNetwork = isBscNetwork(chainId);
       console.log("On BSC network:", onBscNetwork);
       

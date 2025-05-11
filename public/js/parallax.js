@@ -39,9 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize floating elements
   initFloatingElements();
   
-  // Apply mouse move parallax to token cards and NFT cards with performance optimizations
+  // Disable mouse move parallax for better performance
   const tokensAndNftCards = document.querySelectorAll('.token-preview-card, .nft-card');
-  if (tokensAndNftCards.length > 0 && isHighPerformanceDevice) { // Only on high performance devices
+  if (false) { // Disable this effect completely
     console.log('Enabling optimized mouse parallax for token and NFT cards');
     
     // Throttle function to limit how often the mousemove callback runs
@@ -100,17 +100,17 @@ document.addEventListener('DOMContentLoaded', function() {
     );
   }
   
-  // Apply scroll-based parallax effects (high performance devices only) with throttling
-  if (isHighPerformanceDevice && parallaxElements.length > 0) {
-    // Throttled scroll handler for better performance - increased to 100ms for better performance
+  // Disable scroll-based parallax effects for maximum performance
+  if (false) {
+    // Throttled scroll handler - disabled for performance
     const throttledScroll = throttle(function() {
       requestTick();
-    }, 100); // 100ms throttling for better performance
+    }, 100);
     
-    window.addEventListener('scroll', throttledScroll);
+    // Disabled scroll listener
+    // window.addEventListener('scroll', throttledScroll);
     
-    // Initial positioning
-    requestTick();
+    // No initial positioning
   } else if (parallaxElements.length > 0) {
     // For low performance devices, just add a small static offset but no scroll listener
     console.log('Using lightweight static parallax for low-performance devices');

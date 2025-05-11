@@ -12,19 +12,13 @@ document.addEventListener('DOMContentLoaded', function() {
     el.classList.add('is-visible');
   });
   
-  // Inizializza le animazioni rimuovendo prima la classe is-visible
-  // e poi riaggiungendola per creare l'effetto
-  setTimeout(() => {
-    // Prima nascondi
-    document.querySelectorAll('.animate-on-scroll').forEach(el => {
-      el.classList.remove('is-visible');
-    });
-    
-    // Poi, dopo un breve ritardo, mostra di nuovo con animazione
-    setTimeout(() => {
-      initAnimations();
-    }, 50);
-  }, 0);
+  // Skip animation setup for better performance - make all elements visible immediately
+  document.querySelectorAll('.animate-on-scroll').forEach(el => {
+    el.classList.add('is-visible');
+  });
+  
+  // Initialize other non-animation aspects
+  initAnimations();
   
   // Initialize back to top button
   initBackToTop();
@@ -77,8 +71,8 @@ function initParticles() {
   const particlesContainer = document.getElementById('hero-particles');
   if (!particlesContainer) return;
   
-  // Number of particles
-  const particleCount = 50;
+  // Greatly reduced number of particles for better performance
+  const particleCount = 15;
   
   // Create particles
   for (let i = 0; i < particleCount; i++) {
@@ -207,49 +201,99 @@ function initBackToTop() {
   });
 }
 
-// Initialize mobile-friendly navigation
+// Overhauled navigation - direct DOM manipulation for maximum speed
 function initMobileNav() {
-  // Make dropdown menus work better on touch devices
-  const dropdownItems = document.querySelectorAll('.dropdown-toggle');
+  // Override Bootstrap's default behavior for the menu toggle
+  // This prevents animations and transitions that cause lag
   
-  dropdownItems.forEach(item => {
-    item.addEventListener('click', function(e) {
-      const isMobile = window.innerWidth < 992;
+  // Find Bootstrap's navbar toggler and make it use our custom function
+  const navbarToggler = document.querySelector('.navbar-toggler');
+  const navbarCollapse = document.querySelector('.navbar-collapse');
+  
+  if (!navbarToggler || !navbarCollapse) return;
+  
+  // Remove Bootstrap data attributes to prevent their event handlers
+  navbarToggler.removeAttribute('data-bs-toggle');
+  navbarToggler.removeAttribute('data-bs-target');
+  
+  // Add our own instant toggle handler
+  navbarToggler.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    
+    // Direct instant toggle without animations or transitions
+    if (navbarCollapse.classList.contains('show')) {
+      // For closing - just hide it immediately
+      navbarCollapse.style.display = 'none';
+      navbarCollapse.classList.remove('show');
+      // Reset after hiding
+      setTimeout(() => {
+        navbarCollapse.style.display = '';
+      }, 10);
+    } else {
+      // For opening - just show it immediately
+      navbarCollapse.classList.add('show');
+    }
+  });
+  
+  // Similarly handle dropdowns - no animations
+  document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+    // Remove Bootstrap's event handlers
+    toggle.removeAttribute('data-bs-toggle');
+    
+    // Add direct toggle functionality
+    toggle.addEventListener('click', function(e) {
+      // Only handle on mobile/small screens
+      if (window.innerWidth >= 992) return;
       
-      if (isMobile) {
-        if (!this.classList.contains('dropdown-active')) {
-          e.preventDefault();
-          
-          // Close other open dropdowns
-          dropdownItems.forEach(otherItem => {
-            if (otherItem !== this && otherItem.classList.contains('dropdown-active')) {
-              otherItem.classList.remove('dropdown-active');
-              otherItem.nextElementSibling.style.display = 'none';
-            }
-          });
-          
-          // Open this dropdown
-          this.classList.add('dropdown-active');
-          const dropdownMenu = this.nextElementSibling;
-          dropdownMenu.style.display = 'block';
-        }
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const dropdownMenu = this.nextElementSibling;
+      if (!dropdownMenu) return;
+      
+      // Direct styling without transitions
+      if (dropdownMenu.style.display === 'block') {
+        dropdownMenu.style.display = 'none';
+        this.setAttribute('aria-expanded', 'false');
+      } else {
+        // Close all other open dropdowns first
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+          if (menu !== dropdownMenu) {
+            menu.style.display = 'none';
+            const otherToggle = menu.previousElementSibling;
+            if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+        
+        // Then open this one
+        dropdownMenu.style.display = 'block';
+        this.setAttribute('aria-expanded', 'true');
       }
     });
   });
   
-  // Close dropdowns when clicking outside
+  // Add click outside to close handler
   document.addEventListener('click', function(e) {
-    const isDropdownOrToggle = e.target.classList.contains('dropdown-toggle') || 
-                               e.target.closest('.dropdown-menu');
-    
-    if (!isDropdownOrToggle) {
-      dropdownItems.forEach(item => {
-        item.classList.remove('dropdown-active');
-        const menu = item.nextElementSibling;
-        if (menu) {
-          menu.style.display = '';
-        }
+    // Close dropdowns when clicking outside
+    if (!e.target.closest('.dropdown')) {
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+        const toggle = menu.previousElementSibling;
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
       });
+    }
+    
+    // Close navbar when clicking outside
+    if (navbarCollapse.classList.contains('show') && 
+        !e.target.closest('.navbar-collapse') && 
+        !e.target.classList.contains('navbar-toggler') &&
+        !e.target.closest('.navbar-toggler')) {
+      navbarCollapse.style.display = 'none';
+      navbarCollapse.classList.remove('show');
+      setTimeout(() => {
+        navbarCollapse.style.display = '';
+      }, 10);
     }
   });
 }
@@ -303,54 +347,17 @@ function initLazyLoading() {
   });
 }
 
-// Add smooth page transitions
+// Disable page transitions for better performance
 function initPageTransitions() {
-  // Add page transition overlay if it doesn't exist
+  // Create a hidden transition overlay for compatibility
   if (!document.getElementById('page-transition')) {
     const transitionOverlay = document.createElement('div');
     transitionOverlay.id = 'page-transition';
+    transitionOverlay.style.display = 'none';
     document.body.appendChild(transitionOverlay);
   }
-
-  // Add event listener to all links that go to a different page (not anchors)
-  document.querySelectorAll('a:not([href^="#"])').forEach(link => {
-    // Skip links that open in new tabs or are downloads
-    if (link.getAttribute('target') === '_blank' || link.getAttribute('download') || link.getAttribute('href').startsWith('mailto:')) {
-      return;
-    }
-
-    link.addEventListener('click', function(e) {
-      // Skip if it's an external link
-      if (this.hostname !== window.location.hostname) {
-        return;
-      }
-
-      const href = this.getAttribute('href');
-      
-      // Skip if it's a JavaScript action
-      if (href.startsWith('javascript:')) {
-        return;
-      }
-
-      // Don't navigate immediately
-      e.preventDefault();
-
-      // Show transition overlay
-      const transitionOverlay = document.getElementById('page-transition');
-      transitionOverlay.classList.add('active');
-
-      // Wait for animation to complete before navigating
-      setTimeout(() => {
-        window.location.href = href;
-      }, 400);
-    });
-  });
-
-  // Hide transition overlay when page has loaded
-  window.addEventListener('load', () => {
-    const transitionOverlay = document.getElementById('page-transition');
-    transitionOverlay.classList.remove('active');
-  });
+  
+  // No transition animations or event listeners - direct navigation
 }
 
 // Add dashboard link to navigation - Disabled as now handled by wallet-connect.js

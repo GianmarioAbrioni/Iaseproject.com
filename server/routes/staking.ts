@@ -108,23 +108,44 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     
     // Indirizzi e configurazione della collezione IASE
     const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
-    const ETHEREUM_RPC_URL = process.env.ETH_NETWORK_URL || "https://eth.drpc.org";
+    const ETHEREUM_RPC_URL = process.env.ETH_NETWORK_URL || "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161";
+    const ETHEREUM_RPC_FALLBACK = process.env.ETH_NETWORK_FALLBACK || "https://rpc.ankr.com/eth";
     
     // ABI minimo necessario per un contratto ERC721 con Enumerable
     const ERC721_ABI = [
       'function balanceOf(address owner) view returns (uint256)',
       'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
       'function tokenURI(uint256 tokenId) view returns (string)',
-      'function ownerOf(uint256 tokenId) view returns (address)'
+      'function ownerOf(uint256 tokenId) view returns (address)',
+      'function totalSupply() view returns (uint256)'
     ];
     
     try {
-      // Connetti al provider Ethereum
-      const provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_URL);
+      // Connetti al provider Ethereum con la nuova API key Infura
+      let provider;
+      try {
+        const infuraApiKey = process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
+        const infuraUrl = `https://mainnet.infura.io/v3/${infuraApiKey}`;
+        
+        provider = new ethers.JsonRpcProvider(infuraUrl);
+        console.log(`🌐 Tentativo connessione alla rete con Infura API: ${infuraUrl}`);
+      } catch (providerError) {
+        console.error(`❌ Errore connessione provider primario: ${providerError}`);
+        console.log(`⚠️ Tentativo con provider fallback: ${ETHEREUM_RPC_FALLBACK}`);
+        provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+      }
       
       // Log di diagnostica
-      console.log(`🌐 Connessione alla rete: ${ETHEREUM_RPC_URL}`);
       console.log(`📜 Contratto NFT: ${NFT_CONTRACT_ADDRESS}`);
+      
+      // Testa la connessione al provider
+      try {
+        const blockNumber = await provider.getBlockNumber();
+        console.log(`✅ Provider connesso. Blocco attuale: ${blockNumber}`);
+      } catch (blockError) {
+        console.error(`❌ Provider non raggiungibile: ${blockError}`);
+        throw new Error(`Impossibile connettersi alla rete Ethereum: ${blockError}`);
+      }
       
       // Crea un'istanza del contratto NFT
       const nftContract = new ethers.Contract(

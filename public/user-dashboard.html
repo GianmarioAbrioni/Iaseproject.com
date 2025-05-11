@@ -445,10 +445,11 @@
                                 <div id="wallet-address" class="mt-1">--</div>
                             </div>
                             
-                            <div class="alert dashboard-alert d-flex align-items-center" role="alert">
-                                <i class="ri-information-line me-2"></i>
+                            <!-- Wallet Network Alerts -->
+                            <div class="alert dashboard-alert d-flex align-items-center hidden" id="wrong-network-alert" role="alert">
+                                <i class="ri-alert-line me-2"></i>
                                 <div>
-                                    <strong>Test Network:</strong> Your IASE Token is currently on a test network. Balances are simulated for demonstration purposes.
+                                    <strong>Network Warning:</strong> <span id="network-warning-text">For NFT staking, please connect to Ethereum network. For token purchase, please connect to BNB Smart Chain.</span>
                                 </div>
                             </div>
                         </div>
@@ -542,7 +543,7 @@
     <script src="js/script.js"></script>
     <script src="js/space-background.js"></script>
     <script src="js/parallax.js"></script>
-    <script src="js/wallet-connect.js"></script>
+    <script src="js/wallet-connector.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/init-chatbot.js"></script>
     

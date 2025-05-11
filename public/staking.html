@@ -127,13 +127,22 @@
         </div>
         
         <div class="wallet-controls">
-          <button id="connectWalletBtn" class="btn primary-btn">
+          <button id="connectWalletBtn" class="btn primary-btn connect-wallet-btn">
             <i class="ri-plug-line"></i> Connect Wallet
           </button>
-          <button id="disconnectWalletBtn" class="btn secondary-btn hidden">
+          <button id="disconnectWalletBtn" class="btn secondary-btn hidden disconnect-wallet-btn">
             <i class="ri-link-unlink-m"></i> Disconnect
           </button>
+          
+          <!-- Network Warning -->
+          <div id="wrong-network-alert" class="alert alert-warning wallet-wrong-network d-none mt-3" style="font-size: 0.9rem;">
+            <i class="ri-alert-line me-1"></i>
+            <span>Per lo staking di NFT, devi essere sulla rete Ethereum Mainnet.</span>
+            <button id="switch-network-btn" class="btn btn-sm btn-warning mt-2 switch-network-btn" data-chain="0x1">Passa a Ethereum</button>
+          </div>
         </div>
+        
+        <!-- Rimosso avviso rete duplicato -->
       </div>
       
       <!-- Authentication Section for Non-Authenticated Users -->
@@ -597,7 +606,7 @@
   <script src="js/image-loader.js"></script>
   <script src="js/space-background.js"></script>
   <script src="js/parallax.js"></script>
-  <script src="js/wallet-connect.js"></script>
+  <script src="js/wallet-connector.js"></script>
   <script src="js/claim-service.js"></script>
   <script src="js/staking.js"></script>
   <script src="js/roadmap.js"></script>
@@ -618,7 +627,7 @@
             return;
           }
           
-          // MetaMask è disponibile, la connessione verrà gestita da wallet-connect.js
+          // MetaMask è disponibile, la connessione verrà gestita da universal-wallet-connector.js
         });
       }
       

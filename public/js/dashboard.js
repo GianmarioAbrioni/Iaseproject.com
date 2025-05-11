@@ -36,25 +36,22 @@ document.addEventListener('DOMContentLoaded', function() {
     image: 'images/logo.png'
   };
   
-  // Definizione NFT simulati (poiché non è possibile effettuare query dirette alla blockchain senza backend)
-  const mockNFTs = [
-    {
-      id: 1278,
-      name: 'IASE Unit #1278',
-      image: 'images/nft/iase-unit-1.png',
-      tier: 'advanced',
-      rarity: 'Rare',
-      description: 'Advanced AI Unit with enhanced capabilities for complex problem-solving and scientific research.'
-    },
-    {
-      id: 843,
-      name: 'IASE Unit #843',
-      image: 'images/nft/iase-unit-2.png',
-      tier: 'standard',
-      rarity: 'Common',
-      description: 'Standard AI Unit optimized for everyday tasks and basic computational processes.'
+  // Query dati NFT reali
+  async function fetchRealNFTs(walletAddress) {
+    try {
+      if (!walletAddress) return [];
+      
+      // Chiamata API
+      const response = await fetch(`/api/nfts/${walletAddress}`);
+      if (!response.ok) throw new Error('Errore recupero NFT');
+      
+      const data = await response.json();
+      return data.nfts || [];
+    } catch (error) {
+      console.error('Errore recupero NFT:', error);
+      return [];
     }
-  ];
+  }
   
   // Oggetto globale per memorizzare l'indirizzo dell'utente
   window.userAddress = null;
@@ -93,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Aggiorna l'interfaccia quando l'utente è connesso
-  function updateConnectedUI() {
+  async function updateConnectedUI() {
     connectPrompt.classList.add('d-none');
     dashboardContent.classList.remove('d-none');
     connectionIndicator.classList.remove('disconnected');
@@ -112,74 +109,129 @@ document.addEventListener('DOMContentLoaded', function() {
       walletAddress.textContent = window.userAddress;
     }
     
-    // Simula saldo token e ultimi dati transazione (poiché non possiamo realmente interagire con la blockchain)
-    simulateTokenBalance();
+    // Rimuovi avviso di rete di test se presente
+    const testNetworkWarning = document.querySelector('.test-network-warning');
+    if (testNetworkWarning) {
+      testNetworkWarning.classList.add('d-none');
+    }
     
-    // Simula l'ultima transazione
-    const lastTxDate = new Date();
-    lastTxDate.setDate(lastTxDate.getDate() - 3);
-    lastTx.textContent = lastTxDate.toLocaleString('it-IT');
-    lastTransaction.textContent = '3';
+    // Ottieni saldo token reale invece di simulare
+    await updateTokenBalance();
+    
+    // Ottieni data ultima transazione reale dall'API
+    try {
+      const response = await fetch(`/api/dashboard/${window.userAddress}`);
+      if (response.ok) {
+        const dashData = await response.json();
+        // Se c'è lastActivity, usala per l'ultima transazione
+        if (dashData.lastActivity) {
+          // Calcola giorni passati
+          const lastActivityDate = new Date(dashData.lastActivity);
+          const today = new Date();
+          const diffTime = Math.abs(today - lastActivityDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          lastTx.textContent = new Date(dashData.lastActivity).toLocaleString('it-IT');
+          lastTransaction.textContent = diffDays.toString();
+        } else {
+          // Nessuna attività recente
+          lastTx.textContent = 'Nessuna attività recente';
+          lastTransaction.textContent = '-';
+        }
+      }
+    } catch (error) {
+      console.error('Errore recupero dashboard data:', error);
+      lastTx.textContent = 'N/D';
+      lastTransaction.textContent = '-';
+    }
     
     // Ottieni informazioni sulla rete
     getNetworkInfo();
     
-    // Popola gli NFT
-    populateNFTs();
+    // Popola gli NFT reali
+    await populateNFTs();
   }
   
-  // Simula saldo token
-  function simulateTokenBalance() {
-    // Usa ultimo byte dell'indirizzo per generare un numero casuale ma deterministico
-    if (window.userAddress) {
-      const lastByte = parseInt(window.userAddress.slice(-2), 16);
-      const balance = 1000 + (lastByte * 50);
+  // Ottieni saldo token reale
+  async function fetchRealTokenBalance(walletAddress) {
+    try {
+      if (!walletAddress) return { balance: 0, currency: 'IASE' };
       
-      tokenBalance.textContent = `${balance.toLocaleString('it-IT')} IASE`;
-      tokenValue.textContent = `≈ ${(balance * 0.12).toLocaleString('it-IT')} EUR`;
+      // Chiamata API
+      const response = await fetch(`/api/balance/${walletAddress}`);
+      if (!response.ok) throw new Error('Errore recupero saldo');
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Errore recupero saldo:', error);
+      return { balance: 0, currency: 'IASE' };
     }
   }
   
+  // Aggiorna saldo token reale
+  async function updateTokenBalance() {
+    if (!window.userAddress) return;
+    
+    // Mostra loader
+    tokenBalance.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+    tokenValue.innerHTML = 'Caricamento...';
+    
+    // Ottieni saldo reale
+    const balanceData = await fetchRealTokenBalance(window.userAddress);
+    
+    // Aggiorna UI
+    tokenBalance.textContent = `${balanceData.balance.toLocaleString('it-IT')} IASE`;
+    tokenValue.textContent = `≈ ${(balanceData.balance / 1000).toFixed(2)} EUR`;
+  }
+  
   // Popola NFT
-  function populateNFTs() {
+  async function populateNFTs() {
     // Resetta container
     nftContainer.innerHTML = '';
     
-    // Determina quanti NFT mostrare in base all'indirizzo dell'utente
-    let nftsToShow = [];
+    // Carica NFT reali dal wallet dell'utente
+    let nfts = [];
     
     if (window.userAddress) {
-      const lastChar = window.userAddress.slice(-1).toLowerCase();
-      const charCode = lastChar.charCodeAt(0);
+      // Mostra loader
+      nftContainer.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Caricamento NFT in corso...</p></div>';
       
-      // Semplice logica per determinare quali NFT mostrare in base all'indirizzo
-      if (charCode % 2 === 0) {
-        // Indirizzi pari hanno entrambi gli NFT
-        nftsToShow = mockNFTs;
-      } else {
-        // Indirizzi dispari hanno solo un NFT
-        nftsToShow = [mockNFTs[0]];
+      // Carica NFT reali dall'API
+      nfts = await fetchRealNFTs(window.userAddress);
+      
+      // Resetta container dopo caricamento
+      nftContainer.innerHTML = '';
+      
+      // Se non ci sono NFT, mostra messaggio
+      if (nfts.length === 0) {
+        nftContainer.innerHTML = '<div class="col-12 text-center py-4"><p>Non possiedi NFT IASE Units in questo wallet.</p></div>';
       }
     }
     
     // Aggiorna contatore
-    nftCount.textContent = nftsToShow.length;
+    nftCount.textContent = nfts.length;
     
     // Aggiungi NFT al container
-    nftsToShow.forEach(nft => {
+    nfts.forEach(nft => {
       const nftCard = document.createElement('div');
       nftCard.className = 'col-md-6 col-lg-4';
       
+      // Determina tier e rarità basati sui metadati
+      const tier = nft.tier || (nft.traits ? nft.traits.find(t => t.trait_type === 'UNIT TYPE')?.value.toLowerCase() : 'standard');
+      const rarity = nft.rarity || (nft.traits ? nft.traits.find(t => t.trait_type === 'CARD FRAME')?.value : 'Common');
+      const description = nft.description || 'IASE Unit NFT con capacità di elaborazione AI autonoma.';
+      
       nftCard.innerHTML = `
         <div class="nft-card">
-          <img src="${nft.image}" class="nft-img" alt="${nft.name}">
-          <h4 class="nft-title">${nft.name}</h4>
-          <p class="nft-id">ID: ${nft.id}</p>
+          <img src="${nft.image || 'images/nft/iase-unit-default.png'}" class="nft-img" alt="${nft.name || 'IASE Unit #' + nft.id}">
+          <h4 class="nft-title">${nft.name || 'IASE Unit #' + nft.id}</h4>
+          <p class="nft-id">ID: ${nft.id || nft.tokenId}</p>
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="nft-tier tier-${nft.tier}">${nft.tier}</span>
-            <span class="nft-rarity">${nft.rarity}</span>
+            <span class="nft-tier tier-${tier}">${tier}</span>
+            <span class="nft-rarity">${rarity}</span>
           </div>
-          <p class="small text-muted mb-0">${nft.description}</p>
+          <p class="small text-muted mb-0">${description}</p>
         </div>
       `;
       
@@ -209,7 +261,25 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Connetti wallet
-  async function connectWallet() {
+  async function dashboardConnectWallet() {
+    // Usa il sistema centralizzato di walletAPI se disponibile
+    if (window.walletAPI && typeof window.walletAPI.connect === 'function') {
+      try {
+        await window.walletAPI.connect();
+        
+        // Il wallet address dovrebbe essere aggiornato dall'API del wallet
+        if (window.walletAPI.isConnected()) {
+          const address = window.walletAPI.getAddress();
+          handleAccountsChanged([address]);
+          return;
+        }
+      } catch (error) {
+        console.error('Error using unified wallet API:', error);
+        // Fall back to legacy method
+      }
+    }
+    
+    // Legacy method
     const hasWeb3 = await initWeb3();
     
     if (!hasWeb3) {
@@ -225,6 +295,9 @@ document.addEventListener('DOMContentLoaded', function() {
       showConnectionError();
     }
   }
+  
+  // Variabile globale per compatibilità, evitando duplicati
+  window.connectWallet = dashboardConnectWallet;
   
   // Gestisce cambio account
   function handleAccountsChanged(accounts) {
@@ -320,8 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Event listeners
-  connectWalletBtn.addEventListener('click', connectWallet);
-  connectMainBtn.addEventListener('click', connectWallet);
+  connectWalletBtn.addEventListener('click', dashboardConnectWallet);
+  connectMainBtn.addEventListener('click', dashboardConnectWallet);
   disconnectWalletBtn.addEventListener('click', disconnectWallet);
   addTokenBtn.addEventListener('click', window.addTokenToMetaMask);
   copyAddress.addEventListener('click', copyAddressToClipboard);

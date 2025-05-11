@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IASE Wallet Integration Test</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+    }
+    
+    .test-section h2 {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    
+    .test-result {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    
+    .test-success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .test-error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .test-info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    .top-bar {
+      margin-bottom: 30px;
+      padding: 10px 0;
+      background: linear-gradient(45deg, #2b0a3d, #1e0c2c);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="container">
+      <h1>IASE Wallet Integration Test</h1>
+      <p>Questa pagina verifica la corretta integrazione del sistema unificato di connessione wallet.</p>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8">
+        <div class="test-section">
+          <h2>Test Connessione Wallet</h2>
+          <p>Verifica che la connessione wallet funzioni correttamente.</p>
+          
+          <div class="mb-3">
+            <button id="connectTestBtn" class="btn btn-primary connect-wallet-btn">
+              <i class="ri-wallet-3-line me-2"></i> Connect Wallet
+            </button>
+            
+            <button id="disconnectTestBtn" class="btn btn-outline-danger d-none disconnect-wallet-btn">
+              <i class="ri-logout-box-line me-2"></i> Disconnect Wallet
+            </button>
+          </div>
+          
+          <!-- Network Warning -->
+          <div id="wrong-network-alert" class="alert alert-warning d-none" style="font-size: 0.9rem;">
+            <i class="ri-alert-line me-1"></i>
+            <span>Questa è una pagina di test senza requisiti di rete specifici.</span>
+          </div>
+          
+          <div id="connection-result" class="test-result test-info">
+            Stato: In attesa di connessione...
+          </div>
+        </div>
+        
+        <div class="test-section">
+          <h2>Informazioni Wallet</h2>
+          <div id="wallet-info" class="d-none">
+            <div class="mb-2">
+              <strong>Indirizzo:</strong> <span id="wallet-address-display">-</span>
+            </div>
+            <div class="mb-2">
+              <strong>Rete:</strong> <span id="wallet-network-display">-</span>
+            </div>
+            <div class="mb-2">
+              <strong>ChainId:</strong> <span id="wallet-chainid-display">-</span>
+            </div>
+          </div>
+          <div id="wallet-not-connected" class="alert alert-warning">
+            Wallet non connesso. Connetti il wallet per vedere i dettagli.
+          </div>
+        </div>
+        
+        <div class="test-section">
+          <h2>Log Eventi</h2>
+          <div id="events-log" class="test-result" style="max-height: 200px; overflow-y: auto; background-color: #212529; color: #00ff00;">
+            Sistema inizializzato. In attesa di eventi...
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="test-section">
+          <h2>Reti Supportate</h2>
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              Ethereum Mainnet
+              <button class="btn btn-sm btn-secondary switch-to-network" data-chain="0x1">Cambia</button>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              BNB Smart Chain
+              <button class="btn btn-sm btn-secondary switch-to-network" data-chain="0x38">Cambia</button>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="test-section">
+          <h2>Pagine con Wallet</h2>
+          <p>Collegamenti alle pagine che utilizzano il wallet:</p>
+          <ul class="list-group">
+            <li class="list-group-item">
+              <a href="staking.html" target="_blank">Staking (Ethereum)</a>
+            </li>
+            <li class="list-group-item">
+              <a href="token.html" target="_blank">Token (BNB)</a>
+            </li>
+            <li class="list-group-item">
+              <a href="user-dashboard.html" target="_blank">Dashboard Utente</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/wallet-connector.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const connectTestBtn = document.getElementById('connectTestBtn');
+      const disconnectTestBtn = document.getElementById('disconnectTestBtn');
+      const connectionResult = document.getElementById('connection-result');
+      const walletInfo = document.getElementById('wallet-info');
+      const walletNotConnected = document.getElementById('wallet-not-connected');
+      const walletAddressDisplay = document.getElementById('wallet-address-display');
+      const walletNetworkDisplay = document.getElementById('wallet-network-display');
+      const walletChainIdDisplay = document.getElementById('wallet-chainid-display');
+      const eventsLog = document.getElementById('events-log');
+      
+      // Event Listeners
+      document.addEventListener('wallet:connected', function(event) {
+        const { address, network, networkName } = event.detail;
+        logEvent('✅ Wallet connesso', `Indirizzo: ${address}\nRete: ${networkName} (${network})`);
+        
+        connectionResult.textContent = `Stato: Connesso\nIndirizzo: ${address}\nRete: ${networkName}`;
+        connectionResult.className = 'test-result test-success';
+        
+        connectTestBtn.classList.add('d-none');
+        disconnectTestBtn.classList.remove('d-none');
+        
+        walletInfo.classList.remove('d-none');
+        walletNotConnected.classList.add('d-none');
+        
+        walletAddressDisplay.textContent = address;
+        walletNetworkDisplay.textContent = networkName || 'Sconosciuta';
+        walletChainIdDisplay.textContent = network || '-';
+      });
+      
+      document.addEventListener('wallet:disconnected', function() {
+        logEvent('❌ Wallet disconnesso');
+        
+        connectionResult.textContent = 'Stato: Disconnesso';
+        connectionResult.className = 'test-result test-error';
+        
+        connectTestBtn.classList.remove('d-none');
+        disconnectTestBtn.classList.add('d-none');
+        
+        walletInfo.classList.add('d-none');
+        walletNotConnected.classList.remove('d-none');
+      });
+      
+      document.addEventListener('wallet:networkChanged', function(event) {
+        const { network, networkName } = event.detail;
+        logEvent('🔄 Rete cambiata', `Nuova rete: ${networkName} (${network})`);
+        
+        walletNetworkDisplay.textContent = networkName || 'Sconosciuta';
+        walletChainIdDisplay.textContent = network || '-';
+      });
+      
+      // Connect/Disconnect buttons
+      connectTestBtn.addEventListener('click', function() {
+        if (window.walletAPI && typeof window.walletAPI.connect === 'function') {
+          logEvent('🔄 Tentativo di connessione tramite walletAPI...');
+          window.walletAPI.connect();
+        } else {
+          logEvent('⚠️ walletAPI non disponibile, attesa caricamento script...');
+          // Il pulsante dovrebbe funzionare comunque quando il sistema di wallet viene caricato
+        }
+      });
+      
+      disconnectTestBtn.addEventListener('click', function() {
+        if (window.walletAPI && typeof window.walletAPI.disconnect === 'function') {
+          logEvent('🔄 Tentativo di disconnessione tramite walletAPI...');
+          window.walletAPI.disconnect();
+        } else {
+          logEvent('⚠️ walletAPI non disponibile');
+        }
+      });
+      
+      // Network switching buttons
+      document.querySelectorAll('.switch-to-network').forEach(button => {
+        button.addEventListener('click', function() {
+          const chainId = this.getAttribute('data-chain');
+          if (window.walletAPI && typeof window.walletAPI.getState === 'function') {
+            logEvent('🔄 Tentativo di cambio rete a', chainId);
+            
+            // Richiedi cambio rete
+            if (window.ethereum) {
+              ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: chainId }]
+              }).catch(error => {
+                // Se la rete non è configurata in MetaMask, aggiungi
+                if (error.code === 4902 && chainId === '0x38') {
+                  ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                      chainId: '0x38',
+                      chainName: 'BNB Smart Chain',
+                      nativeCurrency: {
+                        name: 'BNB',
+                        symbol: 'BNB',
+                        decimals: 18
+                      },
+                      rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                      blockExplorerUrls: ['https://bscscan.com']
+                    }]
+                  }).then(() => {
+                    logEvent('✅ BNB Smart Chain aggiunta con successo');
+                  }).catch(addError => {
+                    logEvent('❌ Errore aggiunta BNB Chain', addError.message);
+                  });
+                } else {
+                  logEvent('❌ Errore cambio rete', error.message);
+                }
+              });
+            } else {
+              logEvent('❌ Ethereum provider non disponibile');
+            }
+          } else {
+            logEvent('⚠️ walletAPI non disponibile');
+          }
+        });
+      });
+      
+      // Funzione per aggiungere log
+      function logEvent(title, details = '') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${title}${details ? '\n' + details : ''}`;
+        
+        eventsLog.innerHTML += '\n\n' + logEntry;
+        eventsLog.scrollTop = eventsLog.scrollHeight;
+      }
+      
+      // Log initial state
+      logEvent('🚀 Pagina caricata', 'Test del wallet connector unificato');
+      
+      // Check if wallet is already connected via walletAPI
+      setTimeout(() => {
+        if (window.walletAPI && typeof window.walletAPI.isConnected === 'function') {
+          if (window.walletAPI.isConnected()) {
+            logEvent('ℹ️ Wallet già connesso', 'Utilizzando stato esistente');
+            
+            const state = window.walletAPI.getState();
+            const address = window.walletAPI.getAddress();
+            const network = window.walletAPI.getNetwork();
+            const networkName = window.walletAPI.getNetworkName();
+            
+            connectionResult.textContent = `Stato: Connesso\nIndirizzo: ${address}\nRete: ${networkName}`;
+            connectionResult.className = 'test-result test-success';
+            
+            connectTestBtn.classList.add('d-none');
+            disconnectTestBtn.classList.remove('d-none');
+            
+            walletInfo.classList.remove('d-none');
+            walletNotConnected.classList.add('d-none');
+            
+            walletAddressDisplay.textContent = address;
+            walletNetworkDisplay.textContent = networkName || 'Sconosciuta';
+            walletChainIdDisplay.textContent = network || '-';
+          }
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

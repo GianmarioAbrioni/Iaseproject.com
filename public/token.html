@@ -546,9 +546,16 @@ function toggleMenu() {
           
           <!-- WALLET CONNECT + FORM -->
           <div id="wallet-interface" class="d-flex flex-column align-items-center">
-            <button id="connectButton" class="connect-btn mb-3">
+            <button id="connectButton" class="connect-btn mb-3 connect-wallet-btn">
               <i class="ri-wallet-3-line me-2"></i> Connect Wallet
             </button>
+            
+            <!-- Network Warning -->
+            <div id="wrong-network-alert" class="alert alert-warning wallet-wrong-network d-none" style="font-size: 0.9rem; margin-bottom: 15px;">
+              <i class="ri-alert-line me-1"></i>
+              <span>Per acquistare IASE Token, devi essere sulla rete BNB Smart Chain.</span>
+              <button id="switch-network-btn" class="btn btn-sm btn-warning mt-2 switch-network-btn" data-chain="0x38">Passa a BNB Chain</button>
+            </div>
             
             <div id="walletInfo" class="wallet-info mb-4" style="display: none;">
               <div class="wallet-info-content">
@@ -1517,7 +1524,7 @@ function initTokenomicsChart() {
 <script src="js/image-loader.js"></script>
 <script src="js/space-background.js"></script>
 <script src="js/parallax.js"></script>
-<script src="js/wallet-connect.js"></script>
+<script src="js/wallet-connector.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

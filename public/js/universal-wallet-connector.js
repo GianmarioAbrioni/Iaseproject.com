@@ -362,7 +362,15 @@ function checkCorrectNetwork() {
       const message = wrongNetworkAlert.querySelector('span');
       
       if (message && networkInfo) {
-        message.textContent = `Questa pagina richiede ${networkInfo.name} per ${networkInfo.purpose}.`;
+        let purpose = "";
+        if (currentPage === 'token.html') {
+          purpose = "acquistare IASE token";
+        } else if (currentPage === 'staking.html') {
+          purpose = "fare staking dei tuoi NFT";
+        } else {
+          purpose = networkInfo.purpose;
+        }
+        message.textContent = `Questa pagina richiede ${networkInfo.name} per ${purpose}.`;
       }
     }
     

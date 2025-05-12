@@ -1952,5 +1952,21 @@ function initTokenomicsChart() {
 <script src="js/parallax.js"></script>
 <script src="js/wallet-connector.js"></script>
 <script src="script.js"></script>
+
+<script>
+// Fix per connessione e visibilità form corretta sulla rete BSC
+if (window.ethereum) {
+    ethereum.on('accountsChanged', () => {
+        updateTokenUI();
+    });
+    ethereum.on('chainChanged', () => {
+        updateTokenUI();
+    });
+
+    window.addEventListener('load', () => {
+        updateTokenUI();
+    });
+}
+</script>
 </body>
 </html>

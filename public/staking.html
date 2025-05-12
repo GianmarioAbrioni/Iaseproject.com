@@ -765,14 +765,34 @@
       
       // Close modals when clicking outside
       window.addEventListener('click', function(event) {
-        if (event.target === stakeModal) {
-          stakeModal.style.display = 'none';
-        }
-        if (event.target === unstakeModal) {
-          unstakeModal.style.display = 'none';
-        }
-      });
+    if (event.target === stakeModal) {
+        stakeModal.style.display = 'none';
+    }
+    if (event.target === unstakeModal) {
+        unstakeModal.style.display = 'none';
+    }
+});
+
+// 🛡️ Fix per aggiornamento UI alla connessione/disconnessione
+if (window.ethereum) {
+    ethereum.on('accountsChanged', (accounts) => {
+        updateUI();
     });
-  </script>
+
+    ethereum.on('chainChanged', (chainId) => {
+        updateUI();
+    });
+
+    ethereum.on('disconnect', () => {
+        updateUI();
+    });
+}
+
+window.addEventListener('load', () => {
+    if (window.ethereum && ethereum.selectedAddress) {
+        updateUI();
+    }
+});
+</script>
 </body>
 </html>

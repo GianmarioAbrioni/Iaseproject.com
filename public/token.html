@@ -680,65 +680,12 @@ function toggleMenu() {
 
 .buy-tokens-header h3 {
   margin: 0;
-  color: var(--primary);
-  font-weight: 600;
   font-size: 22px;
+  color: var(--primary);
 }
 
 .buy-tokens-body {
   padding: 25px;
-}
-
-.connect-btn {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #ff9f00, #ff7b00);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 16px;
-  min-width: 200px;
-  box-shadow: 0 4px 10px rgba(255, 159, 0, 0.3);
-}
-
-.connect-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(255, 159, 0, 0.4);
-  background: linear-gradient(135deg, #ffaa00, #ff8500);
-}
-
-.wallet-info {
-  background: rgba(0, 150, 136, 0.1);
-  padding: 12px 20px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 150, 136, 0.2);
-  width: 100%;
-  max-width: 400px;
-}
-
-.wallet-info-content {
-  display: flex;
-  align-items: center;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.wallet-address {
-  font-weight: 600;
-  color: var(--primary);
-  margin-left: 5px;
-}
-
-.presale-form {
-  width: 100%;
-  max-width: 400px;
-}
-
-.form-label {
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-  margin-bottom: 10px;
 }
 
 .input-with-icon {
@@ -750,52 +697,54 @@ function toggleMenu() {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 18px;
+  color: var(--text-muted);
 }
 
-#bnbAmount {
-  padding: 14px 14px 14px 42px;
-  background: rgba(30, 40, 60, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: white;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-#bnbAmount:focus {
-  border-color: var(--primary);
-  background: rgba(30, 40, 60, 0.9);
-  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.15);
+#presaleForm input {
+  padding-left: 40px;
 }
 
 .token-estimate {
-  background: rgba(0, 191, 255, 0.1);
-  padding: 12px 15px;
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  width: 100%;
-  border: 1px dashed rgba(0, 191, 255, 0.3);
+  padding: 12px 15px;
 }
 
 .estimate-content {
   display: flex;
   align-items: center;
+}
+
+.wallet-info {
+  background: rgba(0, 131, 143, 0.1);
+  border: 1px solid rgba(0, 131, 143, 0.2);
+  border-radius: 8px;
+  padding: 12px 15px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.wallet-info-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wallet-address {
+  font-family: monospace;
+  font-weight: bold;
   color: var(--primary);
 }
 
 .buy-btn {
-  padding: 14px 24px;
   background: linear-gradient(135deg, #00bfff, #0088cc);
-  color: white;
-  border: none;
-  border-radius: 8px;
   font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   margin-top: 10px;
-  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+  padding: 12px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
 }
 
 .buy-btn:hover {
@@ -811,582 +760,6 @@ function toggleMenu() {
     <p id="rangeModalText" class="mb-3">Amount must be between 0.05 and 10 BNB.</p>
     <button class="range-modal-btn" onclick="document.getElementById('rangeModal').style.display='none';">OK</button>
   </div>
-</div>
-<script>
-const conversionRate = 1000000; // 1 BNB = 1,000,000 IASE
-const minBNB = 0.05;
-const maxBNB = 10;
-
-// Mostra finestra range personalizzata
-const showRangeModal = (msg) => {
-  document.getElementById('rangeModalText').innerText = msg;
-  document.getElementById('rangeModal').style.display = 'block';
-};
-
-// BSC Network Data
-const BSC_NETWORK = {
-  chainId: '0x38',
-  chainName: 'BNB Smart Chain',
-  nativeCurrency: {
-    name: 'BNB',
-    symbol: 'BNB',
-    decimals: 18
-  },
-  rpcUrls: ['https://bsc-dataseed.binance.org/'],
-  blockExplorerUrls: ['https://bscscan.com/']
-};
-
-// Check if current network is BSC
-const isBscNetwork = (chainIdParam) => {
-  // Se viene passato un parametro chainId, usa quello, altrimenti usa il chainId dall'oggetto window.ethereum
-  const chainId = chainIdParam || (window.ethereum ? window.ethereum.chainId : null);
-  
-  // Log per debug
-  console.log(`🔍 BSC Network check: current chainId=${chainId}, BSC chainId=${BSC_NETWORK.chainId}, match=${chainId === BSC_NETWORK.chainId}`);
-  
-  // Se ci troviamo su BNB Smart Chain, dobbiamo vedere '0x38'
-  return chainId === BSC_NETWORK.chainId;
-};
-
-// Switch to BSC Network
-const switchToBscNetwork = async () => {
-  if (!window.ethereum) return false;
-  
-  try {
-    // Try to switch to BSC
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: BSC_NETWORK.chainId }]
-    });
-    return true;
-  } catch (switchError) {
-    // This error code indicates that the chain has not been added to MetaMask
-    if (switchError.code === 4902) {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [BSC_NETWORK]
-        });
-        return true;
-      } catch (addError) {
-        console.error('Error adding BSC network', addError);
-        return false;
-      }
-    }
-    console.error('Error switching to BSC network', switchError);
-    return false;
-  }
-};
-
-// Check if wallet is really connected
-const isReallyConnected = () => {
-  // We need additional checks because sometimes the UI state and actual state get out of sync
-  return window.ethereum && 
-         window.ethereum.selectedAddress && 
-         window.ethereum.selectedAddress.length > 0;
-};
-
-// Update UI based on wallet and network status
-const updateTokenUI = () => {
-  console.log("⚙️ Updating token UI...");
-  
-  try {
-    // Always check for real connection status first
-    const walletConnected = isReallyConnected();
-    console.log("Wallet connected:", walletConnected);
-    
-    if (walletConnected) {
-      // Wallet is connected
-      const userAddress = window.ethereum.selectedAddress;
-      if (!userAddress) {
-        console.log("No selectedAddress found despite wallet being connected");
-        return; // Esci dalla funzione per evitare errori
-      }
-      
-      window.userAddress = userAddress;
-      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
-      
-      // Update wallet info display
-      console.log("Updating wallet display for address:", shortAddress);
-      
-      // Make sure elements exist before trying to update them
-      const shortWalletElement = document.getElementById('shortWallet');
-      const walletInfoElement = document.getElementById('walletInfo');
-      const connectButtonElement = document.getElementById('connectButtonBNB');
-      
-      if (shortWalletElement) shortWalletElement.innerText = shortAddress;
-      if (walletInfoElement) walletInfoElement.style.display = 'block';
-      if (connectButtonElement) connectButtonElement.style.display = 'none';
-      
-      try {
-        // Check network and show/hide appropriate elements - in try/catch separato
-        const onBscNetwork = isBscNetwork();
-        console.log("On BSC network:", onBscNetwork);
-        
-        // Always show the wrong-network alert when not on BSC
-        const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-        if (wrongNetworkAlert) {
-          if (!onBscNetwork) {
-            console.log("Showing network warning alert");
-            wrongNetworkAlert.classList.remove('d-none');
-          } else {
-            console.log("Hiding network warning alert");
-            wrongNetworkAlert.classList.add('d-none');
-          }
-        }
-        
-        // Show presale form ONLY if on BSC network
-        const presaleForm = document.getElementById('presaleForm');
-        if (presaleForm) {
-          if (onBscNetwork) {
-            console.log("Showing presale form");
-            presaleForm.style.display = 'block';
-            
-            // Ensure form is fully initialized
-            const bnbAmountElement = document.getElementById('bnbAmount');
-            if (bnbAmountElement) {
-              console.log("BNB amount input field is present");
-            } else {
-              console.error("BNB amount input field not found!");
-            }
-          } else {
-            console.log("Hiding presale form");
-            presaleForm.style.display = 'none';
-          }
-        } else {
-          console.error("Presale form element not found!");
-        }
-      } catch (networkError) {
-        console.error("Error checking network status:", networkError);
-        // Continua con l'esecuzione per evitare di bloccare l'intera UI
-      }
-    } else {
-      // Wallet is disconnected
-      console.log("Wallet disconnected, updating UI");
-      
-      // Handle elements safely
-      const walletInfoElement = document.getElementById('walletInfo');
-      const connectButtonElement = document.getElementById('connectButtonBNB');
-      
-      if (walletInfoElement) walletInfoElement.style.display = 'none';
-      if (connectButtonElement) connectButtonElement.style.display = 'block';
-      
-      // Ensure presale form is hidden
-      const presaleForm = document.getElementById('presaleForm');
-      if (presaleForm) {
-        presaleForm.style.display = 'none';
-      }
-      
-      // Hide wrong network alert
-      const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-      if (wrongNetworkAlert) {
-        wrongNetworkAlert.classList.add('d-none');
-      }
-    }
-  } catch (error) {
-    console.error("Error in updateTokenUI:", error);
-    // Non mostrare un alert all'utente, solo log in console
-    
-    // Assicurare che i controlli principali siano visibili
-    try {
-      const walletInfoElement = document.getElementById('walletInfo');
-      const connectButtonElement = document.getElementById('connectButtonBNB');
-      
-      if (walletInfoElement) walletInfoElement.style.display = 'none';
-      if (connectButtonElement) connectButtonElement.style.display = 'block';
-    } catch (e) {
-      console.error("Critical UI error:", e);
-    }
-  }
-  
-  // Schedule periodic UI updates to catch any manual disconnections
-  try {
-    scheduleNextUpdate();
-  } catch (e) {
-    console.error("Error scheduling next update:", e);
-  }
-};
-
-// Periodic check to ensure UI state matches wallet state
-let tokenUpdateTimer = null;
-function scheduleNextUpdate() {
-  console.log("🔍 Scheduling ONE-TIME UI check (not recursive)");
-  
-  // Clear any existing timer
-  if (tokenUpdateTimer) {
-    clearTimeout(tokenUpdateTimer);
-  }
-  
-  // Schedule a SINGLE check in 3 seconds (NON ricorsivo)
-  tokenUpdateTimer = setTimeout(() => {
-    try {
-      console.log("⏱️ Single UI check executing...");
-      const walletConnected = isReallyConnected();
-      const uiConnected = document.getElementById('walletInfo').style.display === 'block';
-      
-      // If there's a mismatch between UI and actual wallet state, update UI
-      if (walletConnected !== uiConnected) {
-        console.log('⚠️ UI wallet state mismatch detected, correcting...');
-        updateTokenUI();
-      } else {
-        console.log('✅ UI state matches wallet state, no action needed');
-      }
-      
-      // NON scheduliamo un nuovo check automaticamente qui!
-      // scheduleNextUpdate() NO PIÙ CHIAMATO QUI - BLOCCA IL LOOP INFINITO
-    } catch (err) {
-      console.error("❌ Error during wallet UI check:", err);
-    }
-  }, 3000);
-  
-  console.log("🕒 Single UI check scheduled for 3 seconds from now");
-};
-
-// Connessione wallet BNB - COMPLETAMENTE RISCRITTA
-const connectWalletBNB = async () => {
-  console.log("🔌 Connect BNB Wallet function called");
-  
-  // Disabilita il pulsante di connessione e mostra lo spinner
-  const connectBtn = document.getElementById('connectButtonBNB');
-  if (connectBtn) {
-    connectBtn.disabled = true;
-    connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Connecting...';
-  }
-  
-  // Mostra messaggio utente in attesa della connessione
-  const connectingMessage = document.createElement('div');
-  connectingMessage.id = 'connecting-message';
-  connectingMessage.style.position = 'fixed';
-  connectingMessage.style.bottom = '20px';
-  connectingMessage.style.right = '20px';
-  connectingMessage.style.backgroundColor = '#2c3e50';
-  connectingMessage.style.color = 'white';
-  connectingMessage.style.padding = '10px 15px';
-  connectingMessage.style.borderRadius = '5px';
-  connectingMessage.style.zIndex = '9999';
-  connectingMessage.innerHTML = 'Connecting to wallet... <div class="spinner-border spinner-border-sm text-light" role="status"></div>';
-  document.body.appendChild(connectingMessage);
-  
-  // Verifica se MetaMask è installato
-  if (!window.ethereum) {
-    console.error("MetaMask not detected");
-    
-    // Rimuovi il messaggio di connessione
-    const msgElement = document.getElementById('connecting-message');
-    if (msgElement) document.body.removeChild(msgElement);
-    
-    // Ripristina il pulsante
-    if (connectBtn) {
-      connectBtn.disabled = false;
-      connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
-    }
-    
-    // Mostra messaggio di errore
-    alert("Please install MetaMask to use this feature. Visit https://metamask.io");
-    return;
-  }
-  
-  try {
-    console.log("Requesting accounts from MetaMask...");
-    
-    // Request accounts from MetaMask
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    console.log("Accounts received:", accounts);
-    
-    // Verificare che l'utente abbia effettivamente concesso i permessi
-    if (!accounts || accounts.length === 0) {
-      console.log("No accounts received, user may have rejected the request");
-      
-      // Rimuovi il messaggio di connessione
-      const msgElement = document.getElementById('connecting-message');
-      if (msgElement) document.body.removeChild(msgElement);
-      
-      // Ripristina il pulsante
-      if (connectBtn) {
-        connectBtn.disabled = false;
-        connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
-      }
-      
-      return; // Esci dalla funzione senza provare ad accedere alla chain
-    }
-      
-      // Configurazione base UI (connessione wallet)
-      const userAddress = accounts[0];
-      window.userAddress = userAddress;
-      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
-      console.log("Setting up wallet display for address:", shortAddress);
-      
-      // Prima di tutto, sempre aggiorna gli elementi UI base (wallet connesso)
-      // Questo garantisce che l'UI mostri sempre che il wallet è connesso, indipendentemente dalla rete
-      const shortWalletElement = document.getElementById('shortWallet');
-      const walletInfoElement = document.getElementById('walletInfo');
-      const connectButtonElement = document.getElementById('connectButtonBNB');
-      
-      if (shortWalletElement) shortWalletElement.innerText = shortAddress;
-      if (walletInfoElement) walletInfoElement.style.display = 'block';
-      if (connectButtonElement) {
-        connectButtonElement.style.display = 'none';
-        connectButtonElement.disabled = false;
-        connectButtonElement.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
-      }
-      
-      // Rimuovi il messaggio di connessione
-      const msgElement = document.getElementById('connecting-message');
-      if (msgElement) document.body.removeChild(msgElement);
-      
-      // Ora controlla la rete, ma NON bloccare la UI se qualcosa va storto
-      try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        console.log("Current chain ID:", chainId);
-        
-        // Verifica se siamo sulla rete BSC
-        const onBscNetwork = isBscNetwork(chainId);
-        console.log("On BSC network:", onBscNetwork);
-        
-        // Riferimenti elementi UI
-        const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-        const presaleForm = document.getElementById('presaleForm');
-        
-        // ** PUNTO CRITICO ** - Inizializziamo SEMPRE il form vuoto
-        // Così se lo switch o altro non funziona, almeno abbiamo un form lì inizializzato
-        if (presaleForm) {
-          // Prima inizializza sempre il form nel DOM
-          // (Questo perché alcuni controlli potrebbero essere aggiunti dopo)
-          presaleForm.style.display = 'block';
-        }
-        
-        if (onBscNetwork) {
-          // Siamo sulla rete BSC corretta
-          console.log("BSC network detected, showing form");
-          if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
-          // Il form è già visibile, nulla da fare
-        } else {
-          // Non siamo sulla rete BSC
-          console.log("Wrong network detected (not BSC)");
-          if (wrongNetworkAlert) wrongNetworkAlert.classList.remove('d-none');
-          // Comunque manteniamo il form visibile ma mostreremo un avviso
-          
-          // Prova a passare alla rete BSC automaticamente
-          try {
-            console.log("Attempting automatic network switch to BSC");
-            await switchToBscNetwork();
-            console.log("Network switch requested");
-          } catch (switchError) {
-            console.error("Error switching networks:", switchError);
-            // Anche se lo switch fallisce, l'utente può sempre vedere il form
-          }
-        }
-      } catch (chainError) {
-        // Errore nel controllo della chain, ma non blocchiamo il flusso UI
-        console.error("Error checking chain ID:", chainError);
-        
-        // FAIL SAFE: Mostra comunque il form
-        const presaleForm = document.getElementById('presaleForm');
-        if (presaleForm) presaleForm.style.display = 'block';
-      }
-      
-      // Setup listeners for account and chain changes
-      console.log("Setting up event listeners");
-      window.ethereum.on('accountsChanged', function (accounts) {
-        console.log("Accounts changed:", accounts);
-        if (!accounts.length) {
-          // Disconnessione wallet
-          const walletInfoElement = document.getElementById('walletInfo');
-          const connectButtonElement = document.getElementById('connectButtonBNB');
-          const presaleForm = document.getElementById('presaleForm');
-          
-          if (walletInfoElement) walletInfoElement.style.display = 'none';
-          if (connectButtonElement) connectButtonElement.style.display = 'block';
-          if (presaleForm) presaleForm.style.display = 'none';
-        } else {
-          // Cambio account, aggiorna UI
-          updateTokenUI();
-        }
-      });
-
-      window.ethereum.on('chainChanged', function (chainId) {
-        console.log("Chain changed:", chainId);
-        // Controlla rete e aggiorna UI
-        const presaleForm = document.getElementById('presaleForm');
-        const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-        const onBscNetwork = isBscNetwork(chainId);
-        
-        if (onBscNetwork) {
-          if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
-          if (presaleForm) presaleForm.style.display = 'block';
-        } else {
-          if (wrongNetworkAlert) wrongNetworkAlert.classList.remove('d-none');
-          if (presaleForm) presaleForm.style.display = 'none';
-        }
-      });
-      
-    } catch (error) {
-      console.error('Connection error:', error);
-      
-      // Mostra un messaggio di errore discreto nel DOM (senza popup)
-      const statusElement = document.getElementById('connection-status');
-      
-      } catch (error) {
-    console.error('Connection error:', error);
-
-    if (error.code === 4001) {
-        console.log("User rejected the connection request");
-        // Nessun messaggio visibile all'utente, solo log
-    } else {
-        console.log("Other connection error:", error.message);
-        // Nessun messaggio visibile all'utente
-    }
-} else {
-        // Per errori non di rifiuto volontario
-        console.log("Other connection error:", error.message);
-        
-        if (statusElement) {
-          statusElement.textContent = 'Connection error. Please try again.';
-          statusElement.style.color = '#ff6b6b';
-          statusElement.style.display = 'block';
-          
-          // Nascondi dopo alcuni secondi
-          setTimeout(() => {
-            statusElement.style.display = 'none';
-          }, 5000);
-        }
-      }
-    }
-  } else {
-    alert("MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.");
-  }
-}
-
-
-// Check initial wallet and network status on page load
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("🚀 DOM fully loaded, initializing UI...");
-
-    const connectBtnBNB = document.getElementById('connectButtonBNB');
-    if (connectBtnBNB) {
-        connectBtnBNB.addEventListener('click', connectWalletBNB);
-        console.log("✅ Binding applied to connectButtonBNB");
-    } else {
-        console.error("❌ connectButtonBNB not found in DOM!");
-    }
-
-    if (window.ethereum && window.ethereum.selectedAddress) {
-        updateTokenUI();
-    }
-
-    window.ethereum.on('accountsChanged', function (accounts) {
-        updateTokenUI();
-    });
-
-    window.ethereum.on('chainChanged', function (chainId) {
-        updateTokenUI();
-    });
-
-});
-
-// Calcolo conversione + validazione live
-document.getElementById('bnbAmount').addEventListener('input', function () {
-  const bnb = parseFloat(this.value.replace(",", "."));
-  const estimateDiv = document.getElementById('estimate');
-  const estimateText = document.getElementById('estimateText');
-
-  if (isNaN(bnb) || bnb <= 0) {
-    estimateDiv.style.display = 'none';
-  } else {
-    estimateDiv.style.display = 'block';
-    
-    if (bnb >= minBNB && bnb <= maxBNB) {
-      const iase = bnb * conversionRate;
-      estimateText.innerHTML = `You will receive: <strong>${iase.toLocaleString()} IASE</strong>`;
-    } else if (bnb > maxBNB) {
-      estimateText.innerHTML = `<span style="color: #ff6b6b;">Max limit is ${maxBNB} BNB</span>`;
-    } else if (bnb < minBNB) {
-      estimateText.innerHTML = `<span style="color: #ff6b6b;">Min limit is ${minBNB} BNB</span>`;
-    }
-  }
-});
-
-// Gestione click diretto sul pulsante con validazione custom
-document.querySelector('#presaleForm button[type="submit"]').addEventListener('click', function (e) {
-  const amount = parseFloat(document.getElementById('bnbAmount').value.replace(",", "."));
-  if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
-    e.preventDefault(); // Evita che il form HTML5 blocchi o resetti
-    showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
-    return false;
-  }
-});
-
-// Se l'importo è valido, qui puoi eventualmente chiamare la funzione di invio al contratto
-document.getElementById('presaleForm').addEventListener('submit', async function (e) {
-  e.preventDefault();
-
-  const amount = parseFloat(document.getElementById('bnbAmount').value.replace(",", "."));
-  if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
-    showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
-    return;
-  }
-
-  const web3 = new Web3(window.ethereum);
-  const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
-
-  try {
-    const tx = await contract.methods.buyTokens().send({
-      from: window.userAddress,
-      value: web3.utils.toWei(amount.toString(), 'ether')
-    });
-
-    // Mostra notifica di successo
-    const estimateDiv = document.getElementById('estimate');
-    const estimateText = document.getElementById('estimateText');
-    
-    estimateDiv.style.display = 'block';
-    estimateDiv.style.background = 'rgba(0, 150, 136, 0.15)';
-    estimateDiv.style.border = '1px solid rgba(0, 150, 136, 0.3)';
-    
-    estimateText.innerHTML = `<i class="ri-check-double-line me-2" style="color: #00e676;"></i> <span style="color: #00e676; font-weight: 600;">Purchase completed! Tokens have been sent.</span>`;
-
-    // Chiudi modale e resetta campo input
-    document.getElementById("rangeModal").style.display = "none";
-    document.getElementById("bnbAmount").value = "";
-
-    // Reset UI
-    document.getElementById('walletInfo').style.display = 'block';
-    document.getElementById('connectButtonBNB').style.display = 'none';
-    document.getElementById('presaleForm').style.display = 'block';
-
-
-  } catch (error) {
-    console.error("Transaction error:", error);
-
-    // Messaggio errore
-    document.getElementById("rangeModal").style.display = "none";
-    document.body.style.overflow = 'auto';
-
-    // Mostra errore sulla UI
-    const estimateDiv = document.getElementById('estimate');
-    const estimateText = document.getElementById('estimateText');
-    
-    estimateDiv.style.display = 'block';
-    estimateDiv.style.background = 'rgba(244, 67, 54, 0.1)';
-    estimateDiv.style.border = '1px solid rgba(244, 67, 54, 0.3)';
-    
-    estimateText.innerHTML = `<i class="ri-error-warning-line me-2" style="color: #ff5252;"></i> <span style="color: #ff5252; font-weight: 600;">Transaction failed. Please try again.</span>`;
-  }
-});
-
-
-// Blocco tasto INVIO fuori range
-document.getElementById('bnbAmount').addEventListener('keypress', function (e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const amount = parseFloat(this.value.replace(",", "."));
-    if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
-      showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
-      return false;
-    }
-  }
-});</script>
-</div>
 </div>
 
 <!-- ROADMAP SECTION -->
@@ -1513,8 +886,6 @@ document.getElementById('bnbAmount').addEventListener('keypress', function (e) {
           <p>Development of simulation architecture for space AI testing.</p>
           <div class="compact-progress">
             <div class="progress-indicator progress-upcoming-5"></div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -1659,183 +1030,641 @@ document.getElementById('bnbAmount').addEventListener('keypress', function (e) {
       </div>
     </div>
   </footer>
-<script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+
+<!-- Smart Contract Definition -->
 <script>
-const CONTRACT_ADDRESS = "0x54799bAf11ff48a2662F0f65C09A18D96851cF3B";
+const CONTRACT_ADDRESS = '0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE';
 const ABI = [
-        {
-                "inputs": [],
-                "name": "buyTokens",
-                "outputs": [],
-                "stateMutability": "payable",
-                "type": "function"
-        },
-        {
-                "inputs": [
-                        {
-                                "internalType": "address",
-                                "name": "_token",
-                                "type": "address"
-                        },
-                        {
-                                "internalType": "uint256",
-                                "name": "_endTime",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-        },
-        {
-                "inputs": [],
-                "name": "withdrawUnsoldTokens",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-        },
-        {
-                "stateMutability": "payable",
-                "type": "receive"
-        },
-        {
-                "inputs": [
-                        {
-                                "internalType": "address",
-                                "name": "",
-                                "type": "address"
-                        }
-                ],
-                "name": "contributions",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "endTime",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "getTokenBalance",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "maxBNB",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "maxPerWallet",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "minBNB",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [
-                        {
-                                "internalType": "address",
-                                "name": "",
-                                "type": "address"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "rate",
-                "outputs": [
-                        {
-                                "internalType": "uint256",
-                                "name": "",
-                                "type": "uint256"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        },
-        {
-                "inputs": [],
-                "name": "token",
-                "outputs": [
-                        {
-                                "internalType": "contract IERC20",
-                                "name": "",
-                                "type": "address"
-                        }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-        }
+	{
+		"inputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "_token",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_rate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_minBNB",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_maxBNB",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_maxPerWallet",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_endTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawUnsoldTokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "contributions",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "endTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getTokenBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxBNB",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxPerWallet",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "minBNB",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "rate",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "token",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
 ];
-  
-
 </script>
-
-<!-- Chart Script -->
 
 <!-- Chart.js for Tokenomics -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-// Initialize Tokenomics Chart
-window.addEventListener('load', function() {
-  initTokenomicsChart();
-});
+/************************************************
+ * PARTE 1: FUNZIONI PER CONNESSIONE WALLET BSC *
+ ************************************************/
 
+// BSC Network Data
+const BSC_NETWORK = {
+  chainId: '0x38',
+  chainName: 'BNB Smart Chain',
+  nativeCurrency: {
+    name: 'BNB',
+    symbol: 'BNB',
+    decimals: 18
+  },
+  rpcUrls: ['https://bsc-dataseed.binance.org/'],
+  blockExplorerUrls: ['https://bscscan.com/']
+};
+
+// Check if current network is BSC
+const isBscNetwork = (chainIdParam) => {
+  // Se viene passato un parametro chainId, usa quello, altrimenti usa il chainId dall'oggetto window.ethereum
+  const chainId = chainIdParam || (window.ethereum ? window.ethereum.chainId : null);
+  
+  // Log per debug
+  console.log(`🔍 BSC Network check: current chainId=${chainId}, BSC chainId=${BSC_NETWORK.chainId}, match=${chainId === BSC_NETWORK.chainId}`);
+  
+  // Se ci troviamo su BNB Smart Chain, dobbiamo vedere '0x38'
+  return chainId === BSC_NETWORK.chainId;
+};
+
+// Switch to BSC Network
+const switchToBscNetwork = async () => {
+  if (!window.ethereum) return false;
+  
+  try {
+    // Try to switch to BSC
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: BSC_NETWORK.chainId }]
+    });
+    return true;
+  } catch (switchError) {
+    // This error code indicates that the chain has not been added to MetaMask
+    if (switchError.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [BSC_NETWORK]
+        });
+        return true;
+      } catch (addError) {
+        console.error('Error adding BSC network', addError);
+        return false;
+      }
+    }
+    console.error('Error switching to BSC network', switchError);
+    return false;
+  }
+};
+
+// Check if wallet is really connected
+const isReallyConnected = () => {
+  // We need additional checks because sometimes the UI state and actual state get out of sync
+  return window.ethereum && 
+        window.ethereum.selectedAddress && 
+        window.ethereum.selectedAddress.length > 0;
+};
+
+// Update UI based on wallet and network status
+const updateTokenUI = () => {
+  console.log("⚙️ Updating token UI...");
+  
+  try {
+    // Always check for real connection status first
+    const walletConnected = isReallyConnected();
+    console.log("Wallet connected:", walletConnected);
+    
+    if (walletConnected) {
+      // Wallet is connected
+      const userAddress = window.ethereum.selectedAddress;
+      if (!userAddress) {
+        console.log("No selectedAddress found despite wallet being connected");
+        return; // Esci dalla funzione per evitare errori
+      }
+      
+      window.userAddress = userAddress;
+      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+      
+      // Update wallet info display
+      console.log("Updating wallet display for address:", shortAddress);
+      
+      // Make sure elements exist before trying to update them
+      const shortWalletElement = document.getElementById('shortWallet');
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (shortWalletElement) shortWalletElement.innerText = shortAddress;
+      if (walletInfoElement) walletInfoElement.style.display = 'block';
+      if (connectButtonElement) connectButtonElement.style.display = 'none';
+      
+      try {
+        // Check network and show/hide appropriate elements - in try/catch separato
+        const onBscNetwork = isBscNetwork();
+        console.log("On BSC network:", onBscNetwork);
+        
+        // Always show the wrong-network alert when not on BSC
+        const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+        if (wrongNetworkAlert) {
+          if (!onBscNetwork) {
+            console.log("Showing network warning alert");
+            wrongNetworkAlert.classList.remove('d-none');
+          } else {
+            console.log("Hiding network warning alert");
+            wrongNetworkAlert.classList.add('d-none');
+          }
+        }
+        
+        // Show presale form ONLY if on BSC network
+        const presaleForm = document.getElementById('presaleForm');
+        if (presaleForm) {
+          if (onBscNetwork) {
+            console.log("Showing presale form");
+            presaleForm.style.display = 'block';
+            
+            // Ensure form is fully initialized
+            const bnbAmountElement = document.getElementById('bnbAmount');
+            if (bnbAmountElement) {
+              console.log("BNB amount input field is present");
+            } else {
+              console.error("BNB amount input field not found!");
+            }
+          } else {
+            console.log("Hiding presale form");
+            presaleForm.style.display = 'none';
+          }
+        } else {
+          console.error("Presale form element not found!");
+        }
+      } catch (networkError) {
+        console.error("Error checking network status:", networkError);
+        // Continua con l'esecuzione per evitare di bloccare l'intera UI
+      }
+    } else {
+      // Wallet is disconnected
+      console.log("Wallet disconnected, updating UI");
+      
+      // Handle elements safely
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (walletInfoElement) walletInfoElement.style.display = 'none';
+      if (connectButtonElement) connectButtonElement.style.display = 'block';
+      
+      // Ensure presale form is hidden
+      const presaleForm = document.getElementById('presaleForm');
+      if (presaleForm) {
+        presaleForm.style.display = 'none';
+      }
+      
+      // Hide wrong network alert
+      const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+      if (wrongNetworkAlert) {
+        wrongNetworkAlert.classList.add('d-none');
+      }
+    }
+  } catch (error) {
+    console.error("Error in updateTokenUI:", error);
+    // Non mostrare un alert all'utente, solo log in console
+    
+    // Assicurare che i controlli principali siano visibili
+    try {
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (walletInfoElement) walletInfoElement.style.display = 'none';
+      if (connectButtonElement) connectButtonElement.style.display = 'block';
+    } catch (e) {
+      console.error("Fatal error recovering UI state:", e);
+    }
+  }
+  
+  // Schedule periodic UI updates to catch any manual disconnections
+  try {
+    scheduleNextUpdate();
+  } catch (e) {
+    console.error("Error scheduling next update:", e);
+  }
+};
+
+// Periodic check to ensure UI state matches wallet state
+let tokenUpdateTimer = null;
+function scheduleNextUpdate() {
+  console.log("🔍 Scheduling ONE-TIME UI check (not recursive)");
+  
+  // Clear any existing timer
+  if (tokenUpdateTimer) {
+    clearTimeout(tokenUpdateTimer);
+  }
+  
+  // Schedule a SINGLE check in 3 seconds (NON ricorsivo)
+  tokenUpdateTimer = setTimeout(() => {
+    try {
+      console.log("⏱️ Single UI check executing...");
+      const walletConnected = isReallyConnected();
+      const uiConnected = document.getElementById('walletInfo').style.display === 'block';
+      
+      // If there's a mismatch between UI and actual wallet state, update UI
+      if (walletConnected !== uiConnected) {
+        console.log('⚠️ UI wallet state mismatch detected, correcting...');
+        updateTokenUI();
+      } else {
+        console.log('✅ UI state matches wallet state, no action needed');
+      }
+      
+      // NON scheduliamo un nuovo check automaticamente qui!
+      // scheduleNextUpdate() NO PIÙ CHIAMATO QUI - BLOCCA IL LOOP INFINITO
+    } catch (err) {
+      console.error("❌ Error during wallet UI check:", err);
+    }
+  }, 3000);
+  
+  console.log("🕒 Single UI check scheduled for 3 seconds from now");
+};
+
+// Connessione wallet BNB
+const connectWalletBNB = async () => {
+  console.log("🔌 Connect BNB Wallet function called");
+  
+  // Disabilita il pulsante di connessione e mostra lo spinner
+  const connectBtn = document.getElementById('connectButtonBNB');
+  if (connectBtn) {
+    connectBtn.disabled = true;
+    connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Connecting...';
+  }
+  
+  // Mostra messaggio utente in attesa della connessione
+  const connectingMessage = document.createElement('div');
+  connectingMessage.id = 'connecting-message';
+  connectingMessage.style.position = 'fixed';
+  connectingMessage.style.bottom = '20px';
+  connectingMessage.style.right = '20px';
+  connectingMessage.style.backgroundColor = '#2c3e50';
+  connectingMessage.style.color = 'white';
+  connectingMessage.style.padding = '10px 15px';
+  connectingMessage.style.borderRadius = '5px';
+  connectingMessage.style.zIndex = '9999';
+  connectingMessage.innerHTML = 'Connecting to wallet... <div class="spinner-border spinner-border-sm text-light" role="status"></div>';
+  document.body.appendChild(connectingMessage);
+  
+  // Verifica se MetaMask è installato
+  if (!window.ethereum) {
+    console.error("MetaMask not detected");
+    
+    // Rimuovi il messaggio di connessione
+    const msgElement = document.getElementById('connecting-message');
+    if (msgElement) document.body.removeChild(msgElement);
+    
+    // Ripristina il pulsante
+    if (connectBtn) {
+      connectBtn.disabled = false;
+      connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+    }
+    
+    // Mostra messaggio di errore
+    alert("Please install MetaMask to use this feature. Visit https://metamask.io");
+    return;
+  }
+  
+  try {
+    console.log("Requesting accounts from MetaMask...");
+    
+    // Request accounts from MetaMask
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    console.log("Accounts received:", accounts);
+    
+    // Verificare che l'utente abbia effettivamente concesso i permessi
+    if (!accounts || accounts.length === 0) {
+      console.log("No accounts received, user may have rejected the request");
+      
+      // Rimuovi il messaggio di connessione
+      const msgElement = document.getElementById('connecting-message');
+      if (msgElement) document.body.removeChild(msgElement);
+      
+      // Ripristina il pulsante
+      if (connectBtn) {
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+      }
+      
+      return;
+    }
+    
+    // Check if we're on the right network and offer to switch if not
+    if (!isBscNetwork()) {
+      console.log("Not on BSC network, prompting to switch...");
+      const switched = await switchToBscNetwork();
+      console.log("Network switch result:", switched);
+    }
+    
+    // Aggiorna UI per mostrare lo stato connesso
+    updateTokenUI();
+    
+    // Configura listeners per cambiamenti di rete e account
+    window.ethereum.on('chainChanged', () => {
+      console.log("🔄 Chain changed, updating UI");
+      updateTokenUI();
+    });
+    
+    window.ethereum.on('accountsChanged', (newAccounts) => {
+      console.log("🔄 Accounts changed:", newAccounts);
+      if (newAccounts.length === 0) {
+        console.log("User disconnected wallet");
+      }
+      updateTokenUI();
+    });
+    
+    // Rimuovi il messaggio di connessione
+    const msgElement = document.getElementById('connecting-message');
+    if (msgElement) document.body.removeChild(msgElement);
+    
+  } catch (error) {
+    console.error("Error connecting wallet:", error);
+    
+    // Rimuovi il messaggio di connessione
+    const msgElement = document.getElementById('connecting-message');
+    if (msgElement) document.body.removeChild(msgElement);
+    
+    // Ripristina il pulsante
+    if (connectBtn) {
+      connectBtn.disabled = false;
+      connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+    }
+    
+    // Mostra messaggio di errore
+    if (error.code === 4001) {
+      // User rejected the request
+      console.log("User rejected connection request");
+    } else {
+      alert("Error connecting to wallet. Please try again.");
+    }
+  }
+};
+
+
+/************************************************
+ * PARTE 2: FUNZIONI PER FORM TOKEN             *
+ ************************************************/
+
+// Costanti per il form
+const conversionRate = 1000000; // 1 BNB = 1,000,000 IASE
+const minBNB = 0.05;
+const maxBNB = 10;
+
+// Mostra finestra range personalizzata
+const showRangeModal = (msg) => {
+  document.getElementById('rangeModalText').innerText = msg;
+  document.getElementById('rangeModal').style.display = 'block';
+};
+
+// Handler input BNB
+function handleBnbInputChange() {
+  const bnbInput = document.getElementById('bnbAmount');
+  const estimateDiv = document.getElementById('estimate');
+  const estimateText = document.getElementById('estimateText');
+  
+  // Controlla validità input
+  const bnb = parseFloat(bnbInput.value.replace(",", "."));
+  
+  if (estimateDiv && estimateText) {
+    estimateDiv.style.display = 'block';
+    estimateDiv.style.background = 'rgba(0, 0, 0, 0.1)';
+    estimateDiv.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+    
+    if (!isNaN(bnb) && bnb >= minBNB && bnb <= maxBNB) {
+      const iase = bnb * conversionRate;
+      estimateText.innerHTML = `You will receive: <strong>${iase.toLocaleString()} IASE</strong>`;
+    } else if (bnb > maxBNB) {
+      estimateText.innerHTML = `<span style="color: #ff6b6b;">Max limit is ${maxBNB} BNB</span>`;
+    } else if (bnb < minBNB) {
+      estimateText.innerHTML = `<span style="color: #ff6b6b;">Min limit is ${minBNB} BNB</span>`;
+    }
+  }
+}
+
+// Validazione form
+function validateTokenForm(e) {
+  const amount = parseFloat(document.getElementById('bnbAmount').value.replace(",", "."));
+  if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
+    e.preventDefault(); // Evita che il form HTML5 blocchi o resetti
+    showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
+    return false;
+  }
+  return true;
+}
+
+// Invio token form
+async function submitTokenForm(e) {
+  e.preventDefault();
+
+  // Validazione input
+  const amount = parseFloat(document.getElementById('bnbAmount').value.replace(",", "."));
+  if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
+    showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
+    return;
+  }
+
+  const web3 = new Web3(window.ethereum);
+  const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+  try {
+    const tx = await contract.methods.buyTokens().send({
+      from: window.userAddress,
+      value: web3.utils.toWei(amount.toString(), 'ether')
+    });
+
+    // Mostra notifica di successo
+    const estimateDiv = document.getElementById('estimate');
+    const estimateText = document.getElementById('estimateText');
+    
+    estimateDiv.style.display = 'block';
+    estimateDiv.style.background = 'rgba(0, 150, 136, 0.15)';
+    estimateDiv.style.border = '1px solid rgba(0, 150, 136, 0.3)';
+    
+    estimateText.innerHTML = `<i class="ri-check-double-line me-2" style="color: #00e676;"></i> <span style="color: #00e676; font-weight: 600;">Purchase completed! Tokens have been sent.</span>`;
+
+    // Chiudi modale e resetta campo input
+    document.getElementById("rangeModal").style.display = "none";
+    document.getElementById("bnbAmount").value = "";
+
+    // Reset UI
+    document.getElementById('walletInfo').style.display = 'block';
+    document.getElementById('connectButtonBNB').style.display = 'none';
+    document.getElementById('presaleForm').style.display = 'block';
+
+  } catch (error) {
+    console.error("Transaction error:", error);
+
+    // Messaggio errore
+    document.getElementById("rangeModal").style.display = "none";
+    document.body.style.overflow = 'auto';
+
+    // Mostra errore sulla UI
+    const estimateDiv = document.getElementById('estimate');
+    const estimateText = document.getElementById('estimateText');
+    
+    estimateDiv.style.display = 'block';
+    estimateDiv.style.background = 'rgba(244, 67, 54, 0.1)';
+    estimateDiv.style.border = '1px solid rgba(244, 67, 54, 0.3)';
+    
+    estimateText.innerHTML = `<i class="ri-error-warning-line me-2" style="color: #ff5252;"></i> <span style="color: #ff5252; font-weight: 600;">Transaction failed. Please try again.</span>`;
+  }
+}
+
+// Initialize Tokenomics Chart
 function initTokenomicsChart() {
   const ctx = document.getElementById('tokenomicsChart');
   if (!ctx) return;
@@ -1888,15 +1717,9 @@ function initTokenomicsChart() {
           'rgba(255, 99, 132, 0.8)',
           'rgba(54, 162, 235, 0.8)'
         ],
-        borderColor: [
-          'rgba(0, 191, 255, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-          'rgba(255, 159, 64, 1)',
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)'
-        ],
-        borderWidth: 1
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+        borderWidth: 2,
+        hoverOffset: 15
       }]
     },
     options: {
@@ -1927,15 +1750,79 @@ function initTokenomicsChart() {
     }
   });
 }
+
+/************************************************
+ * PARTE 3: INIZIALIZZAZIONE DOCUMENT-READY     *
+ ************************************************/
+
+// Inizializzazione pagina
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("🔄 Inizializzazione pagina token...");
+
+  // Initialize tokenomics chart
+  initTokenomicsChart();
+
+  // Controlla se il pulsante esiste
+  const connectBtnBNB = document.getElementById('connectButtonBNB');
+  if (connectBtnBNB) {
+    console.log("✅ Pulsante connectButtonBNB trovato, aggiungo event listener");
+    
+    // Aggiungi event listener al pulsante di connessione
+    connectBtnBNB.addEventListener('click', function() {
+      console.log("🖱️ Clic sul pulsante connectButtonBNB rilevato");
+      connectWalletBNB();
+    });
+  } else {
+    console.error("❌ Pulsante connectButtonBNB non trovato nel DOM!");
+  }
+  
+  // Event listener per BNB input
+  const bnbAmountInput = document.getElementById('bnbAmount');
+  if (bnbAmountInput) {
+    bnbAmountInput.addEventListener('input', handleBnbInputChange);
+    
+    // Blocco tasto INVIO fuori range
+    bnbAmountInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const amount = parseFloat(this.value.replace(",", "."));
+        if (isNaN(amount) || amount < minBNB || amount > maxBNB) {
+          showRangeModal(`Please enter a valid amount between ${minBNB} and ${maxBNB} BNB.`);
+          return false;
+        }
+      }
+    });
+  }
+  
+  // Event listener per form submit button
+  const submitBtn = document.querySelector('#presaleForm button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', validateTokenForm);
+  }
+  
+  // Event listener per form submit
+  const presaleForm = document.getElementById('presaleForm');
+  if (presaleForm) {
+    presaleForm.addEventListener('submit', submitTokenForm);
+  }
+  
+  // Aggiorna UI una volta all'avvio
+  try {
+    console.log("🔄 Aggiornamento iniziale UI token...");
+    updateTokenUI();
+  } catch (e) {
+    console.error("❌ Errore nell'aggiornamento iniziale UI:", e);
+  }
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
 <script src="js/webp-detect.js"></script>
 <script src="js/image-loader.js"></script>
 <script src="js/space-background.js"></script>
 <script src="js/parallax.js"></script>
 <script src="script.js"></script>
-
 
 </body>
 </html>

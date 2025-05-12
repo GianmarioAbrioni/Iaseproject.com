@@ -15,6 +15,10 @@ const ERC721_ABI = [
   'function tokenURI(uint256 tokenId) view returns (string)',
 ];
 
+// Costanti per le ricompense di staking
+const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
+const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
+
 /**
  * Verifica se un dato wallet possiede un NFT specifico
  * @param {string} walletAddress - Indirizzo del wallet da verificare
@@ -139,5 +143,121 @@ export async function getNftRarityMultiplier(tokenId) {
     console.error(`⚠️ Errore nel recupero dei metadati per l'NFT #${tokenId}:`, error);
     // In caso di errore, assumiamo rarità base
     return 1.0;
+  }
+}
+
+/**
+ * Verifica tutti gli NFT attualmente in staking e distribuisce ricompense
+ * Funzione chiamata dal cron job giornaliero
+ * @returns {Promise<void>}
+ */
+export async function verifyAllStakes() {
+  console.log("🔍 Avvio verifica di tutti gli stake NFT attivi...");
+  
+  try {
+    // Connessione al database
+    await storage.testConnection();
+    console.log("✅ Connessione al database stabilita");
+    
+    // Filtro per stake attivi non verificati oggi
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Ottieni tutti gli stake attivi
+    const activeStakes = await storage.getActiveNftStakes();
+    console.log(`ℹ️ Trovati ${activeStakes.length} stake attivi da verificare`);
+    
+    if (activeStakes.length === 0) {
+      console.log("✅ Nessuno stake da verificare");
+      return;
+    }
+    
+    // Inizializza connessione alla blockchain una sola volta
+    console.log(`🔌 Connessione a Ethereum: ${CONFIG.eth.networkUrl}`);
+    let provider;
+    try {
+      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrl);
+    } catch (error) {
+      console.error(`❌ Errore con provider primario: ${error.message}`);
+      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrlFallback);
+      console.log(`🔄 Usando provider fallback: ${CONFIG.eth.networkUrlFallback}`);
+    }
+    
+    // Inizializza contratto NFT
+    const nftContract = new ethers.Contract(
+      CONFIG.eth.nftContractAddress,
+      ERC721_ABI,
+      provider
+    );
+    
+    // Contatori statistiche
+    let verifiedCount = 0;
+    let endedCount = 0;
+    let rewardsDistributed = 0;
+    
+    // Verifica ogni stake
+    for (const stake of activeStakes) {
+      console.log(`\n🔍 Verificando stake ID ${stake.id} - NFT #${stake.nftId} - Wallet: ${stake.walletAddress}`);
+      
+      try {
+        // Verifica proprietà
+        const currentOwner = await nftContract.ownerOf(stake.nftId);
+        
+        if (currentOwner.toLowerCase() !== stake.walletAddress.toLowerCase()) {
+          console.log(`⚠️ NFT #${stake.nftId} non più posseduto da ${stake.walletAddress}`);
+          
+          // Termina lo stake
+          await storage.updateNftStake(stake.id, {
+            status: "ended",
+            endTimestamp: new Date().toISOString(),
+            endReason: "ownership_change"
+          });
+          
+          endedCount++;
+          continue;
+        }
+        
+        // Calcola rarità e ricompensa
+        const rarityMultiplier = await getNftRarityMultiplier(stake.nftId);
+        
+        // Calcolo ricompensa con moltiplicatore di rarità
+        const rewardAmount = DAILY_REWARD * rarityMultiplier;
+        
+        console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
+        
+        // Crea ricompensa
+        await storage.createStakingReward({
+          stakeId: stake.id,
+          amount: rewardAmount,
+          timestamp: new Date().toISOString(),
+          walletAddress: stake.walletAddress,
+          claimed: false,
+          rarityMultiplier
+        });
+        
+        // Aggiorna lo stake
+        await storage.updateNftStake(stake.id, {
+          lastVerified: new Date().toISOString(),
+          daysVerified: (stake.daysVerified || 0) + 1
+        });
+        
+        console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE aggiunta per NFT #${stake.nftId}`);
+        verifiedCount++;
+        rewardsDistributed += rewardAmount;
+        
+      } catch (error) {
+        console.error(`❌ Errore durante la verifica di NFT #${stake.nftId}:`, error);
+      }
+    }
+    
+    // Riassunto finale
+    console.log("\n📊 RIEPILOGO VERIFICA STAKING:");
+    console.log(`✅ Stake verificati correttamente: ${verifiedCount}`);
+    console.log(`❌ Stake terminati per cambio proprietà: ${endedCount}`);
+    console.log(`💰 Totale ricompense distribuite: ${rewardsDistributed.toFixed(2)} IASE`);
+    
+  } catch (error) {
+    console.error("❌ Errore durante la verifica degli stake:", error);
+    throw error;
   }
 }

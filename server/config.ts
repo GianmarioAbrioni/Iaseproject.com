@@ -6,7 +6,8 @@
  */
 
 // Determina se utilizzare il database PostgreSQL o lo storage in memoria
-export const USE_MEMORY_DB = process.env.USE_MEMORY_DB === "true";
+// In produzione, forziamo PostgreSQL per evitare problemi di persistenza
+export const USE_MEMORY_DB = process.env.NODE_ENV === 'production' ? false : process.env.USE_MEMORY_DB === "true";
 
 // Log della configurazione
 console.log(`🔧 IASE Project - Modalità database: ${USE_MEMORY_DB ? 'IN-MEMORY' : 'POSTGRESQL'}`);

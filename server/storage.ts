@@ -15,6 +15,9 @@ import memorystore from "memorystore";
 
 // Interface for all storage operations
 export interface IStorage {
+  // Connection testing
+  testConnection(): Promise<boolean>;
+  
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -54,6 +57,20 @@ export class DatabaseStorage implements IStorage {
       pool, 
       createTableIfMissing: true 
     });
+  }
+  
+  // Test connection to database
+  async testConnection(): Promise<boolean> {
+    try {
+      // Eseguiamo una query semplice per verificare che la connessione sia attiva
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      return true;
+    } catch (error) {
+      console.error('Database connection test failed:', error);
+      return false;
+    }
   }
   
   // User operations
@@ -193,6 +210,12 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Pulizia sessioni scadute ogni 24h
     });
+  }
+  
+  // Test connection to memory store
+  async testConnection(): Promise<boolean> {
+    // Per l'implementazione in memoria, la connessione è sempre attiva
+    return true;
   }
   
   // User operations

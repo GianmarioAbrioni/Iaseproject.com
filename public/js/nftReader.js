@@ -82,12 +82,16 @@ export async function getNFTMetadata(tokenId) {
       return null;
     }
 
+    // Assicurati che tokenId sia sempre una stringa
+    const tokenIdStr = String(tokenId);
+    console.log(`👁️ Elaborazione NFT #${tokenIdStr} (tipo: ${typeof tokenIdStr})`);
+
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
 
     // Ottieni l'URI dei metadati
-    const tokenURI = await contract.tokenURI(tokenId);
-    console.log(`🔗 TokenURI per NFT #${tokenId}: ${tokenURI}`);
+    const tokenURI = await contract.tokenURI(tokenIdStr);
+    console.log(`🔗 TokenURI per NFT #${tokenIdStr}: ${tokenURI}`);
 
     // Recupera i metadati dalla risorsa esterna
     const response = await fetch(tokenURI);
@@ -154,9 +158,12 @@ export async function loadAllIASENFTs() {
     console.log(`🔍 Recupero metadati per ${userNFTs.nftIds.length} NFT...`);
     
     // Per ogni NFT, recuperiamo i metadati completi
+    // Utilizziamo una gestione più robusta per assicurarci che tutti i valori siano stringhe
     const nftsWithMetadata = await Promise.all(
       userNFTs.nftIds.map(async (tokenId) => {
-        return await getNFTMetadata(tokenId);
+        // Assicuriamoci che tokenId sia una stringa
+        const tokenIdStr = String(tokenId);
+        return await getNFTMetadata(tokenIdStr);
       })
     );
 

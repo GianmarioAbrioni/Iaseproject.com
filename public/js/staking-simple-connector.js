@@ -357,11 +357,33 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('MetaMask is not installed. Please install MetaMask to use this feature.');
       return;
     }
+
+    // Mostra feedback all'utente che la connessione è in corso
+    const connectBtn = document.getElementById('connectButtonETH');
+    if (connectBtn) {
+      connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Connecting...';
+      connectBtn.disabled = true;
+    }
     
     try {
       // Request account access
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       console.log('✓ Wallet connected:', accounts[0]);
+      
+      // Mostra dashboard immediatamente
+      if (stakingDashboard) {
+        stakingDashboard.classList.remove('hidden');
+      }
+      
+      // Nascondi pulsante di connessione subito
+      if (connectBtn) {
+        connectBtn.classList.add('hidden');
+      }
+      
+      // Mostra pulsante di disconnessione
+      if (disconnectBtn) {
+        disconnectBtn.classList.remove('hidden');
+      }
       
       // Check and switch network if needed
       await checkAndSwitchNetwork();
@@ -372,6 +394,12 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (error) {
       console.error('❌ Error connecting wallet:', error);
       alert('Connection rejected.');
+      
+      // Ripristina il pulsante se c'è stato un errore
+      if (connectBtn) {
+        connectBtn.innerHTML = '<i class="ri-wallet-3-line"></i> Connect Wallet';
+        connectBtn.disabled = false;
+      }
     }
   }
   

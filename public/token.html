@@ -1033,9 +1033,27 @@ const connectWalletBNB = async () => {
     try {
       console.log("Requesting accounts from MetaMask...");
       
+      // Mostra messaggio utente in attesa della connessione
+      const connectingMessage = document.createElement('div');
+      connectingMessage.id = 'connecting-message';
+      connectingMessage.style.position = 'fixed';
+      connectingMessage.style.bottom = '20px';
+      connectingMessage.style.right = '20px';
+      connectingMessage.style.backgroundColor = '#2c3e50';
+      connectingMessage.style.color = 'white';
+      connectingMessage.style.padding = '10px 15px';
+      connectingMessage.style.borderRadius = '5px';
+      connectingMessage.style.zIndex = '9999';
+      connectingMessage.innerHTML = 'Connessione al wallet in corso... <div class="spinner-border spinner-border-sm text-light" role="status"></div>';
+      document.body.appendChild(connectingMessage);
+      
       // Request accounts from MetaMask
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       console.log("Accounts received:", accounts);
+      
+      // Rimuovi il messaggio di connessione
+      const msgElement = document.getElementById('connecting-message');
+      if (msgElement) document.body.removeChild(msgElement);
       
       // Verificare che l'utente abbia effettivamente concesso i permessi
       if (!accounts || accounts.length === 0) {

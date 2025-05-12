@@ -840,6 +840,11 @@ const BSC_NETWORK = {
 const isBscNetwork = (chainIdParam) => {
   // Se viene passato un parametro chainId, usa quello, altrimenti usa il chainId dall'oggetto window.ethereum
   const chainId = chainIdParam || (window.ethereum ? window.ethereum.chainId : null);
+  
+  // Log per debug
+  console.log(`🔍 BSC Network check: current chainId=${chainId}, BSC chainId=${BSC_NETWORK.chainId}, match=${chainId === BSC_NETWORK.chainId}`);
+  
+  // Se ci troviamo su BNB Smart Chain, dobbiamo vedere '0x38'
   return chainId === BSC_NETWORK.chainId;
 };
 
@@ -1005,25 +1010,36 @@ const updateTokenUI = () => {
 // Periodic check to ensure UI state matches wallet state
 let tokenUpdateTimer = null;
 function scheduleNextUpdate() {
+  console.log("🔍 Scheduling ONE-TIME UI check (not recursive)");
+  
   // Clear any existing timer
   if (tokenUpdateTimer) {
     clearTimeout(tokenUpdateTimer);
   }
   
-  // Schedule next update in 3 seconds
+  // Schedule a SINGLE check in 3 seconds (NON ricorsivo)
   tokenUpdateTimer = setTimeout(() => {
-    const walletConnected = isReallyConnected();
-    const uiConnected = document.getElementById('walletInfo').style.display === 'block';
-    
-    // If there's a mismatch between UI and actual wallet state, update UI
-    if (walletConnected !== uiConnected) {
-      console.log('UI wallet state mismatch detected, updating...');
-      updateTokenUI();
-    } else {
-      // Schedule next check
-      scheduleNextUpdate();
+    try {
+      console.log("⏱️ Single UI check executing...");
+      const walletConnected = isReallyConnected();
+      const uiConnected = document.getElementById('walletInfo').style.display === 'block';
+      
+      // If there's a mismatch between UI and actual wallet state, update UI
+      if (walletConnected !== uiConnected) {
+        console.log('⚠️ UI wallet state mismatch detected, correcting...');
+        updateTokenUI();
+      } else {
+        console.log('✅ UI state matches wallet state, no action needed');
+      }
+      
+      // NON scheduliamo un nuovo check automaticamente qui!
+      // scheduleNextUpdate() NO PIÙ CHIAMATO QUI - BLOCCA IL LOOP INFINITO
+    } catch (err) {
+      console.error("❌ Error during wallet UI check:", err);
     }
   }, 3000);
+  
+  console.log("🕒 Single UI check scheduled for 3 seconds from now");
 };
 
 // Connessione wallet BNB - COMPLETAMENTE RISCRITTA

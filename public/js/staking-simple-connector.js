@@ -353,40 +353,75 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Connect wallet function - COMPLETAMENTE RISCRITTA
   async function connectEthWallet() {
-    console.log('🔄 Staking: Avvio connessione portafoglio ETH (versione 2.0.1)');
+  console.log('🔄 Staking: Avvio connessione portafoglio ETH (versione 3.0.1)');
+  
+  // OTTIMIZZAZIONE CRITICA:
+  // Identifichiamo e disabilitiamo subito il pulsante per evitare doppi clic
+  const connectBtn = document.getElementById('connectButtonETH');
+  if (connectBtn) {
+    // Controlliamo se è già in stato di connessione (disabled)
+    if (connectBtn.disabled) {
+      console.log('⚠️ Connessione già in corso, ignoro clic');
+      return; // BLOCCA IMMEDIATAMENTE L'ESECUZIONE
+    }
     
-    // Verifica MetaMask
-    if (!isMetaMaskInstalled()) {
-      alert('MetaMask is not installed. Please install MetaMask to use this feature.');
+    // Disabilita immediatamente il pulsante e mostra stato di connessione
+    connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Connecting...';
+    connectBtn.disabled = true;
+  }
+  
+  // Verifica MetaMask
+  if (!isMetaMaskInstalled()) {
+    alert('MetaMask is not installed. Please install MetaMask to use this feature.');
+    // Ripristina pulsante
+    if (connectBtn) {
+      connectBtn.disabled = false;
+      connectBtn.innerHTML = '<i class="ri-wallet-3-line"></i> Connect Wallet';
+    }
+    return;
+  }
+
+  try {
+    // Blocca qualsiasi nuova connessione se c'è già una connessione attiva
+    if (isWalletConnected()) {
+      console.log('⚠️ Wallet already connected, showing dashboard directly');
+      
+      // VISIBILITÀ UI: Poiché il wallet è già connesso, aggiorniamo subito tutta la UI
+      
+      // Nascondi pulsante connessione
+      if (connectBtn) connectBtn.classList.add('hidden');
+      
+      // Mostra pulsante disconnessione
+      if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+      
+      // Mostra dashboard
+      if (stakingDashboard) stakingDashboard.classList.remove('hidden');
+      
+      // Aggiorna UI
+      updateUI();
       return;
     }
-
-    try {
-      // Blocca qualsiasi nuova connessione se c'è già una connessione attiva
-      if (isWalletConnected()) {
-        console.log('⚠️ Wallet already connected, showing dashboard directly');
-        
-        // Nascondi pulsante connessione
-        const connectBtn = document.getElementById('connectButtonETH');
-        if (connectBtn) connectBtn.classList.add('hidden');
-        
-        // Mostra pulsante disconnessione
-        if (disconnectBtn) disconnectBtn.classList.remove('hidden');
-        
-        // Mostra dashboard
-        if (stakingDashboard) stakingDashboard.classList.remove('hidden');
-        
-        // Aggiorna UI
-        updateUI();
-        return;
-      }
-
-      // Mostra feedback all'utente che la connessione è in corso
-      const connectBtn = document.getElementById('connectButtonETH');
-      if (connectBtn) {
-        connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Connecting...';
-        connectBtn.disabled = true;
-      }
+    
+    // Mostra feedback visivo sulla dashboard
+    let loadingDiv = document.getElementById('dashboardLoading');
+    if (!loadingDiv) {
+      loadingDiv = document.createElement('div');
+      loadingDiv.id = 'dashboardLoading';
+      loadingDiv.className = 'dashboard-loading';
+      loadingDiv.innerHTML = `
+        <div class="loading-container">
+          <div class="spinner-border text-light" role="status"></div>
+          <p>Connecting to wallet...</p>
+        </div>
+      `;
+      document.body.appendChild(loadingDiv);
+    }
+    
+    // MOSTRA SUBITO LA DASHBOARD (SEMI-VUOTA) anche prima della connessione
+    // Questo è critico per evitare la sensazione di "nulla accade"
+    if (stakingDashboard) {
+      stakingDashboard.classList.remove('hidden');
+    }
       
       // Mostra feedback visivo sulla dashboard
       if (stakingDashboard) {

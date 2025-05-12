@@ -1026,40 +1026,73 @@ function scheduleNextUpdate() {
   }, 3000);
 };
 
-// Connessione wallet BNB
+// Connessione wallet BNB - COMPLETAMENTE RISCRITTA
 const connectWalletBNB = async () => {
   console.log("🔌 Connect BNB Wallet function called");
-  if (window.ethereum) {
-    try {
-      console.log("Requesting accounts from MetaMask...");
-      
-      // Mostra messaggio utente in attesa della connessione
-      const connectingMessage = document.createElement('div');
-      connectingMessage.id = 'connecting-message';
-      connectingMessage.style.position = 'fixed';
-      connectingMessage.style.bottom = '20px';
-      connectingMessage.style.right = '20px';
-      connectingMessage.style.backgroundColor = '#2c3e50';
-      connectingMessage.style.color = 'white';
-      connectingMessage.style.padding = '10px 15px';
-      connectingMessage.style.borderRadius = '5px';
-      connectingMessage.style.zIndex = '9999';
-      connectingMessage.innerHTML = 'Connessione al wallet in corso... <div class="spinner-border spinner-border-sm text-light" role="status"></div>';
-      document.body.appendChild(connectingMessage);
-      
-      // Request accounts from MetaMask
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      console.log("Accounts received:", accounts);
+  
+  // Disabilita il pulsante di connessione e mostra lo spinner
+  const connectBtn = document.getElementById('connectButtonBNB');
+  if (connectBtn) {
+    connectBtn.disabled = true;
+    connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Connecting...';
+  }
+  
+  // Mostra messaggio utente in attesa della connessione
+  const connectingMessage = document.createElement('div');
+  connectingMessage.id = 'connecting-message';
+  connectingMessage.style.position = 'fixed';
+  connectingMessage.style.bottom = '20px';
+  connectingMessage.style.right = '20px';
+  connectingMessage.style.backgroundColor = '#2c3e50';
+  connectingMessage.style.color = 'white';
+  connectingMessage.style.padding = '10px 15px';
+  connectingMessage.style.borderRadius = '5px';
+  connectingMessage.style.zIndex = '9999';
+  connectingMessage.innerHTML = 'Connecting to wallet... <div class="spinner-border spinner-border-sm text-light" role="status"></div>';
+  document.body.appendChild(connectingMessage);
+  
+  // Verifica se MetaMask è installato
+  if (!window.ethereum) {
+    console.error("MetaMask not detected");
+    
+    // Rimuovi il messaggio di connessione
+    const msgElement = document.getElementById('connecting-message');
+    if (msgElement) document.body.removeChild(msgElement);
+    
+    // Ripristina il pulsante
+    if (connectBtn) {
+      connectBtn.disabled = false;
+      connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+    }
+    
+    // Mostra messaggio di errore
+    alert("Please install MetaMask to use this feature. Visit https://metamask.io");
+    return;
+  }
+  
+  try {
+    console.log("Requesting accounts from MetaMask...");
+    
+    // Request accounts from MetaMask
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    console.log("Accounts received:", accounts);
+    
+    // Verificare che l'utente abbia effettivamente concesso i permessi
+    if (!accounts || accounts.length === 0) {
+      console.log("No accounts received, user may have rejected the request");
       
       // Rimuovi il messaggio di connessione
       const msgElement = document.getElementById('connecting-message');
       if (msgElement) document.body.removeChild(msgElement);
       
-      // Verificare che l'utente abbia effettivamente concesso i permessi
-      if (!accounts || accounts.length === 0) {
-        console.log("No accounts received, user may have rejected the request");
-        return; // Esci dalla funzione senza provare ad accedere alla chain
+      // Ripristina il pulsante
+      if (connectBtn) {
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
       }
+      
+      return; // Esci dalla funzione senza provare ad accedere alla chain
+    }
       
       // Configurazione base UI (connessione wallet)
       const userAddress = accounts[0];
@@ -1067,50 +1100,71 @@ const connectWalletBNB = async () => {
       const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
       console.log("Setting up wallet display for address:", shortAddress);
       
-      // Aggiorniamo gli elementi UI di base
+      // Prima di tutto, sempre aggiorna gli elementi UI base (wallet connesso)
+      // Questo garantisce che l'UI mostri sempre che il wallet è connesso, indipendentemente dalla rete
       const shortWalletElement = document.getElementById('shortWallet');
       const walletInfoElement = document.getElementById('walletInfo');
       const connectButtonElement = document.getElementById('connectButtonBNB');
       
       if (shortWalletElement) shortWalletElement.innerText = shortAddress;
       if (walletInfoElement) walletInfoElement.style.display = 'block';
-      if (connectButtonElement) connectButtonElement.style.display = 'none';
+      if (connectButtonElement) {
+        connectButtonElement.style.display = 'none';
+        connectButtonElement.disabled = false;
+        connectButtonElement.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+      }
       
-      // Get current chain ID to check if we're on BSC
-      let onBscNetwork = false;
+      // Rimuovi il messaggio di connessione
+      const msgElement = document.getElementById('connecting-message');
+      if (msgElement) document.body.removeChild(msgElement);
+      
+      // Ora controlla la rete, ma NON bloccare la UI se qualcosa va storto
       try {
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
         console.log("Current chain ID:", chainId);
         
-        // Check if we're on BSC network - do this after showing the wallet info
-        onBscNetwork = isBscNetwork(chainId);
+        // Verifica se siamo sulla rete BSC
+        const onBscNetwork = isBscNetwork(chainId);
         console.log("On BSC network:", onBscNetwork);
         
-        // Gestione elementi UI in base alla rete
+        // Riferimenti elementi UI
         const wrongNetworkAlert = document.getElementById('wrong-network-alert');
         const presaleForm = document.getElementById('presaleForm');
         
+        // ** PUNTO CRITICO ** - Inizializziamo SEMPRE il form vuoto
+        // Così se lo switch o altro non funziona, almeno abbiamo un form lì inizializzato
+        if (presaleForm) {
+          // Prima inizializza sempre il form nel DOM
+          // (Questo perché alcuni controlli potrebbero essere aggiunti dopo)
+          presaleForm.style.display = 'block';
+        }
+        
         if (onBscNetwork) {
           // Siamo sulla rete BSC corretta
+          console.log("BSC network detected, showing form");
           if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
-          if (presaleForm) presaleForm.style.display = 'block';
+          // Il form è già visibile, nulla da fare
         } else {
           // Non siamo sulla rete BSC
+          console.log("Wrong network detected (not BSC)");
           if (wrongNetworkAlert) wrongNetworkAlert.classList.remove('d-none');
-          if (presaleForm) presaleForm.style.display = 'none';
+          // Comunque manteniamo il form visibile ma mostreremo un avviso
           
-          // Try to switch networks automatically
+          // Prova a passare alla rete BSC automaticamente
           try {
-            console.log("Attempting automatic network switch");
+            console.log("Attempting automatic network switch to BSC");
             await switchToBscNetwork();
             console.log("Network switch requested");
           } catch (switchError) {
             console.error("Error switching networks:", switchError);
+            // Anche se lo switch fallisce, l'utente può sempre vedere il form
           }
         }
       } catch (chainError) {
-        console.error("Error getting chain ID:", chainError);
-        // In caso di errore, mostra comunque il form come nella versione originale
+        // Errore nel controllo della chain, ma non blocchiamo il flusso UI
+        console.error("Error checking chain ID:", chainError);
+        
+        // FAIL SAFE: Mostra comunque il form
         const presaleForm = document.getElementById('presaleForm');
         if (presaleForm) presaleForm.style.display = 'block';
       }
@@ -1188,7 +1242,7 @@ const connectWalletBNB = async () => {
   } else {
     alert("MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.");
   }
-};
+}
 
 // Bottone connessione
 document.getElementById('connectButtonBNB').addEventListener('click', connectWalletBNB);

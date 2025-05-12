@@ -351,55 +351,129 @@ document.addEventListener('DOMContentLoaded', function() {
     return 'Unknown Network';
   }
   
-  // Connect wallet function
+  // Connect wallet function - COMPLETAMENTE RISCRITTA
   async function connectEthWallet() {
+    console.log('🔄 Staking: Avvio connessione portafoglio ETH (versione 2.0.1)');
+    
+    // Verifica MetaMask
     if (!isMetaMaskInstalled()) {
       alert('MetaMask is not installed. Please install MetaMask to use this feature.');
       return;
     }
 
-    // Mostra feedback all'utente che la connessione è in corso
-    const connectBtn = document.getElementById('connectButtonETH');
-    if (connectBtn) {
-      connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Connecting...';
-      connectBtn.disabled = true;
-    }
-    
     try {
+      // Blocca qualsiasi nuova connessione se c'è già una connessione attiva
+      if (isWalletConnected()) {
+        console.log('⚠️ Wallet already connected, showing dashboard directly');
+        
+        // Nascondi pulsante connessione
+        const connectBtn = document.getElementById('connectButtonETH');
+        if (connectBtn) connectBtn.classList.add('hidden');
+        
+        // Mostra pulsante disconnessione
+        if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+        
+        // Mostra dashboard
+        if (stakingDashboard) stakingDashboard.classList.remove('hidden');
+        
+        // Aggiorna UI
+        updateUI();
+        return;
+      }
+
+      // Mostra feedback all'utente che la connessione è in corso
+      const connectBtn = document.getElementById('connectButtonETH');
+      if (connectBtn) {
+        connectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Connecting...';
+        connectBtn.disabled = true;
+      }
+      
+      // Mostra feedback visivo sulla dashboard
+      if (stakingDashboard) {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'dashboardLoading';
+        loadingDiv.className = 'dashboard-loading';
+        loadingDiv.innerHTML = `
+          <div class="loading-container">
+            <div class="spinner-border text-light" role="status"></div>
+            <p>Connecting to wallet...</p>
+          </div>
+        `;
+        document.body.appendChild(loadingDiv);
+      }
+      
       // Request account access
+      console.log('Requesting accounts...');
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       console.log('✓ Wallet connected:', accounts[0]);
       
-      // Mostra dashboard immediatamente
-      if (stakingDashboard) {
-        stakingDashboard.classList.remove('hidden');
-      }
+      // Nascondi subito l'elemento di caricamento
+      const loadingEl = document.getElementById('dashboardLoading');
+      if (loadingEl) document.body.removeChild(loadingEl);
       
-      // Nascondi pulsante di connessione subito
+      // Mostra immediatamente la dashboard per evitare doppi clic
+      if (stakingDashboard) stakingDashboard.classList.remove('hidden');
+      
+      // Nascondi pulsante connessione
       if (connectBtn) {
         connectBtn.classList.add('hidden');
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="ri-wallet-3-line"></i> Connect Wallet';
       }
       
-      // Mostra pulsante di disconnessione
-      if (disconnectBtn) {
-        disconnectBtn.classList.remove('hidden');
+      // Mostra pulsante disconnessione
+      if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+      
+      // ⚠️ IMPORTANTE: aggiorniamo UI PRIMA di check network per garantire reattività
+      updateStatusIndicator(true);
+      
+      // Aggiorna base UI
+      const address = accounts[0];
+      const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+      
+      // Aggiorna visualizzazione indirizzo
+      const walletStatusText = document.getElementById('walletStatusText');
+      const walletAddress = document.getElementById('walletAddress');
+      const dashboardWalletAddress = document.getElementById('dashboardWalletAddress');
+      
+      if (walletStatusText) walletStatusText.textContent = 'Wallet connected';
+      if (walletAddress) walletAddress.textContent = shortAddress;
+      if (dashboardWalletAddress) dashboardWalletAddress.textContent = shortAddress;
+      
+      // Trigger loading degli NFT subito, senza attendere updateUI
+      if (typeof loadAvailableNfts === 'function') {
+        console.log("Loading NFTs via standard function...");
+        loadAvailableNfts(IASE_NFT_CONTRACT, address);
+      } else if (typeof window.loadAllIASENFTs === 'function') {
+        console.log("Loading NFTs via direct ethers.js...");
+        window.loadAllIASENFTs().catch(err => console.error("Error loading NFTs:", err));
       }
       
-      // Check and switch network if needed
-      await checkAndSwitchNetwork();
+      // Check and switch network if needed (senza await, in background)
+      checkAndSwitchNetwork().catch(err => console.error("Network switch error:", err));
       
-      // Update UI
+      // Update UI (without await)
       updateUI();
       
     } catch (error) {
       console.error('❌ Error connecting wallet:', error);
-      alert('Connection rejected.');
+      
+      // Nascondi loading
+      const loadingEl = document.getElementById('dashboardLoading');
+      if (loadingEl) document.body.removeChild(loadingEl);
       
       // Ripristina il pulsante se c'è stato un errore
+      const connectBtn = document.getElementById('connectButtonETH');
       if (connectBtn) {
         connectBtn.innerHTML = '<i class="ri-wallet-3-line"></i> Connect Wallet';
         connectBtn.disabled = false;
       }
+      
+      // Nascondi dashboard in caso di errore
+      if (stakingDashboard) stakingDashboard.classList.add('hidden');
+      
+      // Mostra messaggio d'errore
+      alert('Connection rejected or error occurred.');
     }
   }
   

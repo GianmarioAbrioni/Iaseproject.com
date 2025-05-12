@@ -1,0 +1,72 @@
+services:
+  # Web Service - Node.js Express Application (POSTGRESQL MODE)
+  - type: web
+    name: iase-project-web
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node server-pg.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: USE_MEMORY_DB
+        value: "false"
+      - key: SKIP_DB_CONNECTION
+        value: "false"
+      - key: PGHOST
+        value: dpg-d0ff45buibrs73ekrt6g-a
+      - key: PGUSER
+        value: iaseproject
+      - key: PGDATABASE
+        value: iaseproject
+      - key: PGPASSWORD
+        value: GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1
+      - key: PGPORT
+        value: "5432"
+      - key: DATABASE_URL
+        value: postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a/iaseproject
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ETH_NETWORK_URL
+        value: https://eth.drpc.org
+      - key: NFT_CONTRACT_ADDRESS
+        value: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
+      - key: REWARD_DISTRIBUTOR_CONTRACT
+        value: 0x38c62fcfb6a6bbce341b41ba6740b07739bf6e1f
+      - key: BSC_RPC_URL
+        value: https://bsc-dataseed.binance.org/
+    autoDeploy: true
+
+  # Cron job for daily NFT verification at midnight
+  - type: cron
+    name: nft-verification-job
+    env: node
+    schedule: "0 0 * * *"  # Run at midnight every day
+    buildCommand: npm install
+    startCommand: node staking-verification-pg.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: USE_MEMORY_DB
+        value: "false"
+      - key: SKIP_DB_CONNECTION
+        value: "false"
+      - key: PGHOST
+        value: dpg-d0ff45buibrs73ekrt6g-a
+      - key: PGUSER
+        value: iaseproject
+      - key: PGDATABASE
+        value: iaseproject
+      - key: PGPASSWORD
+        value: GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1
+      - key: PGPORT
+        value: "5432"
+      - key: DATABASE_URL
+        value: postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a/iaseproject
+      - key: ETH_NETWORK_URL
+        value: https://eth.drpc.org
+      - key: NFT_CONTRACT_ADDRESS
+        value: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
+      - key: REWARD_DISTRIBUTOR_CONTRACT
+        value: 0x38c62fcfb6a6bbce341b41ba6740b07739bf6e1f
+      - key: BSC_RPC_URL
+        value: https://bsc-dataseed.binance.org/

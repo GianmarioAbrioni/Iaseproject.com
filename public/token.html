@@ -550,12 +550,13 @@ function toggleMenu() {
             <button id="connectButtonBNB" class="connect-btn mb-3" data-network="bnb">
               <i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet
             </button>
+            <div id="connection-status" style="display: none; margin-bottom: 1rem; text-align: center; font-size: 0.9rem;"></div>
             
             <!-- Network Warning -->
             <div id="wrong-network-alert" class="alert alert-warning wallet-wrong-network d-none" style="font-size: 0.9rem; margin-bottom: 15px;">
               <i class="ri-alert-line me-1"></i>
               <span>To purchase IASE Tokens, you need to be on the BNB Smart Chain network.</span>
-              <button id="switch-network-btn" class="btn btn-sm btn-warning mt-2 switch-network-btn" data-chain="0x38">Switch to BNB Chain</button>
+              <button id="switch-network-btn" class="btn btn-sm btn-warning mt-2 switch-network-btn" data-chain="0x38" onclick="switchToBscNetwork()">Switch to BNB Chain</button>
             </div>
             
             <div id="walletInfo" class="wallet-info mb-4" style="display: none;">
@@ -836,8 +837,10 @@ const BSC_NETWORK = {
 };
 
 // Check if current network is BSC
-const isBscNetwork = () => {
-  return window.ethereum && window.ethereum.chainId === BSC_NETWORK.chainId;
+const isBscNetwork = (chainIdParam) => {
+  // Se viene passato un parametro chainId, usa quello, altrimenti usa il chainId dall'oggetto window.ethereum
+  const chainId = chainIdParam || (window.ethereum ? window.ethereum.chainId : null);
+  return chainId === BSC_NETWORK.chainId;
 };
 
 // Switch to BSC Network
@@ -882,91 +885,121 @@ const isReallyConnected = () => {
 const updateTokenUI = () => {
   console.log("⚙️ Updating token UI...");
   
-  // Always check for real connection status first
-  const walletConnected = isReallyConnected();
-  console.log("Wallet connected:", walletConnected);
-  
-  if (walletConnected) {
-    // Wallet is connected
-    const userAddress = window.ethereum.selectedAddress;
-    window.userAddress = userAddress;
-    const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+  try {
+    // Always check for real connection status first
+    const walletConnected = isReallyConnected();
+    console.log("Wallet connected:", walletConnected);
     
-    // Update wallet info display
-    console.log("Updating wallet display for address:", shortAddress);
-    
-    // Make sure elements exist before trying to update them
-    const shortWalletElement = document.getElementById('shortWallet');
-    const walletInfoElement = document.getElementById('walletInfo');
-    const connectButtonElement = document.getElementById('connectButtonBNB');
-    
-    if (shortWalletElement) shortWalletElement.innerText = shortAddress;
-    if (walletInfoElement) walletInfoElement.style.display = 'block';
-    if (connectButtonElement) connectButtonElement.style.display = 'none';
-    
-    // Check network and show/hide appropriate elements
-    const onBscNetwork = isBscNetwork();
-    console.log("On BSC network:", onBscNetwork);
-    
-    // Always show the wrong-network alert when not on BSC
-    const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-    if (wrongNetworkAlert) {
-      if (!onBscNetwork) {
-        console.log("Showing network warning alert");
-        wrongNetworkAlert.classList.remove('d-none');
-      } else {
-        console.log("Hiding network warning alert");
+    if (walletConnected) {
+      // Wallet is connected
+      const userAddress = window.ethereum.selectedAddress;
+      if (!userAddress) {
+        console.log("No selectedAddress found despite wallet being connected");
+        return; // Esci dalla funzione per evitare errori
+      }
+      
+      window.userAddress = userAddress;
+      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+      
+      // Update wallet info display
+      console.log("Updating wallet display for address:", shortAddress);
+      
+      // Make sure elements exist before trying to update them
+      const shortWalletElement = document.getElementById('shortWallet');
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (shortWalletElement) shortWalletElement.innerText = shortAddress;
+      if (walletInfoElement) walletInfoElement.style.display = 'block';
+      if (connectButtonElement) connectButtonElement.style.display = 'none';
+      
+      try {
+        // Check network and show/hide appropriate elements - in try/catch separato
+        const onBscNetwork = isBscNetwork();
+        console.log("On BSC network:", onBscNetwork);
+        
+        // Always show the wrong-network alert when not on BSC
+        const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+        if (wrongNetworkAlert) {
+          if (!onBscNetwork) {
+            console.log("Showing network warning alert");
+            wrongNetworkAlert.classList.remove('d-none');
+          } else {
+            console.log("Hiding network warning alert");
+            wrongNetworkAlert.classList.add('d-none');
+          }
+        }
+        
+        // Show presale form ONLY if on BSC network
+        const presaleForm = document.getElementById('presaleForm');
+        if (presaleForm) {
+          if (onBscNetwork) {
+            console.log("Showing presale form");
+            presaleForm.style.display = 'block';
+            
+            // Ensure form is fully initialized
+            const bnbAmountElement = document.getElementById('bnbAmount');
+            if (bnbAmountElement) {
+              console.log("BNB amount input field is present");
+            } else {
+              console.error("BNB amount input field not found!");
+            }
+          } else {
+            console.log("Hiding presale form");
+            presaleForm.style.display = 'none';
+          }
+        } else {
+          console.error("Presale form element not found!");
+        }
+      } catch (networkError) {
+        console.error("Error checking network status:", networkError);
+        // Continua con l'esecuzione per evitare di bloccare l'intera UI
+      }
+    } else {
+      // Wallet is disconnected
+      console.log("Wallet disconnected, updating UI");
+      
+      // Handle elements safely
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (walletInfoElement) walletInfoElement.style.display = 'none';
+      if (connectButtonElement) connectButtonElement.style.display = 'block';
+      
+      // Ensure presale form is hidden
+      const presaleForm = document.getElementById('presaleForm');
+      if (presaleForm) {
+        presaleForm.style.display = 'none';
+      }
+      
+      // Hide wrong network alert
+      const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+      if (wrongNetworkAlert) {
         wrongNetworkAlert.classList.add('d-none');
       }
     }
+  } catch (error) {
+    console.error("Error in updateTokenUI:", error);
+    // Non mostrare un alert all'utente, solo log in console
     
-    // Show presale form ONLY if on BSC network
-    const presaleForm = document.getElementById('presaleForm');
-    if (presaleForm) {
-      if (onBscNetwork) {
-        console.log("Showing presale form");
-        presaleForm.style.display = 'block';
-        
-        // Ensure form is fully initialized
-        const bnbAmountElement = document.getElementById('bnbAmount');
-        if (bnbAmountElement) {
-          console.log("BNB amount input field is present");
-        } else {
-          console.error("BNB amount input field not found!");
-        }
-      } else {
-        console.log("Hiding presale form");
-        presaleForm.style.display = 'none';
-      }
-    } else {
-      console.error("Presale form element not found!");
-    }
-  } else {
-    // Wallet is disconnected
-    console.log("Wallet disconnected, updating UI");
-    
-    // Handle elements safely
-    const walletInfoElement = document.getElementById('walletInfo');
-    const connectButtonElement = document.getElementById('connectButtonBNB');
-    
-    if (walletInfoElement) walletInfoElement.style.display = 'none';
-    if (connectButtonElement) connectButtonElement.style.display = 'block';
-    
-    // Ensure presale form is hidden
-    const presaleForm = document.getElementById('presaleForm');
-    if (presaleForm) {
-      presaleForm.style.display = 'none';
-    }
-    
-    // Hide wrong network alert
-    const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-    if (wrongNetworkAlert) {
-      wrongNetworkAlert.classList.add('d-none');
+    // Assicurare che i controlli principali siano visibili
+    try {
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (walletInfoElement) walletInfoElement.style.display = 'none';
+      if (connectButtonElement) connectButtonElement.style.display = 'block';
+    } catch (e) {
+      console.error("Critical UI error:", e);
     }
   }
   
   // Schedule periodic UI updates to catch any manual disconnections
-  scheduleNextUpdate();
+  try {
+    scheduleNextUpdate();
+  } catch (e) {
+    console.error("Error scheduling next update:", e);
+  }
 };
 
 // Periodic check to ensure UI state matches wallet state
@@ -1004,76 +1037,134 @@ const connectWalletBNB = async () => {
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       console.log("Accounts received:", accounts);
       
+      // Verificare che l'utente abbia effettivamente concesso i permessi
+      if (!accounts || accounts.length === 0) {
+        console.log("No accounts received, user may have rejected the request");
+        return; // Esci dalla funzione senza provare ad accedere alla chain
+      }
+      
+      // Configurazione base UI (connessione wallet)
+      const userAddress = accounts[0];
+      window.userAddress = userAddress;
+      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.slice(-4)}`;
+      console.log("Setting up wallet display for address:", shortAddress);
+      
+      // Aggiorniamo gli elementi UI di base
+      const shortWalletElement = document.getElementById('shortWallet');
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (shortWalletElement) shortWalletElement.innerText = shortAddress;
+      if (walletInfoElement) walletInfoElement.style.display = 'block';
+      if (connectButtonElement) connectButtonElement.style.display = 'none';
+      
       // Get current chain ID to check if we're on BSC
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      console.log("Current chain ID:", chainId);
-      
-      // Check if we're on BSC network - do this before showing the form
-      const onBscNetwork = isBscNetwork(chainId);
-      console.log("On BSC network:", onBscNetwork);
-      
-      if (!onBscNetwork) {
-        console.log("Not on BSC network, attempting to switch...");
+      let onBscNetwork = false;
+      try {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log("Current chain ID:", chainId);
         
-        // Show network warning
+        // Check if we're on BSC network - do this after showing the wallet info
+        onBscNetwork = isBscNetwork(chainId);
+        console.log("On BSC network:", onBscNetwork);
+        
+        // Gestione elementi UI in base alla rete
         const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-        if (wrongNetworkAlert) {
-          console.log("Showing network warning alert");
-          wrongNetworkAlert.classList.remove('d-none');
-        }
+        const presaleForm = document.getElementById('presaleForm');
         
-        // Hide presale form since we're not on the right network
-        if (presaleForm) {
-          console.log("Hiding presale form due to wrong network");
-          presaleForm.style.display = 'none';
-        }
-        
-        // Try to switch networks automatically
-        try {
-          console.log("Attempting automatic network switch");
-          const switchResult = await switchToBscNetwork();
+        if (onBscNetwork) {
+          // Siamo sulla rete BSC corretta
+          if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
+          if (presaleForm) presaleForm.style.display = 'block';
+        } else {
+          // Non siamo sulla rete BSC
+          if (wrongNetworkAlert) wrongNetworkAlert.classList.remove('d-none');
+          if (presaleForm) presaleForm.style.display = 'none';
           
-          if (switchResult) {
-            console.log("Network switch successful");
-            // Wait a moment for the switch to complete
-            setTimeout(updateTokenUI, 1000);
-          } else {
-            console.log("Network switch failed or was rejected");
-            // Already showed the warning above, but we still update UI
-            updateTokenUI();
+          // Try to switch networks automatically
+          try {
+            console.log("Attempting automatic network switch");
+            await switchToBscNetwork();
+            console.log("Network switch requested");
+          } catch (switchError) {
+            console.error("Error switching networks:", switchError);
           }
-        } catch (switchError) {
-          console.error("Error switching networks:", switchError);
-          // Update UI to show the current state
-          updateTokenUI();
         }
-      } else {
-        console.log("Already on BSC network, updating UI");
-        updateTokenUI();
+      } catch (chainError) {
+        console.error("Error getting chain ID:", chainError);
+        // In caso di errore, mostra comunque il form come nella versione originale
+        const presaleForm = document.getElementById('presaleForm');
+        if (presaleForm) presaleForm.style.display = 'block';
       }
       
       // Setup listeners for account and chain changes
       console.log("Setting up event listeners");
       window.ethereum.on('accountsChanged', function (accounts) {
         console.log("Accounts changed:", accounts);
-        updateTokenUI();
+        if (!accounts.length) {
+          // Disconnessione wallet
+          const walletInfoElement = document.getElementById('walletInfo');
+          const connectButtonElement = document.getElementById('connectButtonBNB');
+          const presaleForm = document.getElementById('presaleForm');
+          
+          if (walletInfoElement) walletInfoElement.style.display = 'none';
+          if (connectButtonElement) connectButtonElement.style.display = 'block';
+          if (presaleForm) presaleForm.style.display = 'none';
+        } else {
+          // Cambio account, aggiorna UI
+          updateTokenUI();
+        }
       });
       
       window.ethereum.on('chainChanged', function (chainId) {
         console.log("Chain changed:", chainId);
-        updateTokenUI();
+        // Controlla rete e aggiorna UI
+        const presaleForm = document.getElementById('presaleForm');
+        const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+        const onBscNetwork = isBscNetwork(chainId);
+        
+        if (onBscNetwork) {
+          if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
+          if (presaleForm) presaleForm.style.display = 'block';
+        } else {
+          if (wrongNetworkAlert) wrongNetworkAlert.classList.remove('d-none');
+          if (presaleForm) presaleForm.style.display = 'none';
+        }
       });
       
     } catch (error) {
       console.error('Connection error:', error);
       
-      // Show a more helpful error message
+      // Mostra un messaggio di errore discreto nel DOM (senza popup)
+      const statusElement = document.getElementById('connection-status');
+      
       if (error.code === 4001) {
         console.log("User rejected the connection request");
-        alert('Connection request was rejected. Please try again.');
+        
+        if (statusElement) {
+          statusElement.textContent = 'Connection request was rejected. Please try again.';
+          statusElement.style.color = '#ff6b6b';
+          statusElement.style.display = 'block';
+          
+          // Nascondi dopo alcuni secondi
+          setTimeout(() => {
+            statusElement.style.display = 'none';
+          }, 5000);
+        }
       } else {
+        // Per errori non di rifiuto volontario
         console.log("Other connection error:", error.message);
-        alert('Connection error: ' + error.message);
+        
+        if (statusElement) {
+          statusElement.textContent = 'Connection error. Please try again.';
+          statusElement.style.color = '#ff6b6b';
+          statusElement.style.display = 'block';
+          
+          // Nascondi dopo alcuni secondi
+          setTimeout(() => {
+            statusElement.style.display = 'none';
+          }, 5000);
+        }
       }
     }
   } else {

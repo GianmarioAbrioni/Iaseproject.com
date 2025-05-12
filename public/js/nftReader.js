@@ -30,8 +30,8 @@ export async function getUserNFTs() {
     console.log("🔍 Inizializzazione lettura NFT dal wallet...");
 
     // Richiedi l'accesso al wallet
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
     const userAddress = await signer.getAddress();
 
     console.log(`👤 Utente connesso: ${userAddress}`);
@@ -82,7 +82,7 @@ export async function getNFTMetadata(tokenId) {
       return null;
     }
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
     const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
 
     // Ottieni l'URI dei metadati

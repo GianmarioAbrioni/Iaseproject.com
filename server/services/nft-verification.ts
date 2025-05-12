@@ -31,10 +31,12 @@ const ETH_CONFIG = {
   } as Record<string, number>
 };
 
-// Interfaccia minima per contratto ERC721
+// Interfaccia minima per contratto ERC721 (estesa con enumerable estension)
 const ERC721_ABI = [
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function tokenURI(uint256 tokenId) view returns (string)',
+  'function balanceOf(address owner) view returns (uint256)',
+  'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
 ];
 
 // Costanti per le ricompense di staking

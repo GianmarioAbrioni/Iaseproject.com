@@ -1261,18 +1261,28 @@ document.getElementById('connectButtonBNB').addEventListener('click', connectWal
 
 
 // Check initial wallet and network status on page load
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.ethereum && window.ethereum.selectedAddress) {
-    updateTokenUI();
-  }
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🚀 DOM fully loaded, initializing UI...");
 
-  window.ethereum.on('accountsChanged', function (accounts) {
-    updateTokenUI();
-  });
+    const connectBtnBNB = document.getElementById('connectButtonBNB');
+    if (connectBtnBNB) {
+        connectBtnBNB.addEventListener('click', connectWalletBNB);
+        console.log("✅ Binding applied to connectButtonBNB");
+    } else {
+        console.error("❌ connectButtonBNB not found in DOM!");
+    }
 
-  window.ethereum.on('chainChanged', function (chainId) {
-    updateTokenUI();
-  });
+    if (window.ethereum && window.ethereum.selectedAddress) {
+        updateTokenUI();
+    }
+
+    window.ethereum.on('accountsChanged', function (accounts) {
+        updateTokenUI();
+    });
+
+    window.ethereum.on('chainChanged', function (chainId) {
+        updateTokenUI();
+    });
 
 });
 

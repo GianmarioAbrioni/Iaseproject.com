@@ -1957,16 +1957,24 @@ function initTokenomicsChart() {
 // Fix per connessione e visibilità form corretta sulla rete BSC
 if (window.ethereum) {
     ethereum.on('accountsChanged', () => {
-        updateTokenUI();
-    });
-    ethereum.on('chainChanged', () => {
-        updateTokenUI();
+        setTimeout(() => {
+            updateTokenUI();
+        }, 500);
     });
 
-    window.addEventListener('load', () => {
-        updateTokenUI();
+    ethereum.on('chainChanged', () => {
+        setTimeout(() => {
+            updateTokenUI();
+        }, 500);
     });
 }
+
+// Carica correttamente la UI al caricamento pagina, SEMPRE
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        updateTokenUI();
+    }, 500);
+});
 </script>
 </body>
 </html>

@@ -664,24 +664,3 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Run initialization
 init();
-
-// 🛡️ Fix: Aggiornamento UI sempre al cambio account, rete, disconnessione e al load pagina
-window.addEventListener('load', () => {
-    if (window.ethereum && ethereum.selectedAddress) {
-        updateUI();
-    }
-});
-
-if (window.ethereum) {
-    ethereum.on('accountsChanged', (accounts) => {
-        updateUI();
-    });
-
-    ethereum.on('chainChanged', (chainId) => {
-        updateUI();
-    });
-
-    ethereum.on('disconnect', () => {
-        updateUI();
-    });
-}

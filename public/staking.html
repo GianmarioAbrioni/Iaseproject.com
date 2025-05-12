@@ -663,132 +663,110 @@
   
   <!-- UI Interaction Scripts -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Aggiungi l'event listener al pulsante di connessione wallet
-      const connectETHBtn = document.getElementById('connectButtonETH');
-      if (connectETHBtn) {
+document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungi l'event listener al pulsante di connessione wallet
+    const connectETHBtn = document.getElementById('connectButtonETH');
+    if (connectETHBtn) {
         connectETHBtn.addEventListener('click', function() {
-          // Verifica se MetaMask è disponibile
-          if (typeof window.ethereum === 'undefined') {
-            // MetaMask non è installato, mostra l'avviso
-            alert('MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.');
-            return;
-          }
-          
-          // MetaMask è disponibile, esegui la funzione di connessione ETH
-          connectWalletETH();
+            if (typeof window.ethereum === 'undefined') {
+                alert('MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.');
+                return;
+            }
+            connectWalletETH();
         });
-      }
-      
-      // Initialize FAQ functionality
-      const faqItems = document.querySelectorAll('.faq-item');
-      
-      faqItems.forEach(item => {
+    }
+
+    // FAQ functionality
+    const faqItems = document.querySelectorAll('.faq-item');
+    faqItems.forEach(item => {
         const questionEl = item.querySelector('.faq-question');
-        
         questionEl.addEventListener('click', function() {
-          item.classList.toggle('active');
+            item.classList.toggle('active');
         });
-      });
-      
-      // Initialize Dashboard Tabs
-      const tabButtons = document.querySelectorAll('.tab-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
-      
-      tabButtons.forEach(button => {
+    });
+
+    // Dashboard tabs
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabButtons.forEach(button => {
         button.addEventListener('click', function() {
-          // Remove active class from all buttons and contents
-          tabButtons.forEach(btn => btn.classList.remove('active'));
-          tabContents.forEach(content => content.classList.remove('active'));
-          
-          // Add active class to clicked button
-          this.classList.add('active');
-          
-          // Show corresponding content
-          const tabId = this.getAttribute('data-tab');
-          document.getElementById(tabId + 'Tab').classList.add('active');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            this.classList.add('active');
+            const tabId = this.getAttribute('data-tab');
+            document.getElementById(tabId + 'Tab').classList.add('active');
         });
-      });
-      
-      // Initialize Auth Tabs
-      const authTabButtons = document.querySelectorAll('.auth-tab-btn');
-      const authFormContainers = document.querySelectorAll('.auth-form-container');
-      
-      authTabButtons.forEach(button => {
+    });
+
+    // Auth tabs
+    const authTabButtons = document.querySelectorAll('.auth-tab-btn');
+    const authFormContainers = document.querySelectorAll('.auth-form-container');
+    authTabButtons.forEach(button => {
         button.addEventListener('click', function() {
-          // Remove active class from all buttons and forms
-          authTabButtons.forEach(btn => btn.classList.remove('active'));
-          authFormContainers.forEach(container => container.classList.remove('active'));
-          
-          // Add active class to clicked button
-          this.classList.add('active');
-          
-          // Show corresponding form
-          const tabId = this.getAttribute('data-tab');
-          document.getElementById(tabId + 'Tab').classList.add('active');
+            authTabButtons.forEach(btn => btn.classList.remove('active'));
+            authFormContainers.forEach(container => container.classList.remove('active'));
+            this.classList.add('active');
+            const tabId = this.getAttribute('data-tab');
+            document.getElementById(tabId + 'Tab').classList.add('active');
         });
-      });
-      
-      // Modal handling
-      const stakeModal = document.getElementById('stakeModal');
-      const unstakeModal = document.getElementById('unstakeModal');
-      const closeStakeModal = document.getElementById('closeStakeModal');
-      const closeUnstakeModal = document.getElementById('closeUnstakeModal');
-      const cancelStakeBtn = document.getElementById('cancelStakeBtn');
-      const cancelUnstakeBtn = document.getElementById('cancelUnstakeBtn');
-      
-      // Close stake modal
-      if (closeStakeModal) {
+    });
+
+    // Modal handling
+    const stakeModal = document.getElementById('stakeModal');
+    const unstakeModal = document.getElementById('unstakeModal');
+    const closeStakeModal = document.getElementById('closeStakeModal');
+    const closeUnstakeModal = document.getElementById('closeUnstakeModal');
+    const cancelStakeBtn = document.getElementById('cancelStakeBtn');
+    const cancelUnstakeBtn = document.getElementById('cancelUnstakeBtn');
+
+    if (closeStakeModal) {
         closeStakeModal.addEventListener('click', function() {
-          stakeModal.style.display = 'none';
+            stakeModal.style.display = 'none';
         });
-      }
-      
-      if (cancelStakeBtn) {
+    }
+
+    if (cancelStakeBtn) {
         cancelStakeBtn.addEventListener('click', function() {
-          stakeModal.style.display = 'none';
+            stakeModal.style.display = 'none';
         });
-      }
-      
-      // Close unstake modal
-      if (closeUnstakeModal) {
+    }
+
+    if (closeUnstakeModal) {
         closeUnstakeModal.addEventListener('click', function() {
-          unstakeModal.style.display = 'none';
+            unstakeModal.style.display = 'none';
         });
-      }
-      
-      if (cancelUnstakeBtn) {
+    }
+
+    if (cancelUnstakeBtn) {
         cancelUnstakeBtn.addEventListener('click', function() {
-          unstakeModal.style.display = 'none';
+            unstakeModal.style.display = 'none';
         });
-      }
-      
-      // Close modals when clicking outside
-      window.addEventListener('click', function(event) {
-    if (event.target === stakeModal) {
-        stakeModal.style.display = 'none';
     }
-    if (event.target === unstakeModal) {
-        unstakeModal.style.display = 'none';
+
+    window.addEventListener('click', function(event) {
+        if (event.target === stakeModal) {
+            stakeModal.style.display = 'none';
+        }
+        if (event.target === unstakeModal) {
+            unstakeModal.style.display = 'none';
+        }
+    });
+
+    // Fix per aggiornamento UI alla connessione/disconnessione
+    if (window.ethereum) {
+        ethereum.on('accountsChanged', (accounts) => {
+            updateUI();
+        });
+
+        ethereum.on('chainChanged', (chainId) => {
+            updateUI();
+        });
+
+        ethereum.on('disconnect', () => {
+            updateUI();
+        });
     }
-});
 
-// 🛡️ Fix per aggiornamento UI alla connessione/disconnessione
-if (window.ethereum) {
-    ethereum.on('accountsChanged', (accounts) => {
-        updateUI();
-    });
-
-    ethereum.on('chainChanged', (chainId) => {
-        updateUI();
-    });
-
-    ethereum.on('disconnect', () => {
-        updateUI();
-    });
-}
-
-window.addEventListener('load', () => {
     if (window.ethereum && ethereum.selectedAddress) {
         updateUI();
     }

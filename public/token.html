@@ -1952,20 +1952,24 @@ function initTokenomicsChart() {
 
 <script>
 // Unica gestione pulita e centralizzata della UI
+// Aggiorna UI senza duplicare logiche già gestite da listener sopra
 function updateTokenUI() {
     const form = document.getElementById('presaleForm');
     const connectButton = document.getElementById('connectButtonBNB');
+    const estimateDiv = document.getElementById('estimate');
 
     if (window.ethereum && ethereum.selectedAddress && ethereum.networkVersion === '56') {
         if (form) form.style.display = 'block';
         if (connectButton) connectButton.style.display = 'none';
+        if (estimateDiv) estimateDiv.style.display = 'none'; // Reset stima (la funzione sopra lo riattiverà su input)
     } else {
         if (form) form.style.display = 'none';
         if (connectButton) connectButton.style.display = 'block';
+        if (estimateDiv) estimateDiv.style.display = 'none';
     }
 }
 
-// Gestione evento click
+// Gestione click pulita e senza duplicare logica
 document.getElementById('connectButtonBNB').addEventListener('click', async () => {
     if (window.ethereum) {
         try {
@@ -1986,13 +1990,12 @@ document.getElementById('connectButtonBNB').addEventListener('click', async () =
     }
 });
 
-// Eventi globali
+// Eventi globali puliti
 if (window.ethereum) {
     ethereum.on('accountsChanged', () => setTimeout(updateTokenUI, 500));
     ethereum.on('chainChanged', () => setTimeout(updateTokenUI, 500));
 }
 
-// Forza verifica iniziale
 window.addEventListener('load', () => {
     setTimeout(updateTokenUI, 500);
 });

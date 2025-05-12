@@ -664,19 +664,7 @@
   <!-- UI Interaction Scripts -->
   <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Aggiungi l'event listener al pulsante di connessione wallet
-    const connectETHBtn = document.getElementById('connectButtonETH');
-    if (connectETHBtn) {
-        connectETHBtn.addEventListener('click', function() {
-            if (typeof window.ethereum === 'undefined') {
-                alert('MetaMask is not available or not connected.\n\nMake sure you are using a browser with the MetaMask extension enabled, or the MetaMask in-app browser.');
-                return;
-            }
-            connectWalletETH();
-        });
-    }
-
-    // FAQ functionality
+    // Initialize FAQ functionality
     const faqItems = document.querySelectorAll('.faq-item');
     faqItems.forEach(item => {
         const questionEl = item.querySelector('.faq-question');
@@ -685,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Dashboard tabs
+    // Initialize Dashboard Tabs
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
     tabButtons.forEach(button => {
@@ -698,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Auth tabs
+    // Initialize Auth Tabs
     const authTabButtons = document.querySelectorAll('.auth-tab-btn');
     const authFormContainers = document.querySelectorAll('.auth-form-container');
     authTabButtons.forEach(button => {
@@ -743,6 +731,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Close modals when clicking outside
     window.addEventListener('click', function(event) {
         if (event.target === stakeModal) {
             stakeModal.style.display = 'none';
@@ -752,24 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Fix per aggiornamento UI alla connessione/disconnessione
-    if (window.ethereum) {
-        ethereum.on('accountsChanged', (accounts) => {
-            updateUI();
-        });
-
-        ethereum.on('chainChanged', (chainId) => {
-            updateUI();
-        });
-
-        ethereum.on('disconnect', () => {
-            updateUI();
-        });
-    }
-
-    if (window.ethereum && ethereum.selectedAddress) {
-        updateUI();
-    }
+    // --- ATTENZIONE: Tutta la logica wallet ETH ora è nel file staking-simple-connector.js ---
 });
 </script>
 </body>

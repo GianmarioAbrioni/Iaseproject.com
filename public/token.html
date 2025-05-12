@@ -1954,26 +1954,50 @@ function initTokenomicsChart() {
 <script src="script.js"></script>
 
 <script>
-// Fix per connessione e visibilità form corretta sulla rete BSC
-if (window.ethereum) {
-    ethereum.on('accountsChanged', () => {
-        setTimeout(() => {
-            updateTokenUI();
-        }, 500);
-    });
+// Unica gestione pulita e centralizzata della UI
+function updateTokenUI() {
+    const form = document.getElementById('presaleForm');
+    const connectButton = document.getElementById('connectButtonBNB');
 
-    ethereum.on('chainChanged', () => {
-        setTimeout(() => {
-            updateTokenUI();
-        }, 500);
-    });
+    if (window.ethereum && ethereum.selectedAddress && ethereum.networkVersion === '56') {
+        if (form) form.style.display = 'block';
+        if (connectButton) connectButton.style.display = 'none';
+    } else {
+        if (form) form.style.display = 'none';
+        if (connectButton) connectButton.style.display = 'block';
+    }
 }
 
-// Carica correttamente la UI al caricamento pagina, SEMPRE
+// Gestione evento click
+document.getElementById('connectButtonBNB').addEventListener('click', async () => {
+    if (window.ethereum) {
+        try {
+            const chainId = await ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== '0x38') {
+                await ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x38' }],
+                });
+            }
+            await ethereum.request({ method: 'eth_requestAccounts' });
+            setTimeout(updateTokenUI, 500);
+        } catch (error) {
+            console.error('Connection error:', error);
+        }
+    } else {
+        alert('Please install MetaMask!');
+    }
+});
+
+// Eventi globali
+if (window.ethereum) {
+    ethereum.on('accountsChanged', () => setTimeout(updateTokenUI, 500));
+    ethereum.on('chainChanged', () => setTimeout(updateTokenUI, 500));
+}
+
+// Forza verifica iniziale
 window.addEventListener('load', () => {
-    setTimeout(() => {
-        updateTokenUI();
-    }, 500);
+    setTimeout(updateTokenUI, 500);
 });
 </script>
 </body>

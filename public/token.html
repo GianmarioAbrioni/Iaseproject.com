@@ -1947,58 +1947,8 @@ function initTokenomicsChart() {
 <script src="js/image-loader.js"></script>
 <script src="js/space-background.js"></script>
 <script src="js/parallax.js"></script>
-<script src="js/wallet-connector.js"></script>
 <script src="script.js"></script>
 
-<script>
-// Unica gestione pulita e centralizzata della UI
-// Aggiorna UI senza duplicare logiche già gestite da listener sopra
-function updateTokenUI() {
-    const form = document.getElementById('presaleForm');
-    const connectButton = document.getElementById('connectButtonBNB');
-    const estimateDiv = document.getElementById('estimate');
 
-    if (window.ethereum && ethereum.selectedAddress && ethereum.networkVersion === '56') {
-        if (form) form.style.display = 'block';
-        if (connectButton) connectButton.style.display = 'none';
-        if (estimateDiv) estimateDiv.style.display = 'none'; // Reset stima (la funzione sopra lo riattiverà su input)
-    } else {
-        if (form) form.style.display = 'none';
-        if (connectButton) connectButton.style.display = 'block';
-        if (estimateDiv) estimateDiv.style.display = 'none';
-    }
-}
-
-// Gestione click pulita e senza duplicare logica
-document.getElementById('connectButtonBNB').addEventListener('click', async () => {
-    if (window.ethereum) {
-        try {
-            const chainId = await ethereum.request({ method: 'eth_chainId' });
-            if (chainId !== '0x38') {
-                await ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x38' }],
-                });
-            }
-            await ethereum.request({ method: 'eth_requestAccounts' });
-            setTimeout(updateTokenUI, 500);
-        } catch (error) {
-            console.error('Connection error:', error);
-        }
-    } else {
-        alert('Please install MetaMask!');
-    }
-});
-
-// Eventi globali puliti
-if (window.ethereum) {
-    ethereum.on('accountsChanged', () => setTimeout(updateTokenUI, 500));
-    ethereum.on('chainChanged', () => setTimeout(updateTokenUI, 500));
-}
-
-window.addEventListener('load', () => {
-    setTimeout(updateTokenUI, 500);
-});
-</script>
 </body>
 </html>

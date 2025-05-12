@@ -1577,27 +1577,7 @@ document.getElementById('bnbAmount').addEventListener('keypress', function (e) {
         }
       </style>
       
-      <script>
-        document.addEventListener('DOMContentLoaded', function () {
-          const questions = document.querySelectorAll('.faq-question');
-          questions.forEach(q => {
-            q.addEventListener('click', () => {
-              // Close all other questions
-              questions.forEach(otherQ => {
-                if (otherQ !== q && otherQ.classList.contains('active')) {
-                  otherQ.classList.remove('active');
-                  otherQ.nextElementSibling.style.display = 'none';
-                }
-              });
-              
-              // Toggle current question
-              q.classList.toggle('active');
-              const answer = q.nextElementSibling;
-              answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
-            });
-          });
-        });
-      </script>
+      
 <div class="faq-item">
 <div class="faq-question">1. How can I import the IASE Token into my wallet?</div>
 <div class="faq-answer">

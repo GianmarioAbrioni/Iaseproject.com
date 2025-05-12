@@ -1259,24 +1259,21 @@ document.getElementById('connectButtonBNB').addEventListener('click', connectWal
   }
 }
 
-// Bottone connessione
-document.getElementById('connectButtonBNB').addEventListener('click', connectWalletBNB);
 
 // Check initial wallet and network status on page load
 document.addEventListener('DOMContentLoaded', () => {
   if (window.ethereum && window.ethereum.selectedAddress) {
-    // If wallet already connected, update UI
     updateTokenUI();
-    
-    // Set up listeners for account and network changes
-    window.ethereum.on('accountsChanged', function (accounts) {
-      updateTokenUI();
-    });
-    
-    window.ethereum.on('chainChanged', function (chainId) {
-      updateTokenUI();
-    });
   }
+
+  window.ethereum.on('accountsChanged', function (accounts) {
+    updateTokenUI();
+  });
+
+  window.ethereum.on('chainChanged', function (chainId) {
+    updateTokenUI();
+  });
+
 });
 
 // Calcolo conversione + validazione live

@@ -1203,6 +1203,8 @@ const connectWalletBNB = async () => {
           updateTokenUI();
         }
       });
+
+document.getElementById('connectButtonBNB').addEventListener('click', connectWalletBNB);
       
       window.ethereum.on('chainChanged', function (chainId) {
         console.log("Chain changed:", chainId);

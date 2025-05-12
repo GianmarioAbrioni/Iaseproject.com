@@ -1226,20 +1226,17 @@ const connectWalletBNB = async () => {
       // Mostra un messaggio di errore discreto nel DOM (senza popup)
       const statusElement = document.getElementById('connection-status');
       
-      if (error.code === 4001) {
+      } catch (error) {
+    console.error('Connection error:', error);
+
+    if (error.code === 4001) {
         console.log("User rejected the connection request");
-        
-        if (statusElement) {
-          statusElement.textContent = 'Connection request was rejected. Please try again.';
-          statusElement.style.color = '#ff6b6b';
-          statusElement.style.display = 'block';
-          
-          // Nascondi dopo alcuni secondi
-          setTimeout(() => {
-            statusElement.style.display = 'none';
-          }, 5000);
-        }
-      } else {
+        // Nessun messaggio visibile all'utente, solo log
+    } else {
+        console.log("Other connection error:", error.message);
+        // Nessun messaggio visibile all'utente
+    }
+} else {
         // Per errori non di rifiuto volontario
         console.log("Other connection error:", error.message);
         

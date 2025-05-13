@@ -108,17 +108,43 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     
     // Indirizzi e configurazione della collezione IASE
     const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
-    const infuraApiKey = process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
+    
+    // Verifica che l'indirizzo del contratto NFT sia valido
+    if (!NFT_CONTRACT_ADDRESS || !NFT_CONTRACT_ADDRESS.startsWith('0x') || NFT_CONTRACT_ADDRESS.length !== 42) {
+      console.error(`❌ Indirizzo contratto NFT non valido: ${NFT_CONTRACT_ADDRESS}`);
+      return res.status(500).json({
+        error: 'Configuration error',
+        message: 'NFT contract address is invalid or missing'
+      });
+    }
+    
+    // Verifica e utilizza l'API key Infura corretta
+    let infuraApiKey = process.env.INFURA_API_KEY;
+    
+    // Se l'API key non è impostata o sembra non valida, usa il fallback
+    if (!infuraApiKey || infuraApiKey.length < 32) {
+      console.warn(`⚠️ Infura API Key non trovata o troppo corta: ${infuraApiKey}`);
+      // Fallback API key
+      infuraApiKey = "84ed164327474b4499c085d2e4345a66";
+      console.warn(`⚠️ Usando API key di fallback: ${infuraApiKey.substring(0, 8)}...`);
+    } else {
+      console.log(`✓ Usando Infura API Key configurata: ${infuraApiKey.substring(0, 8)}...`);
+    }
+    
+    // Costruisci gli URL Ethereum per connessione primaria e fallback
     const ETHEREUM_RPC_URL = process.env.ETH_NETWORK_URL || `https://mainnet.infura.io/v3/${infuraApiKey}`;
     const ETHEREUM_RPC_FALLBACK = process.env.ETH_NETWORK_FALLBACK || "https://rpc.ankr.com/eth";
     
     // ABI minimo necessario per un contratto ERC721 con Enumerable
+    // Usiamo un ABI più dettagliato con i tipi di parametri specifici per evitare errori
     const ERC721_ABI = [
       'function balanceOf(address owner) view returns (uint256)',
       'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
       'function tokenURI(uint256 tokenId) view returns (string)',
       'function ownerOf(uint256 tokenId) view returns (address)',
-      'function totalSupply() view returns (uint256)'
+      'function totalSupply() view returns (uint256)',
+      'function name() view returns (string)',
+      'function symbol() view returns (string)'
     ];
     
     try {
@@ -129,26 +155,52 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         const infuraUrl = ETHEREUM_RPC_URL;
         
         console.log(`🌐 Tentativo connessione alla rete con Infura API: ${infuraUrl}`);
-        provider = new ethers.JsonRpcProvider(infuraUrl);
+        console.log(`🔑 Utilizzo Infura API Key: ${infuraApiKey.substring(0, 8)}...`);
         
-        // Aggiungiamo un timeout per la connessione
+        // Verifica dell'API key prima di procedere
+        if (!infuraApiKey || infuraApiKey.length < 32) {
+          console.error(`⚠️ Infura API Key non valida o mancante: ${infuraApiKey}`);
+          throw new Error("Infura API Key non valida");
+        }
+        
+        // Verifica che l'URL sia formattato correttamente
+        if (!infuraUrl.includes(infuraApiKey)) {
+          console.error(`⚠️ Infura URL non contiene l'API Key: ${infuraUrl}`);
+        }
+        
+        // Costruisci manualmente l'URL per maggiore sicurezza
+        const safeInfuraUrl = `https://mainnet.infura.io/v3/${infuraApiKey}`;
+        console.log(`🔒 URL Infura sicuro: ${safeInfuraUrl}`);
+        
+        provider = new ethers.JsonRpcProvider(safeInfuraUrl);
+        
+        // Aggiungiamo un timeout più lungo per la connessione
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout connessione a Infura")), 5000);
+          setTimeout(() => reject(new Error("Timeout connessione a Infura")), 10000);
         });
         
         // Testiamo immediatamente la connessione
+        console.log(`🔄 Test di connessione a Infura in corso...`);
         const connectionTest = Promise.race([
           provider.getBlockNumber(),
           timeoutPromise
         ]);
         
-        await connectionTest;
-        console.log(`✅ Provider Infura connesso correttamente`);
+        const blockNumber = await connectionTest;
+        console.log(`✅ Provider Infura connesso correttamente al blocco #${blockNumber}`);
         
       } catch (providerError) {
         console.error(`❌ Errore connessione provider primario: ${providerError}`);
         console.log(`⚠️ Tentativo con provider fallback: ${ETHEREUM_RPC_FALLBACK}`);
+        
+        // Verifica che l'URL di fallback sia valido
+        if (!ETHEREUM_RPC_FALLBACK || !ETHEREUM_RPC_FALLBACK.startsWith('http')) {
+          console.error(`⚠️ URL di fallback non valido: ${ETHEREUM_RPC_FALLBACK}`);
+          throw new Error(`URL di fallback non valido: ${ETHEREUM_RPC_FALLBACK}`);
+        }
+        
         provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+        console.log(`🔍 Provider di fallback inizializzato, test in corso...`);
       }
       
       // Log di diagnostica
@@ -228,8 +280,31 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       console.log(`🧹 Indirizzo wallet pulito: ${cleanWalletAddress}`);
       
       // Ottieni il numero di NFT posseduti dal wallet
-      const balance = await nftContract.balanceOf(cleanWalletAddress);
-      console.log(`👛 Il wallet ${cleanWalletAddress} possiede ${balance.toString()} NFT`);
+      console.log(`🔍 Tentativo di ottenere il balance per ${cleanWalletAddress}`);
+      let balance;
+      try {
+        balance = await nftContract.balanceOf(cleanWalletAddress);
+        console.log(`👛 Il wallet ${cleanWalletAddress} possiede ${balance.toString()} NFT`);
+      } catch (balanceError) {
+        console.error(`❌ Errore nel recupero del balance: ${balanceError.message}`);
+        
+        // Verifica se l'errore contiene il messaggio sul formato non valido
+        if (balanceError.message && (
+            balanceError.message.includes('pattern') || 
+            balanceError.message.includes('format') || 
+            balanceError.message.includes('invalid address'))) {
+          console.error(`❌ L'indirizzo wallet non è nel formato corretto richiesto da Ethereum: ${cleanWalletAddress}`);
+          
+          // Invia una risposta più informativa
+          return res.status(400).json({
+            error: 'Invalid wallet address format',
+            message: `The wallet address "${cleanWalletAddress}" does not match the expected Ethereum address pattern.`,
+            details: balanceError.message
+          });
+        }
+        
+        throw balanceError;
+      }
       
       // Array per memorizzare gli NFT trovati
       const nfts = [];
@@ -238,17 +313,76 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         // Per ogni NFT, recupera l'ID e i metadati
         for (let i = 0; i < balance; i++) {
           try {
+            console.log(`🔍 Tentativo di ottenere il token #${i+1} di ${balance} per ${cleanWalletAddress}`);
+            
             // Ottieni l'ID del token
-            const tokenId = await nftContract.tokenOfOwnerByIndex(cleanWalletAddress, i);
-            console.log(`🔎 Trovato NFT #${tokenId.toString()} per ${cleanWalletAddress}`);
+            let tokenId;
+            try {
+              tokenId = await nftContract.tokenOfOwnerByIndex(cleanWalletAddress, i);
+              console.log(`🔎 Trovato NFT #${tokenId.toString()} per ${cleanWalletAddress}`);
+            } catch (tokenIdError) {
+              console.error(`❌ Errore nel recupero del token ID #${i}: ${tokenIdError.message}`);
+              continue; // Passa al prossimo NFT
+            }
             
             // Ottieni l'URL dei metadati
-            const tokenURI = await nftContract.tokenURI(tokenId);
-            console.log(`🔗 TokenURI per NFT #${tokenId.toString()}: ${tokenURI}`);
+            let tokenURI;
+            try {
+              tokenURI = await nftContract.tokenURI(tokenId);
+              console.log(`🔗 TokenURI per NFT #${tokenId.toString()}: ${tokenURI}`);
+            } catch (tokenURIError) {
+              console.error(`❌ Errore nel recupero del tokenURI per #${tokenId}: ${tokenURIError.message}`);
+              
+              // Registro se nell'errore compare "string did not match"
+              if (tokenURIError.message && tokenURIError.message.includes('pattern')) {
+                console.error(`‼️ ERRORE CRITICO NEL PATTERN DI STRINGA: ${tokenURIError.message}`);
+                console.error(`‼️ TokenId problematico: ${tokenId}`);
+                console.error(`‼️ Tipo di tokenId: ${typeof tokenId}`);
+                
+                // Tenta di usare un tokenURI predefinito se la chiamata fallisce
+                const fallbackURI = `https://iaseproject.com/api/nft/${tokenId}.json`;
+                console.log(`🔄 Tentativo con URI di fallback: ${fallbackURI}`);
+                tokenURI = fallbackURI;
+              } else {
+                // Se l'errore è di altro tipo, aggiungi l'NFT con dati minimi e continua
+                nfts.push({
+                  id: tokenId.toString(),
+                  name: `IASE Unit #${tokenId.toString()}`,
+                  image: '/images/nft-placeholder.png',
+                  rarity: 'Unknown',
+                  traits: []
+                });
+                continue;
+              }
+            }
+            
+            // Verifica che il tokenURI sia valido
+            if (!tokenURI || typeof tokenURI !== 'string') {
+              console.error(`❌ TokenURI non valido o mancante per NFT #${tokenId}`);
+              nfts.push({
+                id: tokenId.toString(),
+                name: `IASE Unit #${tokenId.toString()}`,
+                image: '/images/nft-placeholder.png',
+                rarity: 'Unknown',
+                traits: []
+              });
+              continue; // Passa al prossimo NFT
+            }
+            
+            // Normalizza l'URL (alcuni TokenURI potrebbero iniziare con ipfs:// o essere relativi)
+            let normalizedURI = tokenURI;
+            if (tokenURI.startsWith('ipfs://')) {
+              normalizedURI = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+              console.log(`🔄 TokenURI normalizzato da IPFS: ${normalizedURI}`);
+            } else if (!tokenURI.startsWith('http')) {
+              normalizedURI = `https://iaseproject.com${tokenURI.startsWith('/') ? '' : '/'}${tokenURI}`;
+              console.log(`🔄 TokenURI normalizzato da path relativo: ${normalizedURI}`);
+            }
             
             // Recupera i metadati
             try {
-              const response = await fetch(tokenURI);
+              console.log(`📡 Tentativo di recupero metadati da ${normalizedURI}`);
+              const response = await fetch(normalizedURI);
               
               if (response.ok) {
                 const metadata = await response.json();

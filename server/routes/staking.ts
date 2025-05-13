@@ -170,9 +170,16 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         provider
       );
       
+      // Verifica e correggi l'indirizzo del wallet (rimuovi eventuali puntini di sospensione)
+      const cleanWalletAddress = walletAddress.includes('...') 
+          ? walletAddress.replace(/\.\.\./g, '') // Rimuovi i puntini se presenti
+          : walletAddress;
+      
+      console.log(`🧹 Indirizzo wallet pulito: ${cleanWalletAddress}`);
+      
       // Ottieni il numero di NFT posseduti dal wallet
-      const balance = await nftContract.balanceOf(walletAddress);
-      console.log(`👛 Il wallet ${walletAddress} possiede ${balance.toString()} NFT`);
+      const balance = await nftContract.balanceOf(cleanWalletAddress);
+      console.log(`👛 Il wallet ${cleanWalletAddress} possiede ${balance.toString()} NFT`);
       
       // Array per memorizzare gli NFT trovati
       const nfts = [];
@@ -182,8 +189,8 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         for (let i = 0; i < balance; i++) {
           try {
             // Ottieni l'ID del token
-            const tokenId = await nftContract.tokenOfOwnerByIndex(walletAddress, i);
-            console.log(`🔎 Trovato NFT #${tokenId.toString()} per ${walletAddress}`);
+            const tokenId = await nftContract.tokenOfOwnerByIndex(cleanWalletAddress, i);
+            console.log(`🔎 Trovato NFT #${tokenId.toString()} per ${cleanWalletAddress}`);
             
             // Ottieni l'URL dei metadati
             const tokenURI = await nftContract.tokenURI(tokenId);
@@ -240,18 +247,18 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
               });
             }
           } catch (tokenError) {
-            console.error(`⚠️ Errore nel recupero dell'NFT ${i} per ${walletAddress}:`, tokenError);
+            console.error(`⚠️ Errore nel recupero dell'NFT ${i} per ${cleanWalletAddress}:`, tokenError);
           }
         }
         
-        console.log(`✅ Trovati ${nfts.length} NFT reali per ${walletAddress}`);
+        console.log(`✅ Trovati ${nfts.length} NFT reali per ${cleanWalletAddress}`);
       } else {
-        console.log(`ℹ️ Nessun NFT trovato per ${walletAddress}`);
+        console.log(`ℹ️ Nessun NFT trovato per ${cleanWalletAddress}`);
       }
       
       // Logging dettagliato degli NFT trovati per debugging
       if (nfts.length > 0) {
-        console.log(`✅ Dettaglio NFT trovati per ${walletAddress}:`);
+        console.log(`✅ Dettaglio NFT trovati per ${cleanWalletAddress}:`);
         nfts.forEach(nft => {
           console.log(`  - NFT #${nft.id}: ${nft.name}, Rarity: ${nft.rarity}`);
         });
@@ -259,8 +266,8 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
 
       // Se dopo tutte le chiamate blockchain non abbiamo NFT ma sappiamo che esistono,
       // aggiungiamo NFT di fallback per garantire la visualizzazione (usando IP se necessario)
-      if (nfts.length === 0 && walletAddress === '0x5113aA951C13aFfeF1241FBf2079031e2C0Bc619') {
-        console.log(`⚠️ Fornendo dati NFT noti per wallet verificato: ${walletAddress}`);
+      if (nfts.length === 0 && cleanWalletAddress === '0x5113aA951C13aFfeF1241FBf2079031e2C0Bc619') {
+        console.log(`⚠️ Fornendo dati NFT noti per wallet verificato: ${cleanWalletAddress}`);
         // IASE Units presenti nel wallet che potrebbero non apparire a causa di problemi di rete
         [10088, 10089, 10090].forEach(id => {
           nfts.push({
@@ -283,7 +290,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       return res.json({
         available: nfts,
         nfts: nfts, // Per retrocompatibilità
-        wallet: walletAddress, // Includi wallet per verifica
+        wallet: cleanWalletAddress, // Usa indirizzo pulito
         timestamp: new Date().toISOString() // Aggiunto per debugging
       });
     } catch (blockchainError) {

@@ -1033,34 +1033,21 @@ function toggleMenu() {
 
 <!-- Smart Contract Definition -->
 <script>
-const CONTRACT_ADDRESS = '0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE';
+const CONTRACT_ADDRESS = "0x54799bAf11ff48a2662F0f65C09A18D96851cF3B";
 const ABI = [
+	{
+		"inputs": [],
+		"name": "buyTokens",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
 	{
 		"inputs": [
 			{
-				"internalType": "contract IERC20",
+				"internalType": "address",
 				"name": "_token",
 				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_rate",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_minBNB",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_maxBNB",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_maxPerWallet",
-				"type": "uint256"
 			},
 			{
 				"internalType": "uint256",
@@ -1206,6 +1193,8 @@ const ABI = [
 		"type": "function"
 	}
 ];
+  
+
 </script>
 
 <!-- Chart.js for Tokenomics -->
@@ -1800,12 +1789,22 @@ document.addEventListener('DOMContentLoaded', function() {
     submitBtn.addEventListener('click', validateTokenForm);
   }
   
-  // Event listener per form submit
+    // Event listener per form submit
   const presaleForm = document.getElementById('presaleForm');
   if (presaleForm) {
     presaleForm.addEventListener('submit', submitTokenForm);
   }
-  
+
+  // Event listener FAQ toggle (aggiunto correttamente nel DOMContentLoaded)
+  const questions = document.querySelectorAll('.faq-question');
+  questions.forEach(q => {
+    q.addEventListener('click', () => {
+      q.classList.toggle('active');
+      const answer = q.nextElementSibling;
+      answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+
   // Aggiorna UI una volta all'avvio
   try {
     console.log("🔄 Aggiornamento iniziale UI token...");

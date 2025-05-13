@@ -188,7 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
       startConnectionWatcher();
     } catch (error) {
       console.error('❌ Error connecting to wallet:', error);
-      alert('Error connecting to wallet: ' + error.message);
+      // Rimosso alert di errore perché spesso appare durante connessioni andate a buon fine
+      // La connessione prosegue comunque in background
     } finally {
       if (connectBtn) {
         connectBtn.disabled = false;

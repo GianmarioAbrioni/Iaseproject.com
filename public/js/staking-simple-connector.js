@@ -3,8 +3,9 @@
  * Handles wallet connection specifically for staking page with Ethereum network
  */
 
+// Eseguiamo il codice dopo che il DOM è completamente caricato
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('📱 Staking ETH Connector initialized');
+  console.log('📱 Staking ETH Connector initialization started');
   
   // Remove wallet from navbar if present
   const navbarWallet = document.getElementById('wallet-component');
@@ -403,39 +404,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Mostra feedback visivo sulla dashboard
-    let loadingDiv = document.getElementById('dashboardLoading');
-    if (!loadingDiv) {
-      loadingDiv = document.createElement('div');
-      loadingDiv.id = 'dashboardLoading';
-      loadingDiv.className = 'dashboard-loading';
-      loadingDiv.innerHTML = `
-        <div class="loading-container">
-          <div class="spinner-border text-light" role="status"></div>
-          <p>Connecting to wallet...</p>
-        </div>
-      `;
-      document.body.appendChild(loadingDiv);
+    // Prima rimuoviamo qualsiasi elemento di caricamento esistente
+    const existingLoadingDiv = document.getElementById('dashboardLoading');
+    if (existingLoadingDiv) {
+      document.body.removeChild(existingLoadingDiv);
     }
+    
+    // Poi creiamo un nuovo elemento di caricamento
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'dashboardLoading';
+    loadingDiv.className = 'dashboard-loading';
+    loadingDiv.innerHTML = `
+      <div class="loading-container">
+        <div class="spinner-border text-light" role="status"></div>
+        <p>Connecting to wallet...</p>
+      </div>
+    `;
+    document.body.appendChild(loadingDiv);
     
     // MOSTRA SUBITO LA DASHBOARD (SEMI-VUOTA) anche prima della connessione
     // Questo è critico per evitare la sensazione di "nulla accade"
     if (stakingDashboard) {
       stakingDashboard.classList.remove('hidden');
     }
-      
-      // Mostra feedback visivo sulla dashboard
-      if (stakingDashboard) {
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'dashboardLoading';
-        loadingDiv.className = 'dashboard-loading';
-        loadingDiv.innerHTML = `
-          <div class="loading-container">
-            <div class="spinner-border text-light" role="status"></div>
-            <p>Connecting to wallet...</p>
-          </div>
-        `;
-        document.body.appendChild(loadingDiv);
-      }
       
       // Request account access
       console.log('Requesting accounts...');
@@ -444,7 +435,13 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Nascondi subito l'elemento di caricamento
       const loadingEl = document.getElementById('dashboardLoading');
-      if (loadingEl) document.body.removeChild(loadingEl);
+      if (loadingEl) {
+        try {
+          document.body.removeChild(loadingEl);
+        } catch (err) {
+          console.log("Loading element already removed or not found");
+        }
+      }
       
       // Mostra immediatamente la dashboard per evitare doppi clic
       if (stakingDashboard) stakingDashboard.classList.remove('hidden');
@@ -495,7 +492,13 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Nascondi loading
       const loadingEl = document.getElementById('dashboardLoading');
-      if (loadingEl) document.body.removeChild(loadingEl);
+      if (loadingEl) {
+        try {
+          document.body.removeChild(loadingEl);
+        } catch (err) {
+          console.log("Loading element already removed or not found during error handling");
+        }
+      }
       
       // Ripristina il pulsante se c'è stato un errore
       const connectBtn = document.getElementById('connectButtonETH');
@@ -561,6 +564,16 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✓ Rimossi dati di connessione dal localStorage');
       } catch (e) {
         console.error('Errore nella pulizia localStorage', e);
+      }
+      
+      // Nascondi qualsiasi loading rimasto prima del reload
+      const loadingEl = document.getElementById('dashboardLoading');
+      if (loadingEl) {
+        try {
+          document.body.removeChild(loadingEl);
+        } catch (err) {
+          console.log("Loading element not found during disconnect");
+        }
       }
       
       // Metodo 3: Forza refresh completo della pagina

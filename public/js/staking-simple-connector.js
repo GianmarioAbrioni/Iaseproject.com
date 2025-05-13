@@ -487,6 +487,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update UI (without await)
       updateUI();
       
+      // Avvia il monitoraggio della connessione per rilevare disconnessioni manuali
+      startConnectionWatcher();
+      
     } catch (error) {
       console.error('❌ Error connecting wallet:', error);
       
@@ -576,6 +579,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
+      // Ferma il watcher della connessione prima del refresh
+      stopConnectionWatcher();
+      
       // Metodo 3: Forza refresh completo della pagina
       window.location.reload();
     }
@@ -634,10 +640,14 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 Accounts changed:', accounts);
     if (accounts.length === 0) {
       console.log('👋 User disconnected wallet');
+      // Ferma il monitoraggio quando MetaMask riporta disconnessione
+      stopConnectionWatcher();
       // Simple UI update on disconnect - no alerts
       updateUI();
     } else {
       console.log('✓ Account switched to:', accounts[0]);
+      // Assicuriamoci che il monitoraggio sia attivo quando c'è un account connesso
+      startConnectionWatcher();
       updateUI();
     }
   }
@@ -655,9 +665,90 @@ document.addEventListener('DOMContentLoaded', function() {
         if (accounts.length > 0) {
           console.log('✓ Wallet already connected:', accounts[0]);
           updateUI();
+          
+          // Start polling for connection status
+          startConnectionWatcher();
         }
       })
       .catch(err => console.error('Error checking accounts:', err));
+  }
+  
+  // Variabile globale per l'intervallo del watcher
+  let connectionWatcherInterval = null;
+  
+  // Flag per evitare sovrapposizioni di richieste
+  let isCheckingConnection = false;
+  
+  // Avvia il monitoraggio periodico della connessione
+  function startConnectionWatcher() {
+    // Non avviare se è già attivo
+    if (connectionWatcherInterval) {
+      console.log('⚠️ Watcher already running, skipping');
+      return;
+    }
+    
+    // Controlla lo stato della connessione ogni 5 secondi (tempo più lungo per evitare problemi)
+    // con un limite massimo di 10 verifiche (50 secondi totali)
+    let checkCount = 0;
+    const MAX_CHECKS = 10;
+    
+    connectionWatcherInterval = setInterval(() => {
+      if (checkCount >= MAX_CHECKS) {
+        console.log('🛑 Raggiunto limite massimo di verifiche, watcher fermato');
+        stopConnectionWatcher();
+        return;
+      }
+      
+      checkCount++;
+      checkConnectionStatus();
+    }, 5000);
+    
+    console.log('🔍 Avviato monitoraggio connessione wallet (limite: 50 secondi)');
+  }
+  
+  // Ferma il monitoraggio della connessione
+  function stopConnectionWatcher() {
+    if (connectionWatcherInterval) {
+      clearInterval(connectionWatcherInterval);
+      connectionWatcherInterval = null;
+      console.log('🛑 Fermato monitoraggio connessione wallet');
+    }
+  }
+  
+  // Verifica lo stato attuale della connessione
+  function checkConnectionStatus() {
+    // Se ethereum non esiste o stiamo già controllando, usciamo
+    if (!window.ethereum || isCheckingConnection) {
+      stopConnectionWatcher();
+      return;
+    }
+    
+    // Flag per evitare chiamate sovrapposte
+    isCheckingConnection = true;
+    
+    window.ethereum.request({ method: 'eth_accounts' })
+      .then(accounts => {
+        if (accounts.length === 0 && isWalletConnected()) {
+          // Wallet era considerato connesso, ma ora non lo è più
+          console.log('🔄 Rilevata disconnessione manuale del wallet');
+          
+          // Fermiamo il watcher immediatamente dopo aver rilevato una disconnessione
+          stopConnectionWatcher();
+          
+          // Aggiorniamo l'UI solo se stiamo rilevando una disconnessione reale
+          updateUI();
+        }
+        
+        // Reset del flag
+        isCheckingConnection = false;
+      })
+      .catch(err => {
+        console.error('❌ Errore nel controllo dello stato connessione:', err);
+        // Reset del flag anche in caso di errore
+        isCheckingConnection = false;
+        // In caso di errore, fermiamo il watcher
+        stopConnectionWatcher();
+      });
   }
   
   // Add CSS for the status indicators

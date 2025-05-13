@@ -53,12 +53,27 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateStatusIndicator(connected) {
     if (!walletStatusIndicator) return;
     
+    // Trova l'indicatore principale dello stato (il div parent)
+    const statusIndicatorParent = document.querySelector('.wallet-status-indicator');
+    
     if (connected) {
-      walletStatusIndicator.classList.remove('status-red');
-      walletStatusIndicator.classList.add('status-green');
+      walletStatusIndicator.classList.remove('disconnected');
+      walletStatusIndicator.classList.add('connected');
+      
+      // Aggiorna anche il parent per cambiare il colore di sfondo
+      if (statusIndicatorParent) {
+        statusIndicatorParent.classList.remove('status-red');
+        statusIndicatorParent.classList.add('status-green');
+      }
     } else {
-      walletStatusIndicator.classList.remove('status-green');
-      walletStatusIndicator.classList.add('status-red');
+      walletStatusIndicator.classList.remove('connected');
+      walletStatusIndicator.classList.add('disconnected');
+      
+      // Aggiorna anche il parent per cambiare il colore di sfondo
+      if (statusIndicatorParent) {
+        statusIndicatorParent.classList.remove('status-green');
+        statusIndicatorParent.classList.add('status-red');
+      }
     }
   }
   
@@ -288,13 +303,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clean up any existing listeners to avoid duplicates
     window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
     window.ethereum.removeListener('chainChanged', handleChainChanged);
+    window.ethereum.removeListener('disconnect', handleDisconnect);
     
     // Add fresh listeners
     window.ethereum.on('accountsChanged', handleAccountsChanged);
     window.ethereum.on('chainChanged', handleChainChanged);
+    window.ethereum.on('disconnect', handleDisconnect);
     
     // Check current connection state immediately
     checkInitialConnection();
+  }
+  
+  // Handle wallet disconnect event (some wallets emit this)
+  function handleDisconnect(error) {
+    console.log('🔌 Wallet disconnect event detected:', error);
+    
+    // Ferma il watcher
+    stopConnectionWatcher();
+    
+    // Forza l'aggiornamento UI - Aggiorna tutti gli elementi visibili
+    const statusIndicatorParent = document.querySelector('.wallet-status-indicator');
+    if (statusIndicatorParent) {
+      statusIndicatorParent.classList.remove('status-green');
+      statusIndicatorParent.classList.add('status-red');
+    }
+    
+    if (walletStatusIndicator) {
+      walletStatusIndicator.classList.remove('connected');
+      walletStatusIndicator.classList.add('disconnected');
+    }
+    
+    if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
+    if (walletAddress) walletAddress.textContent = '';
+    
+    if (connectBtn) connectBtn.classList.remove('hidden');
+    if (disconnectBtn) disconnectBtn.classList.add('hidden');
+    
+    if (stakingDashboard) stakingDashboard.classList.add('hidden');
+    
+    // Ricarica la pagina dopo un breve ritardo per forzare il reset completo
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   }
   
   // Handle account changes
@@ -320,19 +370,71 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUI();
   }
   
-  // Check initial connection state
+  // Check initial connection state on page load
   function checkInitialConnection() {
+    console.log('🔍 Eseguo controllo iniziale connessione wallet');
+    
+    // Se non esiste ethereum, non possiamo connetterci
+    if (!window.ethereum) {
+      console.log('❌ Controllo iniziale: window.ethereum non disponibile');
+      updateStatusIndicator(false);
+      return;
+    }
+    
+    // Verifica presenza di indirizzo nel selectedAddress
+    const hasSelectedAddress = window.ethereum.selectedAddress && 
+                             window.ethereum.selectedAddress.length > 0;
+    
+    console.log('ℹ️ Stato iniziale:', {
+      selectedAddress: window.ethereum.selectedAddress,
+      isConnected: typeof window.ethereum.isConnected === 'function' ? 
+                  window.ethereum.isConnected() : 'non supportato'
+    });
+    
+    // Richiedi gli account per verificare l'effettiva connessione
     window.ethereum.request({ method: 'eth_accounts' })
       .then(accounts => {
-        if (accounts.length > 0) {
-          console.log('✓ Wallet already connected:', accounts[0]);
-          updateUI();
+        console.log('🔎 Account trovati:', accounts);
+        
+        // Verifica stato inconsistente: abbiamo selectedAddress ma nessun account autorizzato
+        if (hasSelectedAddress && accounts.length === 0) {
+          console.log('⚠️ Stato inconsistente rilevato: selectedAddress presente ma nessun account autorizzato');
           
-          // Start polling for connection status
+          // Questo è uno stato inconsistente, significa che l'utente ha disconnesso manualmente il wallet
+          // ma selectedAddress non è stato aggiornato correttamente
+          updateStatusIndicator(false);
+          
+          if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
+          if (walletAddress) walletAddress.textContent = '';
+          
+          // Ricarica dopo breve ritardo per ripristinare lo stato corretto
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          
+          return;
+        }
+        
+        if (accounts.length > 0) {
+          console.log('✅ Controllo iniziale: wallet già connesso');
+          
+          // Aggiorna UI come se ci fossimo appena connessi
+          handleAccountsChanged(accounts);
+          
+          // Controlla anche la rete
+          checkAndSwitchNetwork();
+          
+          // Avvia il watcher per verificare eventuali disconnessioni future
           startConnectionWatcher();
+        } else {
+          console.log('❌ Controllo iniziale: wallet non autorizzato');
+          updateStatusIndicator(false);
         }
       })
-      .catch(err => console.error('Error checking accounts:', err));
+      .catch(err => {
+        console.error('❌ Errore nel controllo iniziale:', err);
+        updateStatusIndicator(false);
+      });
   }
   
   // Variabile globale per l'intervallo del watcher
@@ -349,10 +451,17 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Controlla lo stato della connessione ogni 5 secondi (tempo più lungo per evitare problemi)
-    // con un limite massimo di 10 verifiche (50 secondi totali)
+    // Memorizza l'indirizzo iniziale per rilevare cambiamenti
+    const initialAddress = window.ethereum ? window.ethereum.selectedAddress : null;
+    console.log('📝 Avvio monitoraggio disconnessione per indirizzo:', initialAddress);
+    
+    // Controlla lo stato della connessione ogni 3 secondi
+    // con un limite massimo di 10 verifiche (30 secondi totali)
     let checkCount = 0;
-    const MAX_CHECKS = 10;
+    const MAX_CHECKS = 20;
+    
+    // Esegui una verifica immediata
+    checkConnectionStatus();
     
     connectionWatcherInterval = setInterval(() => {
       if (checkCount >= MAX_CHECKS) {
@@ -361,11 +470,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
+      // Verifica se l'indirizzo è cambiato (indicatore di disconnessione)
+      if (window.ethereum && initialAddress && window.ethereum.selectedAddress !== initialAddress) {
+        console.log('🔄 Cambio indirizzo rilevato da:', initialAddress, 'a:', window.ethereum.selectedAddress || 'nessuno');
+        
+        if (!window.ethereum.selectedAddress) {
+          // Se l'indirizzo è nullo, è una disconnessione
+          console.log('🔌 Disconnessione rilevata tramite cambio indirizzo!');
+          handleDisconnect({ code: 'ADDRESS_CHANGED', message: 'Indirizzo wallet cambiato a null' });
+          return;
+        }
+      }
+      
       checkCount++;
       checkConnectionStatus();
-    }, 5000);
+    }, 3000);
     
-    console.log('🔍 Avviato monitoraggio connessione wallet (limite: 50 secondi)');
+    console.log('🔍 Avviato monitoraggio connessione wallet (limite: 60 secondi)');
   }
   
   // Ferma il monitoraggio della connessione
@@ -388,50 +509,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Flag per evitare chiamate sovrapposte
     isCheckingConnection = true;
     
+    // Usiamo eth_accounts che è il metodo più affidabile per verificare la connessione
     window.ethereum.request({ method: 'eth_accounts' })
       .then(accounts => {
-        if (accounts.length === 0 && isWalletConnected()) {
-          // Wallet era considerato connesso, ma ora non lo è più
-          console.log('🔄 Rilevata disconnessione manuale del wallet');
-          
-          // Forza lo stato disconnesso (fix per il problema di rilevamento)
-          if (window.ethereum) {
-            // Se possibile, forza il reset dell'indirizzo
-            try {
-              window.ethereum.selectedAddress = null;
-            } catch(e) {
-              // Ignora errori se selectedAddress è read-only
-            }
-          }
-          
-          // Fermiamo il watcher immediatamente dopo aver rilevato una disconnessione
-          stopConnectionWatcher();
-          
-          // Forza l'aggiornamento della UI
-          if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
-          if (walletAddress) walletAddress.textContent = '';
-          if (connectBtn) connectBtn.classList.remove('hidden');
-          if (disconnectBtn) disconnectBtn.classList.add('hidden');
-          updateStatusIndicator(false);
-          
-          // Aggiorniamo l'UI completamente
-          updateUI();
-          
-          // Ricarica la pagina se necessario
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
+        // Verifica 1: Se non ci sono account ma selectedAddress esiste (stato inconsistente)
+        if (accounts.length === 0 && window.ethereum.selectedAddress) {
+          console.log('🔄 Rilevata disconnessione manuale (selectedAddress presente ma nessun account)');
+          handleDisconnect({ code: 'INCONSISTENT_STATE', message: 'Stato inconsistente rilevato' });
+          isCheckingConnection = false;
+          return;
         }
         
-        // Reset del flag
+        // Verifica 2: Se non ci sono account ma isWalletConnected() ritorna true
+        if (accounts.length === 0 && isWalletConnected()) {
+          console.log('🔄 Rilevata disconnessione manuale (wallet considerato connesso ma eth_accounts vuoto)');
+          handleDisconnect({ code: 'MANUAL_DISCONNECT', message: 'Disconnessione wallet manuale rilevata' });
+          isCheckingConnection = false;
+          return;
+        }
+        
+        // Verifica 3: Se isConnected() è false ma abbiamo account (alcuni wallet lo implementano)
+        if (typeof window.ethereum.isConnected === 'function' && 
+            !window.ethereum.isConnected() && 
+            accounts.length > 0) {
+          console.log('🔄 Rilevata disconnessione: isConnected() è false ma ci sono account');
+          handleDisconnect({ code: 'IS_CONNECTED_FALSE', message: 'isConnected() è false' });
+          isCheckingConnection = false;
+          return;
+        }
+        
+        // Reset del flag se non abbiamo rilevato disconnessioni
         isCheckingConnection = false;
       })
       .catch(err => {
         console.error('❌ Errore nel controllo dello stato connessione:', err);
-        // Reset del flag anche in caso di errore
         isCheckingConnection = false;
-        // In caso di errore, fermiamo il watcher
         stopConnectionWatcher();
+        
+        // Se riceviamo un errore significa che probabilmente c'è un problema 
+        // con la connessione al wallet, quindi trattiamola come disconnessione
+        handleDisconnect({ code: 'CONNECTION_ERROR', message: err.message });
       });
   }
   
@@ -439,11 +556,30 @@ document.addEventListener('DOMContentLoaded', function() {
   function addStatusIndicatorStyles() {
     const styleEl = document.createElement('style');
     styleEl.textContent = `
-      .status-green {
-        background-color: #4CAF50 !important;
+      .wallet-status-indicator.status-green {
+        background-color: rgba(0, 180, 0, 0.15);
+        border-color: #00b400;
       }
-      .status-red {
-        background-color: #F44336 !important;
+      
+      .wallet-status-indicator.status-red {
+        background-color: rgba(255, 50, 50, 0.15);
+        border-color: #ff5050;
+      }
+      
+      #walletIndicator.connected {
+        background-color: #00b400;
+      }
+      
+      #walletIndicator.disconnected {
+        background-color: #ff5050;
+      }
+      
+      .wallet-status-indicator {
+        transition: all 0.3s ease;
+      }
+      
+      .wallet-status-indicator #walletIndicator {
+        transition: all 0.3s ease;
       }
     `;
     document.head.appendChild(styleEl);

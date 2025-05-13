@@ -144,12 +144,12 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     // Verifica e utilizza l'API key Infura corretta
     let infuraApiKey = process.env.INFURA_API_KEY;
     
-    // Se l'API key non è impostata o sembra non valida, usa il fallback
+    // Se l'API key non è impostata o sembra non valida, usa la key ufficiale IASE
     if (!infuraApiKey || infuraApiKey.length < 32) {
       console.warn(`⚠️ Infura API Key non trovata o troppo corta: ${infuraApiKey}`);
-      // Fallback API key
+      // API key ufficiale IASE (ricorda di aggiungerla all'allowlist per 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F)
       infuraApiKey = "84ed164327474b4499c085d2e4345a66";
-      console.warn(`⚠️ Usando API key di fallback: ${infuraApiKey.substring(0, 8)}...`);
+      console.warn(`⚠️ Usando API key ufficiale IASE: ${infuraApiKey.substring(0, 8)}...`);
     } else {
       console.log(`✓ Usando Infura API Key configurata: ${infuraApiKey.substring(0, 8)}...`);
     }

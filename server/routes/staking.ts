@@ -423,18 +423,49 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 let rarity = "Standard"; // Default
                 let aiBooster = "X1.0"; // Default
                 
+                // Funzione helper per estrarre gli attributi in modo più flessibile
+                const getAttributeValue = (names: string[]): string | null => {
+                  // Prima controlla gli attributi nell'array standard
+                  if (metadata.attributes && Array.isArray(metadata.attributes)) {
+                    for (const name of names) {
+                      const attr = metadata.attributes.find((a: any) => 
+                        a.trait_type && a.trait_type.toUpperCase() === name.toUpperCase()
+                      );
+                      if (attr && attr.value) return attr.value;
+                    }
+                  }
+                  
+                  // Se non troviamo negli attributi, cerca nelle proprietà dirette
+                  for (const name of names) {
+                    if (metadata[name]) return metadata[name];
+                  }
+                  
+                  return null;
+                };
+                
+                console.log(`🔍 SUPER DEBUG: Inizio analisi metadati per NFT #${tokenId.toString()}`);
+                
                 if (metadata.attributes && Array.isArray(metadata.attributes)) {
+                  console.log(`📊 SUPER DEBUG: NFT #${tokenId} ha ${metadata.attributes.length} attributi`);
+                  
                   // Cerca Card Frame (determina la rarità base)
                   const frameTrait = metadata.attributes.find((attr: any) => 
                     attr.trait_type && 
                     (attr.trait_type.toUpperCase() === 'CARD FRAME' || 
-                     attr.trait_type.toUpperCase() === 'FRAME'));
+                     attr.trait_type.toUpperCase() === 'FRAME' ||
+                     attr.trait_type.toUpperCase() === 'RARITY'));
+                     
+                  // Cerca anche col nuovo metodo
+                  const cardFrameValue = getAttributeValue(['Card Frame', 'FRAME', 'rarity', 'Rarity', 'cardFrame']);
                   
                   // Cerca AI-Booster (moltiplicatore)
                   const boosterTrait = metadata.attributes.find((attr: any) => 
                     attr.trait_type && 
                     (attr.trait_type.toUpperCase() === 'AI-BOOSTER' || 
                      attr.trait_type.toUpperCase() === 'AI BOOSTER'));
+                     
+                  // Cerca anche col nuovo metodo
+                  const aiBoosterValue = getAttributeValue(['AI-Booster', 'AIBOOSTER', 'AI Booster', 'AIBooster']);
                   
                   // Imposta rarità in base al Card Frame
                   if (frameTrait && frameTrait.value) {
@@ -444,15 +475,60 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                       frameValue = frameValue.replace('Frame_', '');
                     }
                     rarity = frameValue;
+                    console.log(`🎭 SUPER DEBUG: NFT #${tokenId} Card Frame trovato (metodo standard): ${rarity}`);
+                  } else if (cardFrameValue) {
+                    rarity = cardFrameValue;
+                    console.log(`🎭 SUPER DEBUG: NFT #${tokenId} Card Frame trovato (metodo avanzato): ${rarity}`);
+                  } else if (metadata.rarity) {
+                    rarity = metadata.rarity;
+                    console.log(`🎭 SUPER DEBUG: NFT #${tokenId} Rarity trovato direttamente: ${rarity}`);
                   }
                   
                   // Salva il valore di AI-Booster
                   if (boosterTrait && boosterTrait.value) {
                     aiBooster = boosterTrait.value;
+                    console.log(`🚀 SUPER DEBUG: NFT #${tokenId} AI-Booster trovato (metodo standard): ${aiBooster}`);
+                  } else if (aiBoosterValue) {
+                    aiBooster = aiBoosterValue;
+                    console.log(`🚀 SUPER DEBUG: NFT #${tokenId} AI-Booster trovato (metodo avanzato): ${aiBooster}`);
                   }
                   
                   console.log(`📊 NFT #${tokenId}: Card Frame = ${rarity}, AI-Booster = ${aiBooster}`);
                 }
+                
+                // Funzione helper per estrarre attributi per iaseTraits
+                const getIaseTraitValue = (traitNames: string[]): string => {
+                  // Se non ci sono attributi, restituisci standard
+                  if (!metadata.attributes || !Array.isArray(metadata.attributes)) {
+                    return `standard`;
+                  }
+                  
+                  // Cerca l'attributo con uno dei nomi forniti
+                  for (const name of traitNames) {
+                    const attr = metadata.attributes.find((a: any) => 
+                      a.trait_type && a.trait_type.toUpperCase() === name.toUpperCase()
+                    );
+                    if (attr && attr.value) return attr.value;
+                  }
+                  
+                  // Controlla anche nelle proprietà dirette dell'oggetto
+                  for (const name of traitNames) {
+                    if (metadata[name]) return metadata[name];
+                  }
+                  
+                  return 'standard';
+                };
+                
+                // Costruisci iaseTraits con il metodo migliorato
+                const iaseTraits = {
+                  orbitalModule: getIaseTraitValue(['Orbital Design Module', 'Orbital Module']),
+                  energyPanels: getIaseTraitValue(['Energy Panels']),
+                  antennaType: getIaseTraitValue(['Antenna Type']),
+                  aiCore: getIaseTraitValue(['AI Core']),
+                  evolutiveTrait: getIaseTraitValue(['Evolutive Trait'])
+                };
+                
+                console.log(`🛰️ SUPER DEBUG: NFT #${tokenId} iaseTraits costruiti:`, iaseTraits);
                 
                 // Costruisci un oggetto NFT più completo con i dati IASE specifici
                 nfts.push({
@@ -462,43 +538,59 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                   image: metadata.image || "/images/nft-placeholder.png",
                   rarity: rarity,
                   aiBooster: aiBooster,
+                  "AI-Booster": aiBooster, // Aggiungi anche con formato alternativo per compatibilità
+                  cardFrame: rarity, // Aggiungi anche con formato alternativo per compatibilità
                   traits: metadata.attributes || [],
-                  // Estrai i tratti specifici di IASE per un accesso più facile
-                  iaseTraits: {
-                    orbitalModule: metadata.attributes?.find((attr: any) => 
-                      attr.trait_type === 'Orbital Design Module')?.value || 'orbital_standard',
-                    energyPanels: metadata.attributes?.find((attr: any) => 
-                      attr.trait_type === 'Energy Panels')?.value || 'panel_standard',
-                    antennaType: metadata.attributes?.find((attr: any) => 
-                      attr.trait_type === 'Antenna Type')?.value || 'antenna_standard',
-                    aiCore: metadata.attributes?.find((attr: any) => 
-                      attr.trait_type === 'AI Core')?.value || 'ai_core_standard',
-                    evolutiveTrait: metadata.attributes?.find((attr: any) => 
-                      attr.trait_type === 'Evolutive Trait')?.value || 'trait_standard'
-                  }
+                  attributes: metadata.attributes || [], // Aggiungi anche con formato alternativo
+                  // Aggiungi i tratti specifici IASE normalizzati
+                  iaseTraits: iaseTraits
                 });
               } else {
                 console.warn(`⚠️ Impossibile recuperare i metadati per NFT #${tokenId.toString()}: ${response.status}`);
                 
-                // Aggiungi comunque l'NFT con dati base
+                // Aggiungi comunque l'NFT con dati base ma con formato compatibile IASE
                 nfts.push({
                   id: tokenId.toString(),
                   name: `IASE Unit #${tokenId.toString()}`,
                   image: "images/nft-samples/placeholder.jpg",
                   rarity: "Standard",
-                  traits: []
+                  cardFrame: "Standard", // Formato alternativo per compatibilità
+                  aiBooster: "X1.0", // Valore predefinito
+                  "AI-Booster": "X1.0", // Formato alternativo per compatibilità
+                  traits: [],
+                  attributes: [], // Formato alternativo per compatibilità
+                  // Aggiungi struttura iaseTraits vuota ma compatibile
+                  iaseTraits: {
+                    orbitalModule: "standard",
+                    energyPanels: "standard",
+                    antennaType: "standard",
+                    aiCore: "standard",
+                    evolutiveTrait: "standard"
+                  }
                 });
               }
             } catch (metadataError) {
               console.error(`⚠️ Errore nel recupero dei metadati per NFT #${tokenId.toString()}:`, metadataError);
               
-              // Aggiungi comunque l'NFT con dati base
+              // Aggiungi comunque l'NFT con dati base ma con formato compatibile IASE
               nfts.push({
                 id: tokenId.toString(),
                 name: `IASE Unit #${tokenId.toString()}`,
                 image: "images/nft-samples/placeholder.jpg",
                 rarity: "Standard",
-                traits: []
+                cardFrame: "Standard", // Formato alternativo per compatibilità
+                aiBooster: "X1.0", // Valore predefinito
+                "AI-Booster": "X1.0", // Formato alternativo per compatibilità
+                traits: [],
+                attributes: [], // Formato alternativo per compatibilità
+                // Aggiungi struttura iaseTraits vuota ma compatibile
+                iaseTraits: {
+                  orbitalModule: "standard",
+                  energyPanels: "standard",
+                  antennaType: "standard",
+                  aiCore: "standard",
+                  evolutiveTrait: "standard"
+                }
               });
             }
           } catch (tokenError) {

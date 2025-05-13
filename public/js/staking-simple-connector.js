@@ -82,11 +82,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isWalletConnected()) {
       // Wallet connected
       const address = window.ethereum.selectedAddress;
+      
       // Clean the wallet address and then create a short version for display
       // Verifica che address sia una stringa prima di usare includes
       const cleanAddress = (typeof address === 'string' && address.includes('...')) 
           ? address.replace(/\.\.\./g, '') 
           : address;
+      
+      // IMPORTANTE: Salva l'indirizzo completo e pulito in una variabile globale per le API
+      window.userWalletAddress = cleanAddress;
+      console.log('📝 Indirizzo wallet completo salvato per API:', window.userWalletAddress);
+      
+      // Verifiche aggiuntive sull'indirizzo
+      if (typeof address !== 'string') {
+        console.error('⚠️ L\'indirizzo wallet non è una stringa:', typeof address);
+      } else if (address.length < 42) {
+        console.error('⚠️ L\'indirizzo wallet è incompleto:', address, '(lunghezza:', address.length, ')');
+      } else if (!address.startsWith('0x')) {
+        console.error('⚠️ L\'indirizzo wallet non inizia con 0x:', address);
+      }
+      
+      // Versione abbreviata solo per visualizzazione nell'UI
       const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
       const chainId = window.ethereum.chainId;
       const isCorrectNetwork = chainId === NETWORK_DATA.ETHEREUM_MAINNET.chainId;
@@ -376,6 +392,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Ferma il monitoraggio quando MetaMask riporta disconnessione
       stopConnectionWatcher();
       
+      // Reset delle variabili globali prima del reload
+      window.userWalletAddress = null;
+      
       // SOLUZIONE CRUCIALE DA TOKEN.HTML: 
       // Ricarica la pagina invece di aggiornare solo la UI
       console.log('🔄 Ricaricando la pagina dopo disconnessione wallet...');
@@ -384,6 +403,24 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 100);
     } else {
       console.log('✓ Account switched to:', accounts[0]);
+      
+      // CRITICO: Salva l'indirizzo completo in una variabile globale
+      const address = accounts[0];
+      
+      // Verifica e pulisci l'indirizzo
+      if (typeof address !== 'string') {
+        console.error('⚠️ L\'indirizzo nel cambio account non è una stringa:', typeof address);
+      } else {
+        // Clean the wallet address
+        const cleanAddress = (address.includes('...')) 
+            ? address.replace(/\.\.\./g, '') 
+            : address;
+        
+        // Salva in una variabile globale per le API
+        window.userWalletAddress = cleanAddress;
+        console.log('📝 Indirizzo wallet aggiornato nelle variabili globali:', window.userWalletAddress);
+      }
+      
       // Assicuriamoci che il monitoraggio sia attivo quando c'è un account connesso
       startConnectionWatcher();
       
@@ -393,6 +430,17 @@ document.addEventListener('DOMContentLoaded', function() {
       // Solo se NON è la connessione iniziale ma un cambio account, 
       // allora ricarica la pagina
       if (!isInitialConnection) {
+        // IMPORTANTE: Prima del reload, memorizza l'indirizzo in localStorage
+        // per recuperarlo dopo il reload
+        if (window.userWalletAddress) {
+          try {
+            localStorage.setItem('lastWalletAddress', window.userWalletAddress);
+            console.log('📝 Salvato indirizzo in localStorage prima del reload:', window.userWalletAddress);
+          } catch (err) {
+            console.error('❌ Errore nel salvare indirizzo in localStorage:', err);
+          }
+        }
+        
         console.log('🔄 Ricaricando la pagina dopo cambio account...');
         setTimeout(() => {
           window.location.reload();
@@ -715,10 +763,27 @@ document.addEventListener('DOMContentLoaded', function() {
     wrongNetworkAlert = document.getElementById('wrongNetworkAlert');
     disconnectBtn = document.getElementById('disconnectWalletBtn');
     
+    // Inizializza la variabile globale con l'ultimo indirizzo wallet, se disponibile
+    try {
+      const lastWalletAddress = localStorage.getItem('lastWalletAddress');
+      if (lastWalletAddress) {
+        window.userWalletAddress = lastWalletAddress;
+        console.log('📝 Recuperato indirizzo wallet da localStorage:', window.userWalletAddress);
+      }
+    } catch (err) {
+      console.error('❌ Errore nel recuperare indirizzo da localStorage:', err);
+    }
+    
     addStatusIndicatorStyles();
     setupMetamaskListeners();
     setupUIEvents();
     updateUI();
+    
+    // Controlla se c'è un indirizzo wallet salvato ma non rilevato
+    if (window.userWalletAddress && !window.ethereum?.selectedAddress) {
+      console.log('⚠️ Indirizzo wallet trovato in storage ma non rilevato:', window.userWalletAddress);
+      console.log('   Potrebbe essere necessario richiedere una connessione manuale');
+    }
   }
   
   // Run initialization

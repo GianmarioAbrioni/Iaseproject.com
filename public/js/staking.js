@@ -435,16 +435,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('Evento connessione wallet rilevato, indirizzo:', address);
     
+    // IMPORTANTE: Salva l'indirizzo completo in una variabile globale per le API
+    window.userWalletAddress = address;
+    console.log('Indirizzo wallet completo salvato per le API:', window.userWalletAddress);
+    
     // Mostra dashboard di staking
     if (stakingDashboard) {
       stakingDashboard.classList.remove('hidden');
     }
     
-    // Imposta indirizzo wallet nella dashboard
+    // Imposta indirizzo wallet nella dashboard (solo per visualizzazione)
     const dashboardWalletAddress = document.getElementById('dashboardWalletAddress');
     if (dashboardWalletAddress) {
       const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
       dashboardWalletAddress.textContent = shortAddress;
+      console.log('Indirizzo wallet abbreviato impostato nella UI:', shortAddress);
     }
     
     // Aggiorna stato wallet nel wallet-connection-section
@@ -595,7 +600,10 @@ document.addEventListener('DOMContentLoaded', () => {
           : walletAddress;
       
       console.log("Fetching staked NFTs for wallet:", cleanWalletAddress);
-      const response = await fetch(`/api/staking/get-staked-nfts?wallet=${cleanWalletAddress}`);
+      // Utilizza encodeURIComponent per evitare problemi con caratteri speciali nell'URL
+      const apiUrl = `/api/staking/get-staked-nfts?wallet=${encodeURIComponent(cleanWalletAddress)}`;
+      console.log("API URL per NFT in staking:", apiUrl);
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error('Error retrieving staked NFTs');
@@ -663,11 +671,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Add contract address to query if provided
-      let apiUrl = `/api/staking/get-available-nfts?wallet=${cleanWalletAddress}`;
+      // Evita problemi di codifica URL utilizzando encodeURIComponent
+      let apiUrl = `/api/staking/get-available-nfts?wallet=${encodeURIComponent(cleanWalletAddress)}`;
       if (contractAddress) {
-        apiUrl += `&contract=${contractAddress}`;
+        apiUrl += `&contract=${encodeURIComponent(contractAddress)}`;
         console.log("Using specific contract address:", contractAddress);
       }
+      console.log("API URL codificata correttamente:", apiUrl);
       
       console.log("📡 API request URL:", apiUrl);
       const response = await fetch(apiUrl);

@@ -83,7 +83,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Wallet connected
       const address = window.ethereum.selectedAddress;
       // Clean the wallet address and then create a short version for display
-      const cleanAddress = address.includes('...') ? address.replace(/\.\.\./g, '') : address;
+      // Verifica che address sia una stringa prima di usare includes
+      const cleanAddress = (typeof address === 'string' && address.includes('...')) 
+          ? address.replace(/\.\.\./g, '') 
+          : address;
       const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
       const chainId = window.ethereum.chainId;
       const isCorrectNetwork = chainId === NETWORK_DATA.ETHEREUM_MAINNET.chainId;
@@ -122,7 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log("Calling loadAvailableNfts function with contract:", IASE_NFT_CONTRACT);
           setTimeout(() => {
             // Clean the wallet address (remove ellipsis if present)
-            const cleanAddress = address.includes('...') 
+            // Verifica che address sia una stringa prima di usare includes
+            const cleanAddress = (typeof address === 'string' && address.includes('...')) 
                 ? address.replace(/\.\.\./g, '') 
                 : address;
             loadAvailableNfts(IASE_NFT_CONTRACT, cleanAddress);
@@ -133,7 +137,8 @@ document.addEventListener('DOMContentLoaded', function() {
           setTimeout(() => {
             // Emit a custom event that staking.js can listen for
             // Clean the wallet address (remove ellipsis if present)
-            const cleanAddress = address.includes('...') 
+            // Verifica che address sia una stringa prima di usare includes
+            const cleanAddress = (typeof address === 'string' && address.includes('...')) 
                 ? address.replace(/\.\.\./g, '') 
                 : address;
                 

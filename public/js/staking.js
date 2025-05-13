@@ -631,6 +631,15 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   async function loadAvailableNfts(contractAddress = null, walletAddressOverride = null) {
   try {
+    console.group("🔍🔍🔍 SUPER DEBUG: loadAvailableNfts");
+    console.log("📣 DEBUG INFO: Iniziando caricamento NFT disponibili");
+    console.log("📡 WALLET_STATE:", window.WALLET_STATE);
+    console.log("📡 ethereum:", window.ethereum);
+    console.log("📡 ethereum.selectedAddress:", window.ethereum?.selectedAddress);
+    console.log("📡 userWalletAddress:", window.userWalletAddress);
+    console.log("📡 walletAddressOverride:", walletAddressOverride);
+    console.log("📡 contractAddress:", contractAddress);
+    
     // Prima verifica se c'è un indirizzo salvato in localStorage
     let storedAddress;
     try {
@@ -650,7 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
       storedAddress;
 
     if (!walletAddress) {
-      console.log("⚠️ Nessun wallet connesso, impossibile caricare gli NFT");
+      console.error("❌ ERRORE: Nessun wallet connesso, impossibile caricare gli NFT");
+      console.groupEnd();
       // Mostra un messaggio all'utente
       const availableNftGrid = document.getElementById('availableNftsContainer');
       if (availableNftGrid) {
@@ -684,24 +694,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Pulizia avanzata dell'indirizzo
+    console.log("🔄 SUPER DEBUG: Inizio pulizia indirizzo:", walletAddress);
     let cleanWalletAddress = walletAddress.trim(); // Rimuovi spazi all'inizio e alla fine
     cleanWalletAddress = cleanWalletAddress.replace(/\s+/g, ''); // Rimuovi tutti gli spazi
+    console.log("🔄 SUPER DEBUG: Dopo rimozione spazi:", cleanWalletAddress);
     
     // Rimuovi i puntini di sospensione solo se presenti e l'indirizzo non è un indirizzo completo
     if (cleanWalletAddress.includes('...') && cleanWalletAddress.length < 42) {
-      console.log(`⚠️ Indirizzo abbreviato rilevato: ${cleanWalletAddress}`);
+      console.log(`⚠️ SUPER DEBUG: Indirizzo abbreviato rilevato: ${cleanWalletAddress}`);
       cleanWalletAddress = cleanWalletAddress.replace(/\.\.\./g, '');
+      console.log(`🔄 SUPER DEBUG: Dopo rimozione ellissi: ${cleanWalletAddress}`);
     }
     
     // Verifica che l'indirizzo inizi con 0x
     if (!cleanWalletAddress.startsWith('0x')) {
-      console.warn(`⚠️ L'indirizzo wallet non inizia con 0x: ${cleanWalletAddress}`);
+      console.warn(`⚠️ SUPER DEBUG: L'indirizzo wallet non inizia con 0x: ${cleanWalletAddress}`);
       cleanWalletAddress = '0x' + cleanWalletAddress;
-      console.log(`⚠️ Aggiunto 0x all'indirizzo: ${cleanWalletAddress}`);
+      console.log(`🔄 SUPER DEBUG: Dopo aggiunta prefisso 0x: ${cleanWalletAddress}`);
+    }
+    
+    // Verifica la lunghezza dell'indirizzo
+    if (cleanWalletAddress.length !== 42) {
+      console.warn(`⚠️ SUPER DEBUG: L'indirizzo ha una lunghezza insolita (${cleanWalletAddress.length} caratteri): ${cleanWalletAddress}`);
     }
     
     // Salva l'indirizzo pulito per uso futuro
     window.userWalletAddress = cleanWalletAddress;
+    console.log("✅ SUPER DEBUG: Indirizzo finale pulito:", cleanWalletAddress);
     
     // Tenta di salvare in localStorage
     try {
@@ -739,6 +758,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Add contract address to query if provided
       // Evita problemi di codifica URL utilizzando encodeURIComponent
+      console.log("🔍🔍🔍 SUPER DEBUG - Costruzione URL API");
+      console.log("🔑 Indirizzo wallet pulito:", cleanWalletAddress);
+      console.log("📝 Lunghezza indirizzo:", cleanWalletAddress.length);
+      
+      // Forza la validazione dell'indirizzo per essere sicuri
+      if (!cleanWalletAddress || cleanWalletAddress.length < 10) {
+        console.error("❌❌❌ ERRORE CRITICO: Indirizzo wallet non valido o troppo corto:", cleanWalletAddress);
+        showNotification('error', 'Errore indirizzo wallet', 'L\'indirizzo del wallet non è valido. Riconnetti il wallet e riprova.');
+        console.groupEnd();
+        throw new Error('Indirizzo wallet non valido o troppo corto');
+      }
+      
       let apiUrl = `/api/staking/get-available-nfts?wallet=${encodeURIComponent(cleanWalletAddress)}`;
       if (contractAddress) {
         apiUrl += `&contract=${encodeURIComponent(contractAddress)}`;
@@ -752,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       let response;
       try {
-        console.log("📡 Invio richiesta API:", apiUrl);
+        console.log("🔄 SUPER DEBUG: Invio richiesta API a", apiUrl);
         response = await fetch(apiUrl, { 
           signal: controller.signal,
           // Aggiungi cache control headers per evitare problemi di cache
@@ -766,9 +797,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Elimina il timeout se la richiesta ha successo
         clearTimeout(timeoutId);
         
+        console.log("✅ SUPER DEBUG: Risposta ricevuta", {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+        
         if (!response.ok) {
           const responseText = await response.text();
-          console.error(`❌ Errore API (${response.status} ${response.statusText}):`, responseText);
+          console.error(`❌ SUPER DEBUG: Errore API (${response.status} ${response.statusText}):`, responseText);
           
           // Se l'errore è relativo all'indirizzo wallet, mostra un messaggio più informativo
           if (responseText.includes('wallet') && (responseText.includes('invalid') || responseText.includes('pattern'))) {
@@ -781,13 +818,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (fetchError) {
         if (fetchError.name === 'AbortError') {
-          console.error('⏱️ Timeout della richiesta API dopo 20 secondi');
+          console.error('⏱️ SUPER DEBUG: Timeout della richiesta API dopo 20 secondi');
           showNotification('error', 'Errore di Connessione', 'La richiesta al server è scaduta. Verifica la tua connessione di rete e riprova.');
         } else {
-          console.error('❌ Errore durante il fetch degli NFT:', fetchError);
+          console.error('❌ SUPER DEBUG: Errore durante il fetch degli NFT:', fetchError);
+          console.error('❌ SUPER DEBUG: Stack trace completo:', fetchError.stack);
           showNotification('error', 'Errore di Caricamento', 
             `Impossibile caricare gli NFT: ${fetchError.message || 'Errore sconosciuto'}`);
+          
+          // Logga oggetto completo per debug
+          console.log("🔍 SUPER DEBUG: Dati completi errore", {
+            error: fetchError,
+            message: fetchError.message,
+            stack: fetchError.stack,
+            wallet: cleanWalletAddress,
+            apiUrl: apiUrl
+          });
         }
+        console.groupEnd();
         
         // Mostra stato vuoto con pulsante retry
         if (window.availableNftGrid) {
@@ -814,39 +862,134 @@ document.addEventListener('DOMContentLoaded', () => {
       
       let data;
       try {
+        console.log("🔍 SUPER DEBUG: Inizio parsing risposta JSON");
         data = await response.json();
-        console.log("📦 Dati NFT ricevuti:", data);
+        console.log("📦 SUPER DEBUG: Dati NFT ricevuti:", data);
         
         // Log completo della risposta per debugging
-        console.log("📝 Risposta API completa:", JSON.stringify(data).substring(0, 1000) + 
-          (JSON.stringify(data).length > 1000 ? '... (truncated)' : ''));
+        const respJson = JSON.stringify(data);
+        console.log("📝 SUPER DEBUG: Lunghezza risposta:", respJson.length);
+        console.log("📝 SUPER DEBUG: Risposta API completa:", respJson.substring(0, 1000) + 
+          (respJson.length > 1000 ? '... (truncated)' : ''));
+          
+        // Ispeziona la struttura della risposta
+        console.log("🔍 SUPER DEBUG: Chiavi dell'oggetto risposta:", Object.keys(data));
+        if (data.nfts) console.log("🔍 SUPER DEBUG: Tipo nfts:", typeof data.nfts, Array.isArray(data.nfts));
+        if (data.available) console.log("🔍 SUPER DEBUG: Tipo available:", typeof data.available, Array.isArray(data.available));
+        
       } catch (jsonError) {
-        console.error('❌ Errore nel parsing della risposta JSON:', jsonError);
+        console.error('❌ SUPER DEBUG: Errore nel parsing della risposta JSON:', jsonError);
+        console.error('❌ SUPER DEBUG: Stack trace completo:', jsonError.stack);
         showNotification('error', 'Errore di Formato', 'La risposta del server non è in formato valido. Contatta il supporto.');
         return;
       }
       
       // Verifica il wallet tornato dalla risposta come conferma
       if (data.wallet) {
-        console.log(`✅ API confirms request for wallet: ${data.wallet}`);
+        console.log(`✅ SUPER DEBUG: API conferma richiesta per wallet: ${data.wallet}`);
+        console.log(`✅ SUPER DEBUG: Confronto wallet richiesto vs risposta: ${cleanWalletAddress} vs ${data.wallet}`);
+      } else {
+        console.log(`⚠️ SUPER DEBUG: Nessun campo wallet nella risposta API`);
       }
       
       // Log dettagliato per il debugging
       if (data.nfts && data.nfts.length > 0) {
-        console.log("✅ NFTs trovati nella proprietà 'nfts':", data.nfts.length);
-        data.nfts.forEach(nft => console.log(`NFT trovato: ID #${nft.id}, Nome: ${nft.name}, Rarità: ${nft.rarity}`));
+        console.log("✅ SUPER DEBUG: NFTs trovati nella proprietà 'nfts':", data.nfts.length);
+        
+        // Log dettagliato dei primi 3 NFT per diagnosi
+        for (let i = 0; i < Math.min(3, data.nfts.length); i++) {
+          const nft = data.nfts[i];
+          console.log(`🔍 SUPER DEBUG: NFT #${i} dettaglio completo:`, nft);
+          console.log(`🔍 SUPER DEBUG: Attributi NFT #${i}:`, nft.attributes || nft.metadata?.attributes || 'nessun attributo');
+        }
+        
       } else if (data.available && data.available.length > 0) {
-        console.log("✅ NFTs trovati nella proprietà 'available':", data.available.length);
-        data.available.forEach(nft => console.log(`NFT trovato: ID #${nft.id}, Nome: ${nft.name}, Rarità: ${nft.rarity}`));
+        console.log("✅ SUPER DEBUG: NFTs trovati nella proprietà 'available':", data.available.length);
+        
+        // Log dettagliato dei primi 3 NFT per diagnosi
+        for (let i = 0; i < Math.min(3, data.available.length); i++) {
+          const nft = data.available[i];
+          console.log(`🔍 SUPER DEBUG: NFT #${i} dettaglio completo:`, nft);
+          console.log(`🔍 SUPER DEBUG: Attributi NFT #${i}:`, nft.attributes || nft.metadata?.attributes || 'nessun attributo');
+        }
+        
       } else {
-        console.log("⚠️ Nessun NFT trovato nella risposta");
+        console.log("⚠️ SUPER DEBUG: Nessun NFT trovato nella risposta");
+        console.log("⚠️ SUPER DEBUG: Struttura completa risposta:", data);
       }
       
       // Supporta sia "nfts" che "available" nella risposta per retrocompatibilità
       window.availableNfts = data.nfts || data.available || [];
       
+      // Pre-processamento degli NFT per trasformare attributi in formato compatibile
+      if (window.availableNfts.length > 0) {
+        console.log("🔄 SUPER DEBUG: Pre-processamento NFT per normalizzare attributi");
+        
+        window.availableNfts = window.availableNfts.map(nft => {
+          // Se l'NFT ha già gli attributi processati, non fare nulla
+          if (nft.iaseTraits) return nft;
+          
+          // Se l'NFT ha attributi in formato array, convertiamo in un formato più accessibile
+          if (Array.isArray(nft.attributes)) {
+            console.log(`🔄 SUPER DEBUG: Normalizzazione attributi per NFT #${nft.id}`);
+            
+            // Estrazione rarity e aiBooster dai vari formati possibili
+            const cardFrame = nft.attributes.find(attr => 
+              attr.trait_type === 'Card Frame' || 
+              attr.trait_type === 'rarity' || 
+              attr.name === 'Card Frame' || 
+              attr.name === 'rarity'
+            );
+            
+            const aiBooster = nft.attributes.find(attr => 
+              attr.trait_type === 'AI-Booster' || 
+              attr.trait_type === 'aiBooster' || 
+              attr.name === 'AI-Booster' || 
+              attr.name === 'aiBooster'
+            );
+            
+            if (cardFrame) {
+              nft.rarity = cardFrame.value;
+              nft.cardFrame = cardFrame.value;
+            }
+            
+            if (aiBooster) {
+              nft.aiBooster = aiBooster.value;
+              nft['AI-Booster'] = aiBooster.value;
+            }
+            
+            // Estrai i tratti IASE dai vari formati possibili
+            const getTraitValue = (names) => {
+              for (const name of names) {
+                const trait = nft.attributes.find(attr => 
+                  attr.trait_type === name || attr.name === name
+                );
+                if (trait) return trait.value;
+              }
+              return 'standard';
+            };
+            
+            // Costruisci l'oggetto iaseTraits per una visualizzazione coerente
+            nft.iaseTraits = {
+              orbitalModule: getTraitValue(['Orbital Design Module', 'Orbital Module']),
+              energyPanels: getTraitValue(['Energy Panels']),
+              antennaType: getTraitValue(['Antenna Type']),
+              aiCore: getTraitValue(['AI Core'])
+            };
+            
+            console.log(`🔄 SUPER DEBUG: NFT #${nft.id} attributi normalizzati:`, {
+              rarity: nft.rarity,
+              aiBooster: nft.aiBooster,
+              iaseTraits: nft.iaseTraits
+            });
+          }
+          
+          return nft;
+        });
+      }
+      
       // Log finale del numero di NFT caricati
-      console.log(`📊 Totale NFT caricati: ${window.availableNfts.length}`);
+      console.log(`📊 SUPER DEBUG: Totale NFT caricati e normalizzati: ${window.availableNfts.length}`);
       
       // Render available NFTs
       renderAvailableNfts();
@@ -1009,25 +1152,46 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function renderAvailableNfts() {
-    console.log("🖼️ Rendering NFTs:", window.availableNfts);
+    console.log("🖼️ SUPER DEBUG: Inizio rendering NFT. Disponibili:", window.availableNfts?.length || 0);
+    
+    // Verifica se gli NFT sono disponibili
+    if (!window.availableNfts) {
+      console.error("❌ SUPER DEBUG: window.availableNfts non è definito!");
+      showNotification('error', 'Errore di visualizzazione', 'Impossibile visualizzare gli NFT: dati non disponibili');
+      return;
+    }
+    
+    // Log degli NFT ricevuti per debug
+    if (window.availableNfts.length > 0) {
+      console.log("📋 SUPER DEBUG: Primi 3 NFT per rendering:");
+      for (let i = 0; i < Math.min(3, window.availableNfts.length); i++) {
+        console.log(`📝 SUPER DEBUG: NFT #${i}:`, window.availableNfts[i]);
+      }
+    } else {
+      console.log("📋 SUPER DEBUG: Nessun NFT disponibile per il rendering");
+    }
     
     // Pulisci il container
     if (!window.availableNftGrid) {
-      console.log("NFT grid element reference not found, getting from DOM");
+      console.log("🔍 SUPER DEBUG: Riferimento griglia NFT non trovato, recupero dal DOM");
       window.availableNftGrid = document.getElementById('availableNftsContainer');
+      console.log("🔍 SUPER DEBUG: Elemento griglia NFT:", window.availableNftGrid ? "trovato" : "NON trovato");
+      
       if (!window.availableNftGrid) {
-        console.error("⚠️ CRITICAL: NFT grid element not found in the DOM!");
+        console.error("⚠️ SUPER DEBUG: Elemento griglia NFT non trovato nel DOM!");
         
         // Try to find where the container should be and create it if missing
         const nftSection = document.getElementById('availableTab') || document.getElementById('nftSection');
+        console.log("🔍 SUPER DEBUG: Sezione NFT:", nftSection ? "trovata" : "NON trovata");
+        
         if (nftSection) {
-          console.log("Creating missing NFT container");
+          console.log("🔧 SUPER DEBUG: Creazione container NFT mancante");
           window.availableNftGrid = document.createElement('div');
           window.availableNftGrid.id = 'availableNftsContainer';
           window.availableNftGrid.className = 'nft-grid';
           nftSection.appendChild(window.availableNftGrid);
         } else {
-          console.error("Cannot render NFTs: Both NFT grid and section are missing");
+          console.error("❌ SUPER DEBUG: Impossibile renderizzare gli NFT: sia la griglia che la sezione sono mancanti");
           return;
         }
       }
@@ -1090,13 +1254,77 @@ document.addEventListener('DOMContentLoaded', () => {
     // Renderizza ogni NFT
     window.availableNfts.forEach(nft => {
       try {
+        // Estrai i metadati IASE dai vari formati possibili
+        console.log("🔍 SUPER DEBUG: Analisi NFT per rendering:", nft);
+        
         // Determina l'immagine e i dettagli dell'NFT
         const nftId = nft.id;
         const nftTitle = nft.name || `IASE Unit #${nftId}`;
         const nftImage = nft.image || 'images/nft-placeholder.jpg';
-        const rarityClass = (nft.rarity || 'standard').toLowerCase();
         
-        console.log(`Creating card for NFT #${nftId} (${nftTitle})`);
+        // Estrazione standardizzata delle proprietà IASE
+        let rarity = 'Standard';
+        let aiBooster = null;
+        let iaseTraits = null;
+        
+        // Estrai i metadati da qualunque formato disponibile
+        console.log("🔍 SUPER DEBUG: Cercando attributi in:", nft.attributes, nft.metadata?.attributes);
+        
+        // Funzione helper per estrarre attributi
+        const getAttributeValue = (attrName) => {
+          // Controlla in nft.attributes array (formato standard)
+          if (Array.isArray(nft.attributes)) {
+            const attr = nft.attributes.find(a => 
+              a.trait_type?.toLowerCase() === attrName.toLowerCase() || 
+              a.name?.toLowerCase() === attrName.toLowerCase()
+            );
+            if (attr) return attr.value;
+          }
+          
+          // Controlla in nft.metadata.attributes array (altro formato possibile)
+          if (Array.isArray(nft.metadata?.attributes)) {
+            const attr = nft.metadata.attributes.find(a => 
+              a.trait_type?.toLowerCase() === attrName.toLowerCase() || 
+              a.name?.toLowerCase() === attrName.toLowerCase()
+            );
+            if (attr) return attr.value;
+          }
+          
+          // Controlla proprietà dirette
+          if (nft[attrName]) return nft[attrName];
+          if (nft.metadata?.[attrName]) return nft.metadata[attrName];
+          
+          // Controlla formati speciali di IASE
+          if (attrName === 'rarity' && nft.cardFrame) return nft.cardFrame;
+          if (attrName === 'aiBooster' && nft['AI-Booster']) return nft['AI-Booster'];
+          
+          return null;
+        };
+        
+        // Estrai valori
+        rarity = getAttributeValue('rarity') || getAttributeValue('Card Frame') || rarity;
+        aiBooster = getAttributeValue('aiBooster') || getAttributeValue('AI-Booster');
+        
+        const rarityClass = (rarity || 'standard').toLowerCase();
+        
+        // Estrai tratti IASE specifici o costruisci oggetto vuoto
+        iaseTraits = nft.iaseTraits || {};
+        
+        // Se non ci sono iaseTraits ma ci sono attributi, costruisci i tratti
+        if (!nft.iaseTraits && (Array.isArray(nft.attributes) || Array.isArray(nft.metadata?.attributes))) {
+          console.log("🔍 SUPER DEBUG: Costruendo iaseTraits da attributi");
+          
+          iaseTraits = {
+            orbitalModule: getAttributeValue('Orbital Design Module') || getAttributeValue('Orbital Module') || 'standard',
+            energyPanels: getAttributeValue('Energy Panels') || 'standard',
+            antennaType: getAttributeValue('Antenna Type') || 'standard', 
+            aiCore: getAttributeValue('AI Core') || 'standard'
+          };
+          
+          console.log("🔍 SUPER DEBUG: iaseTraits costruiti:", iaseTraits);
+        }
+        
+        console.log(`✅ SUPER DEBUG: Creating card for NFT #${nftId} (${nftTitle}), Rarity: ${rarity}, AI-Booster: ${aiBooster}`);
         
         const card = document.createElement('div');
         card.className = 'nft-card';
@@ -1109,15 +1337,15 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3 class="nft-title">${nftTitle}</h3>
             <p class="nft-id">ID: ${nftId}</p>
             <div class="nft-attributes">
-              <span class="rarity-badge ${rarityClass}">${nft.rarity || 'Standard'}</span>
-              ${nft.aiBooster ? `<span class="boost-badge">AI-Booster: ${nft.aiBooster}</span>` : ''}
+              <span class="rarity-badge ${rarityClass}">${rarity}</span>
+              ${aiBooster ? `<span class="boost-badge">AI-Booster: ${aiBooster}</span>` : ''}
             </div>
-            ${nft.iaseTraits ? `
+            ${iaseTraits ? `
             <div class="nft-traits">
-              <div class="trait" title="Orbital Design Module"><i class="ri-planet-line"></i> ${nft.iaseTraits.orbitalModule.replace('orbital_', '')}</div>
-              <div class="trait" title="Energy Panels"><i class="ri-battery-2-charge-line"></i> ${nft.iaseTraits.energyPanels.replace('panel_', '')}</div>
-              <div class="trait" title="Antenna Type"><i class="ri-broadcast-line"></i> ${nft.iaseTraits.antennaType.replace('antenna_', '')}</div>
-              <div class="trait" title="AI Core"><i class="ri-cpu-line"></i> ${nft.iaseTraits.aiCore.replace('ai_core_', '')}</div>
+              <div class="trait" title="Orbital Design Module"><i class="ri-planet-line"></i> ${(iaseTraits.orbitalModule || 'standard').replace('orbital_', '')}</div>
+              <div class="trait" title="Energy Panels"><i class="ri-battery-2-charge-line"></i> ${(iaseTraits.energyPanels || 'standard').replace('panel_', '')}</div>
+              <div class="trait" title="Antenna Type"><i class="ri-broadcast-line"></i> ${(iaseTraits.antennaType || 'standard').replace('antenna_', '')}</div>
+              <div class="trait" title="AI Core"><i class="ri-cpu-line"></i> ${(iaseTraits.aiCore || 'standard').replace('ai_core_', '')}</div>
             </div>
             ` : ''}
             <div class="nft-card-actions mt-3">

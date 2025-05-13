@@ -1035,163 +1035,163 @@ function toggleMenu() {
 <script>
 const CONTRACT_ADDRESS = "0x54799bAf11ff48a2662F0f65C09A18D96851cF3B";
 const ABI = [
-	{
-		"inputs": [],
-		"name": "buyTokens",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_token",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_endTime",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [],
-		"name": "withdrawUnsoldTokens",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"stateMutability": "payable",
-		"type": "receive"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "contributions",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "endTime",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getTokenBalance",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "maxBNB",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "maxPerWallet",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "minBNB",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "rate",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "token",
-		"outputs": [
-			{
-				"internalType": "contract IERC20",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
+        {
+                "inputs": [],
+                "name": "buyTokens",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+        },
+        {
+                "inputs": [
+                        {
+                                "internalType": "address",
+                                "name": "_token",
+                                "type": "address"
+                        },
+                        {
+                                "internalType": "uint256",
+                                "name": "_endTime",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+        },
+        {
+                "inputs": [],
+                "name": "withdrawUnsoldTokens",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+        },
+        {
+                "stateMutability": "payable",
+                "type": "receive"
+        },
+        {
+                "inputs": [
+                        {
+                                "internalType": "address",
+                                "name": "",
+                                "type": "address"
+                        }
+                ],
+                "name": "contributions",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "endTime",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "getTokenBalance",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "maxBNB",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "maxPerWallet",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "minBNB",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                        {
+                                "internalType": "address",
+                                "name": "",
+                                "type": "address"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "rate",
+                "outputs": [
+                        {
+                                "internalType": "uint256",
+                                "name": "",
+                                "type": "uint256"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        },
+        {
+                "inputs": [],
+                "name": "token",
+                "outputs": [
+                        {
+                                "internalType": "contract IERC20",
+                                "name": "",
+                                "type": "address"
+                        }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+        }
 ];
   
 
@@ -1272,7 +1272,6 @@ const isReallyConnected = () => {
 const updateTokenUI = () => {
   console.log("⚙️ Updating token UI...");
   
-  
   try {
     // Always check for real connection status first
     const walletConnected = isReallyConnected();
@@ -1299,7 +1298,12 @@ const updateTokenUI = () => {
       
       if (shortWalletElement) shortWalletElement.innerText = shortAddress;
       if (walletInfoElement) walletInfoElement.style.display = 'block';
-      if (connectButtonElement) connectButtonElement.style.display = 'none';
+      if (connectButtonElement) {
+        connectButtonElement.style.display = 'none';
+        // Ripristina anche lo stato del pulsante per sicurezza
+        connectButtonElement.disabled = false;
+        connectButtonElement.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+      }
       
       try {
         // Check network and show/hide appropriate elements - in try/catch separato
@@ -1344,23 +1348,28 @@ const updateTokenUI = () => {
         // Continua con l'esecuzione per evitare di bloccare l'intera UI
       }
     } else {
-  console.log("Wallet disconnected, updating UI");
-
-  // Handle elements safely
-  const walletInfoElement = document.getElementById('walletInfo');
-  const connectButtonElement = document.getElementById('connectButtonBNB');
-
-  if (walletInfoElement) walletInfoElement.style.display = 'none';
-  if (connectButtonElement) connectButtonElement.style.display = 'block';
-
-  // Ensure presale form is hidden
-  const presaleForm = document.getElementById('presaleForm');
-  if (presaleForm) presaleForm.style.display = 'none';
-
-  // Hide wrong network alert
-  const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-  if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
-}
+      // Wallet disconnected state
+      console.log("Wallet disconnected, updating UI");
+      
+      // Handle elements safely
+      const walletInfoElement = document.getElementById('walletInfo');
+      const connectButtonElement = document.getElementById('connectButtonBNB');
+      
+      if (walletInfoElement) walletInfoElement.style.display = 'none';
+      if (connectButtonElement) {
+        connectButtonElement.style.display = 'block';
+        // Ripristina lo stato originale del pulsante
+        connectButtonElement.disabled = false;
+        connectButtonElement.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+      }
+      
+      // Ensure presale form is hidden
+      const presaleForm = document.getElementById('presaleForm');
+      if (presaleForm) presaleForm.style.display = 'none';
+      
+      // Hide wrong network alert
+      const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+      if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
     }
   } catch (error) {
     console.error("Error in updateTokenUI:", error);
@@ -1372,7 +1381,12 @@ const updateTokenUI = () => {
       const connectButtonElement = document.getElementById('connectButtonBNB');
       
       if (walletInfoElement) walletInfoElement.style.display = 'none';
-      if (connectButtonElement) connectButtonElement.style.display = 'block';
+      if (connectButtonElement) {
+        connectButtonElement.style.display = 'block';
+        // Ripristina lo stato originale del pulsante
+        connectButtonElement.disabled = false;
+        connectButtonElement.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+      }
     } catch (e) {
       console.error("Fatal error recovering UI state:", e);
     }
@@ -1499,19 +1513,8 @@ const connectWalletBNB = async () => {
     // Aggiorna UI per mostrare lo stato connesso
     updateTokenUI();
     
-    // Configura listeners per cambiamenti di rete e account
-    window.ethereum.on('chainChanged', () => {
-      console.log("🔄 Chain changed, updating UI");
-      updateTokenUI();
-    });
-    
-    window.ethereum.on('accountsChanged', (newAccounts) => {
-      console.log("🔄 Accounts changed:", newAccounts);
-      if (newAccounts.length === 0) {
-        console.log("User disconnected wallet");
-      }
-      updateTokenUI();
-    });
+    // IMPORTANTE: NON configurare qui i listener degli eventi
+    // per evitare duplicazioni!
     
     // Rimuovi il messaggio di connessione
     const msgElement = document.getElementById('connecting-message');
@@ -1744,6 +1747,35 @@ function initTokenomicsChart() {
 // Inizializzazione pagina
 document.addEventListener('DOMContentLoaded', function() {
   console.log("🔄 Inizializzazione pagina token...");
+
+  // Configura global listeners per cambiamenti di rete e account
+  // AGGIUNTI UNA VOLTA SOLA ALL'INIZIO
+  if (window.ethereum) {
+    window.ethereum.on('chainChanged', () => {
+      console.log("🔄 Chain changed, updating UI");
+      updateTokenUI();
+    });
+    
+    window.ethereum.on('accountsChanged', (newAccounts) => {
+      console.log("🔄 Accounts changed:", newAccounts);
+      
+      // Rimuovi il messaggio di connessione quando cambiano gli account
+      const msgElement = document.getElementById('connecting-message');
+      if (msgElement) document.body.removeChild(msgElement);
+      
+      if (newAccounts.length === 0) {
+        console.log("User disconnected wallet");
+        
+        // Ripristina lo stato originale del pulsante di connessione
+        const connectBtn = document.getElementById('connectButtonBNB');
+        if (connectBtn) {
+          connectBtn.disabled = false;
+          connectBtn.innerHTML = '<i class="ri-wallet-3-line me-2"></i> Connect BNB Wallet';
+        }
+      }
+      updateTokenUI();
+    });
+  }
 
   // Initialize tokenomics chart
   initTokenomicsChart();

@@ -1272,11 +1272,6 @@ const isReallyConnected = () => {
 const updateTokenUI = () => {
   console.log("⚙️ Updating token UI...");
   
-  // Rimuovi qualsiasi messaggio di connecting ancora visibile
-  const connectingMessage = document.getElementById('connecting-message');
-  if (connectingMessage) {
-    connectingMessage.remove();
-  }
   
   try {
     // Always check for real connection status first

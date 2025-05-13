@@ -432,12 +432,51 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners for the connect button
     connectBtn = document.getElementById('connectButtonETH');
     if (connectBtn) {
+      console.log("✅ Trovato pulsante di connessione:", connectBtn);
+      // Rimuovi prima eventuali listener esistenti per evitare duplicati
+      connectBtn.removeEventListener('click', connectEthWallet);
+      // Aggiungi il nuovo listener
       connectBtn.addEventListener('click', connectEthWallet);
+    } else {
+      console.error("❌ Pulsante di connessione non trovato con ID 'connectButtonETH'");
+      // Prova a cercarlo anche con una query più generica come fallback
+      const possibleConnectBtns = document.querySelectorAll('button[data-network="ethereum"]');
+      if (possibleConnectBtns.length > 0) {
+        console.log("🔍 Trovati possibili pulsanti di connessione alternativi:", possibleConnectBtns.length);
+        possibleConnectBtns.forEach(btn => {
+          console.log("🔄 Aggiungendo event listener al pulsante alternativo:", btn);
+          btn.removeEventListener('click', connectEthWallet);
+          btn.addEventListener('click', connectEthWallet);
+          // Aggiorna la variabile globale
+          connectBtn = btn;
+        });
+      }
+    }
+    
+    // Assicurati che il pulsante di disconnessione funzioni correttamente
+    disconnectBtn = document.getElementById('disconnectWalletBtn');
+    if (disconnectBtn) {
+      console.log("✅ Trovato pulsante di disconnessione");
+      // Rimuovi onclick inline se presente (preferiamo event listener)
+      if (disconnectBtn.hasAttribute('onclick')) {
+        const oldHandler = disconnectBtn.getAttribute('onclick');
+        console.log(`🔄 Sostituendo onclick handler '${oldHandler}' con event listener`);
+        disconnectBtn.removeAttribute('onclick');
+      }
+      
+      // Assicurati che window.disconnectWalletETH sia impostato correttamente
+      window.disconnectWalletETH = disconnectEthWallet;
+      
+      // Rimuovi prima eventuali listener esistenti per evitare duplicati
+      disconnectBtn.removeEventListener('click', disconnectEthWallet);
+      // Aggiungi il nuovo listener
+      disconnectBtn.addEventListener('click', disconnectEthWallet);
     }
     
     // Add event listener to network switch button
     const switchNetworkBtn = document.getElementById('switch-network-btn');
     if (switchNetworkBtn) {
+      switchNetworkBtn.removeEventListener('click', switchToEthereum);
       switchNetworkBtn.addEventListener('click', switchToEthereum);
     }
   }

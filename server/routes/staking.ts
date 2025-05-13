@@ -93,6 +93,9 @@ router.get(['/by-wallet/:address', '/get-staked-nfts'], async (req: Request, res
  */
 router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response) => {
   try {
+    // Imposta esplicitamente l'header Content-Type per assicurarsi che la risposta sia sempre JSON
+    res.setHeader('Content-Type', 'application/json');
+    
     const walletAddress = req.query.wallet as string;
     
     if (!walletAddress) {
@@ -120,9 +123,13 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       validWalletAddress = '0x' + validWalletAddress;
     }
     
-    // Verifica la lunghezza dell'indirizzo (42 caratteri per indirizzi Ethereum validi)
+    // Controlla che l'indirizzo abbia la lunghezza corretta dopo la normalizzazione
     if (validWalletAddress.length !== 42) {
-      console.warn(`⚠️ Indirizzo wallet di lunghezza insolita (${validWalletAddress.length} caratteri): ${validWalletAddress}`);
+      console.error(`🚨 Indirizzo wallet non valido dopo la normalizzazione: ${validWalletAddress}`);
+      return res.status(400).json({ 
+        error: 'Invalid wallet address format', 
+        message: 'The provided wallet address is not in a valid Ethereum format'
+      });
     }
     
     console.log(`🔍 Cercando NFT reali per wallet: ${validWalletAddress}`);
@@ -661,6 +668,8 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
  */
 router.get('/rewards/:address', async (req: Request, res: Response) => {
   try {
+    // Imposta esplicitamente l'header Content-Type per assicurarsi che la risposta sia sempre JSON
+    res.setHeader('Content-Type', 'application/json');
     const { address } = req.params;
     
     if (!address) {

@@ -171,7 +171,8 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       );
       
       // Verifica e correggi l'indirizzo del wallet (rimuovi eventuali puntini di sospensione)
-      const cleanWalletAddress = walletAddress.includes('...') 
+      // Verifica che walletAddress sia una stringa prima di usare includes
+      const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...')) 
           ? walletAddress.replace(/\.\.\./g, '') // Rimuovi i puntini se presenti
           : walletAddress;
       

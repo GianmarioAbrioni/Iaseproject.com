@@ -1343,27 +1343,29 @@ const updateTokenUI = () => {
         // Continua con l'esecuzione per evitare di bloccare l'intera UI
       }
     } else {
-      // Wallet is disconnected
-      console.log("Wallet disconnected, updating UI");
-      
-      // Handle elements safely
-      const walletInfoElement = document.getElementById('walletInfo');
-      const connectButtonElement = document.getElementById('connectButtonBNB');
-      
-      if (walletInfoElement) walletInfoElement.style.display = 'none';
-      if (connectButtonElement) connectButtonElement.style.display = 'block';
-      
-      // Ensure presale form is hidden
-      const presaleForm = document.getElementById('presaleForm');
-      if (presaleForm) {
-        presaleForm.style.display = 'none';
-      }
-      
-      // Hide wrong network alert
-      const wrongNetworkAlert = document.getElementById('wrong-network-alert');
-      if (wrongNetworkAlert) {
-        wrongNetworkAlert.classList.add('d-none');
-      }
+  console.log("Wallet disconnected, updating UI");
+
+  // Rimuovi qualsiasi messaggio di connecting ancora visibile
+  const connectingMessage = document.getElementById('connecting-message');
+  if (connectingMessage) {
+    connectingMessage.remove();
+  }
+
+  // Handle elements safely
+  const walletInfoElement = document.getElementById('walletInfo');
+  const connectButtonElement = document.getElementById('connectButtonBNB');
+
+  if (walletInfoElement) walletInfoElement.style.display = 'none';
+  if (connectButtonElement) connectButtonElement.style.display = 'block';
+
+  // Ensure presale form is hidden
+  const presaleForm = document.getElementById('presaleForm');
+  if (presaleForm) presaleForm.style.display = 'none';
+
+  // Hide wrong network alert
+  const wrongNetworkAlert = document.getElementById('wrong-network-alert');
+  if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
+}
     }
   } catch (error) {
     console.error("Error in updateTokenUI:", error);

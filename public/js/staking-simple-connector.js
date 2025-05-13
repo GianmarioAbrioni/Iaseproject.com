@@ -394,11 +394,33 @@ document.addEventListener('DOMContentLoaded', function() {
           // Wallet era considerato connesso, ma ora non lo è più
           console.log('🔄 Rilevata disconnessione manuale del wallet');
           
+          // Forza lo stato disconnesso (fix per il problema di rilevamento)
+          if (window.ethereum) {
+            // Se possibile, forza il reset dell'indirizzo
+            try {
+              window.ethereum.selectedAddress = null;
+            } catch(e) {
+              // Ignora errori se selectedAddress è read-only
+            }
+          }
+          
           // Fermiamo il watcher immediatamente dopo aver rilevato una disconnessione
           stopConnectionWatcher();
           
-          // Aggiorniamo l'UI solo se stiamo rilevando una disconnessione reale
+          // Forza l'aggiornamento della UI
+          if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
+          if (walletAddress) walletAddress.textContent = '';
+          if (connectBtn) connectBtn.classList.remove('hidden');
+          if (disconnectBtn) disconnectBtn.classList.add('hidden');
+          updateStatusIndicator(false);
+          
+          // Aggiorniamo l'UI completamente
           updateUI();
+          
+          // Ricarica la pagina se necessario
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         }
         
         // Reset del flag
@@ -450,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize everything
   function init() {
     walletStatusIndicator = document.getElementById('walletIndicator');
-    walletStatusText = document.getElementById('walletStatus');
+    walletStatusText = document.getElementById('walletStatusText'); // Corretto ID errato
     walletAddress = document.getElementById('walletAddress');
     stakingDashboard = document.getElementById('stakingDashboard');
     wrongNetworkAlert = document.getElementById('wrongNetworkAlert');

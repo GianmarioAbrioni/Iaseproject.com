@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Esporta funzioni importanti per accessibilità globale
   window.loadAvailableNfts = loadAvailableNfts;
   window.renderAvailableNfts = renderAvailableNfts;
-  window.openStakingModal = openStakingModal; // Aggiungiamo questa funzione per la nuova integrazione
+  window.openStakingModal = openStakeModal; // Aggiungiamo questa funzione per la nuova integrazione
   
   // Cleanup di dichiarazioni duplicate
   let currentUser = null;

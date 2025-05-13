@@ -622,25 +622,22 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {string} walletAddressOverride - Optional wallet address override
    */
   async function loadAvailableNfts(contractAddress = null, walletAddressOverride = null) {
-    try {
-      // Get connected wallet address
-      const walletAddress = walletAddressOverride || 
-                           window.WALLET_STATE?.address || 
-                           window.ethereum?.selectedAddress ||
-                           window.userWalletAddress;
-      
-      if (!walletAddress) {
-        console.log("No wallet connected, cannot load NFTs");
-        return;
-      }
-      
-      // Clean the wallet address (remove ellipsis if present)
-      // Verifica che walletAddress sia una stringa prima di usare includes
-      const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...')) 
-          ? walletAddress.replace(/\.\.\./g, '') 
-          : walletAddress;
-      
-      console.log("🔍 Fetching available NFTs for wallet:", cleanWalletAddress);
+  try {
+    let walletAddress = walletAddressOverride ||
+      window.WALLET_STATE?.address ||
+      window.ethereum?.selectedAddress ||
+      window.userWalletAddress;
+
+    if (!walletAddress) {
+      console.log("No wallet connected, cannot load NFTs");
+      return;
+    }
+
+    const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...'))
+      ? walletAddress.replace(/\.\.\./g, '')
+      : walletAddress;
+
+    console.log("🔍 Fetching available NFTs for wallet:", cleanWalletAddress);
       
       // Show staking dashboard in advance to improve perceived loading time
       if (window.stakingDashboard) {

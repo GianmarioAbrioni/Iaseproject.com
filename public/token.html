@@ -1401,7 +1401,7 @@ function scheduleNextUpdate() {
     try {
       console.log("⏱️ Single UI check executing...");
       const walletConnected = isReallyConnected();
-      const uiConnected = document.getElementById('walletInfo').style.display === 'block';
+      const uiConnected = document.getElementById('walletInfo')?.style.display === 'block';
       
       // If there's a mismatch between UI and actual wallet state, update UI
       if (walletConnected !== uiConnected) {

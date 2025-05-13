@@ -640,6 +640,22 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("📡 walletAddressOverride:", walletAddressOverride);
     console.log("📡 contractAddress:", contractAddress);
     
+    // Imposta contratto predefinito se non specificato - Compatibilità Render/Live
+    if (!contractAddress) {
+      contractAddress = window.IASE_NFT_CONTRACT || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
+      console.log(`🔄 SUPER DEBUG: Usando contratto predefinito: ${contractAddress}`);
+    }
+    
+    // Inizializza il provider Ethereum per fallback direct-to-blockchain
+    if (window.ethereum && window.ethers && !window.ethersProvider) {
+      try {
+        window.ethersProvider = new window.ethers.providers.Web3Provider(window.ethereum);
+        console.log("✅ SUPER DEBUG: Provider Ethereum creato con successo");
+      } catch (providerErr) {
+        console.error("❌ SUPER DEBUG: Errore nella creazione del provider Ethereum:", providerErr);
+      }
+    }
+    
     // Prima verifica se c'è un indirizzo salvato in localStorage
     let storedAddress;
     try {
@@ -777,9 +793,209 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       console.log("🔗 API URL codificata correttamente:", apiUrl);
       
+      // Flag per tenere traccia se abbiamo usato il fallback
+      let usedFallback = false;
+      let data = null;
+      
+      // Funzione per recuperare NFT direttamente dalla blockchain (fallback)
+      async function loadNftsDirectFromBlockchain() {
+        console.log("🔍 SUPER DEBUG: Tentativo di caricamento NFT direttamente dalla blockchain");
+        if (!window.ethereum || !window.ethers) {
+          console.warn("⚠️ SUPER DEBUG: Web3 o ethers non disponibile per il fallback, tentativo di caricamento diretto");
+          
+          // Aggiungiamo ethers.js dinamicamente se non è già presente
+          if (!window.ethers) {
+            try {
+              console.log("🔄 SUPER DEBUG: Caricamento dinamico di ethers.js");
+              const script = document.createElement('script');
+              script.src = 'https://cdn.ethers.io/lib/ethers-5.6.umd.min.js';
+              script.async = true;
+              
+              // Attendiamo il caricamento
+              await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+              });
+              
+              console.log("✅ SUPER DEBUG: ethers.js caricato con successo");
+            } catch (err) {
+              console.error("❌ SUPER DEBUG: Errore nel caricamento di ethers.js:", err);
+              throw new Error("Impossibile caricare ethers.js per il fallback");
+            }
+          }
+        }
+        
+        try {
+          // Contratto NFT IASE - indirizzo predefinito aggiornato
+          const nftContract = contractAddress || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
+          
+          // ABI minimo per ERC721 - solo funzioni necessarie
+          const minimalERC721ABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+            "function tokenURI(uint256 tokenId) view returns (string)"
+          ];
+          
+          // Crea provider (usa Infura come fallback se ethereum non è disponibile)
+          let provider;
+          if (window.ethereum) {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+          } else {
+            // URL di Infura come fallback (usa chiave pubblica)
+            provider = new ethers.providers.JsonRpcProvider(
+              "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+            );
+          }
+          
+          window.ethersProvider = provider;
+          
+          // Crea istanza contratto
+          const nftContractInstance = new ethers.Contract(nftContract, minimalERC721ABI, provider);
+          
+          // Recupera il balance (numero di NFT posseduti)
+          const balance = await nftContractInstance.balanceOf(cleanWalletAddress);
+          console.log(`✅ SUPER DEBUG: Balance NFT recuperato: ${balance.toString()}`);
+          
+          const nfts = [];
+          
+          // Se non ci sono NFT, ritorna array vuoto
+          if (balance.toNumber() === 0) {
+            console.log("⚠️ SUPER DEBUG: Nessun NFT trovato sulla blockchain");
+            return { nfts: [] };
+          }
+          
+          // Recupera ogni NFT
+          for (let i = 0; i < balance.toNumber(); i++) {
+            try {
+              const tokenId = await nftContractInstance.tokenOfOwnerByIndex(cleanWalletAddress, i);
+              console.log(`✅ SUPER DEBUG: Trovato NFT #${tokenId.toString()}`);
+              
+              // Aggiungi NFT all'array
+              nfts.push({
+                id: tokenId.toString(),
+                tokenId: tokenId.toString(),
+                name: `IASE Unit #${tokenId.toString()}`,
+                image: "/images/nft-samples/placeholder.jpg",
+                cardFrame: "Standard", // Predefinito, verrà aggiornato dai metadati se possibile
+                rarity: "Standard",
+                aiBooster: "X1.0", // Predefinito 
+                "AI-Booster": "X1.0",
+                contractAddress: nftContract,
+                // Aggiunge iaseTraits per compatibilità
+                iaseTraits: {
+                  orbitalModule: "standard",
+                  energyPanels: "standard",
+                  antennaType: "standard",
+                  aiCore: "standard",
+                  evolutiveTrait: "standard"
+                }
+              });
+            } catch (err) {
+              console.error(`❌ SUPER DEBUG: Errore nel recupero del token ${i}:`, err);
+            }
+          }
+          
+          console.log(`✅ SUPER DEBUG: Recuperati ${nfts.length} NFT dalla blockchain`);
+          return { nfts };
+        } catch (err) {
+          console.error("❌ SUPER DEBUG: Errore nel caricamento NFT dalla blockchain:", err);
+          throw err;
+        }
+      }
+      
       // Gestisci con timeout in caso di problemi di rete
+      // Funzione per recuperare NFTs direttamente dalla blockchain usando Infura
+      async function loadNftsViaBlockchain(address) {
+        console.log("🔍 SUPER DEBUG: Tentativo recupero NFT diretto dalla blockchain per: " + address);
+        
+        try {
+          // Controlla se ethers.js è disponibile, altrimenti caricalo
+          if (!window.ethers) {
+            console.log("🔄 SUPER DEBUG: Caricamento ethers.js...");
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://cdn.ethers.io/lib/ethers-5.6.umd.min.js';
+              script.async = true;
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+            console.log("✅ SUPER DEBUG: ethers.js caricato con successo");
+          }
+          
+          // Usa l'API key Infura ufficiale IASE
+          const infuraUrl = "https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66";
+          
+          // Configura indirizzo contratto NFT
+          const nftContract = contractAddress || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
+          
+          // ABI minimale per ERC721
+          const minimalERC721ABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+            "function tokenURI(uint256 tokenId) view returns (string)"
+          ];
+          
+          // Crea provider (wallet o Infura)
+          const provider = window.ethereum ? 
+            new ethers.providers.Web3Provider(window.ethereum) : 
+            new ethers.providers.JsonRpcProvider(infuraUrl);
+          
+          // Crea istanza contratto
+          const contract = new ethers.Contract(nftContract, minimalERC721ABI, provider);
+          
+          // Ottieni numero NFT posseduti
+          const balance = await contract.balanceOf(address);
+          console.log(`✅ SUPER DEBUG: Balance NFT: ${balance.toString()}`);
+          
+          // Prepara array risultati
+          const nfts = [];
+          
+          // Recupera informazioni su ogni NFT
+          for (let i = 0; i < balance.toNumber(); i++) {
+            try {
+              const tokenId = await contract.tokenOfOwnerByIndex(address, i);
+              console.log(`✅ SUPER DEBUG: Trovato NFT #${tokenId.toString()}`);
+              
+              // Aggiungi NFT all'array
+              nfts.push({
+                id: tokenId.toString(),
+                tokenId: tokenId.toString(),
+                name: `IASE Unit #${tokenId.toString()}`,
+                image: "/images/nft-samples/placeholder.jpg",
+                rarity: "Standard",
+                cardFrame: "Standard",
+                aiBooster: "X1.0",
+                "AI-Booster": "X1.0",
+                contractAddress: nftContract,
+                iaseTraits: {
+                  orbitalModule: "standard",
+                  energyPanels: "standard",
+                  antennaType: "standard",
+                  aiCore: "standard",
+                  evolutiveTrait: "standard"
+                }
+              });
+            } catch (err) {
+              console.error(`❌ SUPER DEBUG: Errore nel recupero token #${i}:`, err);
+            }
+          }
+          
+          console.log(`✅ SUPER DEBUG: Recuperati ${nfts.length} NFT dalla blockchain`);
+          return { nfts: nfts };
+          
+        } catch (error) {
+          console.error("❌ SUPER DEBUG: Errore nel recupero blockchain:", error);
+          throw error;
+        }
+      }
+      
+      // Flag per tracciare se il fallback è stato usato
+      let usedFallback = false;
+      
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 secondi di timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 secondi di timeout
       
       let response;
       try {
@@ -807,26 +1023,33 @@ document.addEventListener('DOMContentLoaded', () => {
           const responseText = await response.text();
           console.error(`❌ SUPER DEBUG: Errore API (${response.status} ${response.statusText}):`, responseText);
           
-          // Se l'errore è relativo all'indirizzo wallet, mostra un messaggio più informativo
-          if (responseText.includes('wallet') && (responseText.includes('invalid') || responseText.includes('pattern'))) {
-            showNotification('error', 'Errore Indirizzo Wallet', 
-              'Il formato dell\'indirizzo del wallet non è valido. Prova a disconnettere e riconnettere il wallet.');
-            throw new Error(`Formato indirizzo wallet non valido: ${cleanWalletAddress}`);
-          }
-          
-          throw new Error(`Errore API: ${response.status} ${response.statusText} - ${responseText}`);
+          console.log("⚠️ SUPER DEBUG: API fallita, tentativo di fallback sulla blockchain...");
+          data = await loadNftsViaBlockchain(cleanWalletAddress);
+          usedFallback = true;
+          console.log("✅ SUPER DEBUG: Fallback riuscito, NFT recuperati dalla blockchain");
         }
       } catch (fetchError) {
-        if (fetchError.name === 'AbortError') {
-          console.error('⏱️ SUPER DEBUG: Timeout della richiesta API dopo 20 secondi');
-          showNotification('error', 'Errore di Connessione', 'La richiesta al server è scaduta. Verifica la tua connessione di rete e riprova.');
-        } else {
-          console.error('❌ SUPER DEBUG: Errore durante il fetch degli NFT:', fetchError);
-          console.error('❌ SUPER DEBUG: Stack trace completo:', fetchError.stack);
-          showNotification('error', 'Errore di Caricamento', 
-            `Impossibile caricare gli NFT: ${fetchError.message || 'Errore sconosciuto'}`);
-          
-          // Logga oggetto completo per debug
+        console.error('❌ SUPER DEBUG: Errore durante il fetch degli NFT:', fetchError);
+        
+        // IMPORTANTE: in caso di qualsiasi errore, tenta il fallback blockchain
+        if (!usedFallback) {
+          try {
+            console.log("⚠️ SUPER DEBUG: Errore API fetch, tentativo fallback blockchain con Infura...");
+            data = await loadNftsViaBlockchain(cleanWalletAddress);
+            usedFallback = true;
+            console.log("✅ SUPER DEBUG: Fallback riuscito, NFT recuperati dalla blockchain");
+          } catch (fallbackError) {
+            console.error('❌ SUPER DEBUG: Fallback blockchain fallito:', fallbackError);
+            
+            if (fetchError.name === 'AbortError') {
+              console.error('⏱️ SUPER DEBUG: Timeout della richiesta API dopo 15 secondi');
+              showNotification('error', 'Errore di Connessione', 'La richiesta al server è scaduta. Verifica la tua connessione di rete e riprova.');
+            } else {
+              console.error('❌ SUPER DEBUG: Errore durante il fetch degli NFT:', fetchError);
+              console.error('❌ SUPER DEBUG: Stack trace completo:', fetchError.stack);
+              showNotification('error', 'Errore di Caricamento', 
+                `Impossibile caricare gli NFT: ${fetchError.message || 'Errore sconosciuto'}`);
+            }
           console.log("🔍 SUPER DEBUG: Dati completi errore", {
             error: fetchError,
             message: fetchError.message,

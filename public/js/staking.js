@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.dailyRewards = document.getElementById('dailyRewards');
   window.pendingRewards = document.getElementById('pendingRewards');
   
+  // Nascondi dashboard di staking all'inizio (prima della connessione wallet)
+  if (window.stakingDashboard) {
+    window.stakingDashboard.classList.add('hidden');
+  }
+  
   // Modali per azioni di staking
   window.stakingModal = document.getElementById('stakingModal');
   window.unstakingModal = document.getElementById('unstakingModal');
@@ -134,11 +139,32 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = await response.json();
       showNotification('success', 'Accesso effettuato', 'Benvenuto nella piattaforma di staking!');
       
-      // Nascondi sezione auth e mostra dashboard
+      // Nascondi sezione auth
       authSection.classList.add('hidden');
-      stakingDashboard.classList.remove('hidden');
       
-      // Carica i dati
+      // NON mostrare la dashboard qui - sarà mostrata solo dopo la connessione del wallet
+      // La dashboard deve essere mostrata SOLO in handleWalletConnected
+      
+      // Verifica se il wallet è già connesso
+      const isWalletConnected = window.ethereum && window.ethereum.selectedAddress;
+      console.log('📱 Login completato. Wallet connesso?', isWalletConnected ? 'SI' : 'NO');
+      
+      if (isWalletConnected) {
+        console.log('⚠️ Un wallet è già connesso, mostriamo la dashboard');
+        // Trigger wallet connected event to show dashboard
+        handleWalletConnected({
+          detail: {
+            address: window.ethereum.selectedAddress,
+            network: window.ethereum.chainId
+          }
+        });
+      } else {
+        console.log('⚠️ Nessun wallet connesso, manteniamo dashboard nascosta');
+        // Mostra messaggio di prompt per connettere wallet
+        showNotification('info', 'Connetti il tuo wallet', 'Per accedere allo staking, connetti il tuo wallet Ethereum.');
+      }
+      
+      // Inizializza comunque in background per precaricare dati necessari
       initializeStakingDashboard();
       
     } catch (error) {
@@ -177,11 +203,32 @@ document.addEventListener('DOMContentLoaded', () => {
       currentUser = await response.json();
       showNotification('success', 'Registrazione completata', 'Account creato con successo!');
       
-      // Nascondi sezione auth e mostra dashboard
+      // Nascondi sezione auth
       authSection.classList.add('hidden');
-      stakingDashboard.classList.remove('hidden');
       
-      // Carica i dati
+      // NON mostrare la dashboard qui - sarà mostrata solo dopo la connessione del wallet
+      // La dashboard deve essere mostrata SOLO in handleWalletConnected
+      
+      // Verifica se il wallet è già connesso
+      const isWalletConnected = window.ethereum && window.ethereum.selectedAddress;
+      console.log('📱 Registrazione completata. Wallet connesso?', isWalletConnected ? 'SI' : 'NO');
+      
+      if (isWalletConnected) {
+        console.log('⚠️ Un wallet è già connesso, mostriamo la dashboard');
+        // Trigger wallet connected event to show dashboard
+        handleWalletConnected({
+          detail: {
+            address: window.ethereum.selectedAddress,
+            network: window.ethereum.chainId
+          }
+        });
+      } else {
+        console.log('⚠️ Nessun wallet connesso, manteniamo dashboard nascosta');
+        // Mostra messaggio di prompt per connettere wallet
+        showNotification('info', 'Connetti il tuo wallet', 'Per accedere allo staking, connetti il tuo wallet Ethereum.');
+      }
+      
+      // Inizializza comunque in background per precaricare dati necessari
       initializeStakingDashboard();
       
     } catch (error) {
@@ -408,11 +455,26 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function checkWalletStatus() {
     const isWalletConnected = window.ethereum && window.ethereum.selectedAddress;
-    const isUiShowing = !stakingDashboard.classList.contains('hidden');
+    
+    // Verifica della UI con riferimento globale sicuro
+    let isUiShowing = false;
+    
+    if (window.stakingDashboard) {
+      isUiShowing = !window.stakingDashboard.classList.contains('hidden');
+      console.log('✅ Stato UI (riferimento window):', isUiShowing ? 'visibile' : 'nascosta');
+    } else {
+      const dashboardEl = document.getElementById('stakingDashboard');
+      if (dashboardEl) {
+        isUiShowing = !dashboardEl.classList.contains('hidden');
+        console.log('✅ Stato UI (riferimento diretto):', isUiShowing ? 'visibile' : 'nascosta');
+      } else {
+        console.error('❌ Impossibile trovare la dashboard per verificare lo stato!');
+      }
+    }
     
     if (isWalletConnected && !isUiShowing) {
       // Wallet connesso ma UI non aggiornata
-      console.log('Wallet connesso ma UI non aggiornata, correggendo stato...');
+      console.log('🔄 Wallet connesso ma UI non aggiornata, correggendo stato...');
       handleWalletConnected({
         detail: {
           address: window.ethereum.selectedAddress,
@@ -421,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } else if (!isWalletConnected && isUiShowing) {
       // Wallet disconnesso ma UI mostra connesso
-      console.log('Wallet disconnesso ma UI mostra connesso, correggendo stato...');
+      console.log('🔄 Wallet disconnesso ma UI mostra connesso, correggendo stato...');
       handleWalletDisconnected();
     }
   }
@@ -448,8 +510,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Mostra dashboard di staking
-    if (stakingDashboard) {
-      stakingDashboard.classList.remove('hidden');
+    if (window.stakingDashboard) {
+      console.log('✅ Mostro la dashboard di staking (riferimento window globale)');
+      window.stakingDashboard.classList.remove('hidden');
+    } else {
+      console.error('❌ Riferimento globale stakingDashboard non trovato, tentativo diretto...');
+      const dashboardEl = document.getElementById('stakingDashboard');
+      if (dashboardEl) {
+        console.log('✅ Dashboard trovata con getElementById, rendo visibile');
+        dashboardEl.classList.remove('hidden');
+      } else {
+        console.error('❌❌ Dashboard non trovata in nessun modo!');
+      }
     }
     
     // Imposta indirizzo wallet nella dashboard (solo per visualizzazione)
@@ -484,8 +556,16 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Evento disconnessione wallet rilevato');
     
     // Nascondi dashboard di staking
-    if (stakingDashboard) {
-      stakingDashboard.classList.add('hidden');
+    if (window.stakingDashboard) {
+      console.log('✅ Nascondo la dashboard di staking (riferimento window globale)');
+      window.stakingDashboard.classList.add('hidden');
+    } else {
+      console.error('❌ Riferimento globale stakingDashboard non trovato, tentativo diretto...');
+      const dashboardEl = document.getElementById('stakingDashboard');
+      if (dashboardEl) {
+        console.log('✅ Dashboard trovata con getElementById, nascondo');
+        dashboardEl.classList.add('hidden');
+      }
     }
     
     // Aggiorna stato wallet nel wallet-connection-section
@@ -910,8 +990,17 @@ document.addEventListener('DOMContentLoaded', () => {
               const tokenId = await nftContractInstance.tokenOfOwnerByIndex(cleanWalletAddress, i);
               console.log(`✅ SUPER DEBUG: Trovato NFT #${tokenId.toString()}`);
               
-              // Aggiungi NFT all'array
-              nfts.push({
+              // Recupera l'URI dei metadati
+              let tokenURI = "";
+              try {
+                tokenURI = await nftContractInstance.tokenURI(tokenId);
+                console.log(`🔍 SUPER DEBUG: TokenURI per NFT #${tokenId.toString()}:`, tokenURI);
+              } catch (uriError) {
+                console.error(`❌ SUPER DEBUG: Errore nel recupero tokenURI per NFT #${tokenId.toString()}:`, uriError);
+              }
+              
+              // Prepara l'NFT con dati di base
+              let nftData = {
                 id: tokenId.toString(),
                 tokenId: tokenId.toString(),
                 name: `IASE Unit #${tokenId.toString()}`,
@@ -929,7 +1018,69 @@ document.addEventListener('DOMContentLoaded', () => {
                   aiCore: "standard",
                   evolutiveTrait: "standard"
                 }
-              });
+              };
+              
+              // Se abbiamo un tokenURI, tentiamo di recuperare i metadati completi
+              if (tokenURI) {
+                try {
+                  // Normalizza l'URI se necessario (gestisce ipfs://, https://, ecc.)
+                  if (tokenURI.startsWith('ipfs://')) {
+                    tokenURI = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                  }
+                  
+                  console.log(`🔄 SUPER DEBUG: Tentativo fetch metadati da: ${tokenURI}`);
+                  
+                  // Recupera i metadati reali da tokenURI con timeout
+                  const controller = new AbortController();
+                  const timeoutId = setTimeout(() => controller.abort(), 5000);
+                  
+                  const metadataResponse = await fetch(tokenURI, { 
+                    signal: controller.signal,
+                    headers: {
+                      'Accept': 'application/json'
+                    }
+                  });
+                  
+                  clearTimeout(timeoutId);
+                  
+                  if (metadataResponse.ok) {
+                    const metadata = await metadataResponse.json();
+                    console.log(`✅ SUPER DEBUG: Metadati recuperati per NFT #${tokenId.toString()}:`, metadata);
+                    
+                    // Aggiorna l'NFT con i metadati reali
+                    if (metadata.name) nftData.name = metadata.name;
+                    if (metadata.image) nftData.image = metadata.image;
+                    if (metadata.attributes) {
+                      for (const attr of metadata.attributes) {
+                        if (attr.trait_type === 'Card Frame') nftData.cardFrame = attr.value;
+                        if (attr.trait_type === 'AI-Booster') {
+                          nftData.aiBooster = attr.value;
+                          nftData['AI-Booster'] = attr.value;
+                        }
+                        
+                        // Imposta rarity in base al Card Frame
+                        if (attr.trait_type === 'Card Frame') {
+                          nftData.rarity = attr.value;
+                        }
+                        
+                        // Aggiorna iaseTraits se disponibili
+                        if (attr.trait_type === 'Orbital Design Module') nftData.iaseTraits.orbitalModule = attr.value.toLowerCase();
+                        if (attr.trait_type === 'Energy Panels') nftData.iaseTraits.energyPanels = attr.value.toLowerCase();
+                        if (attr.trait_type === 'Antenna Type') nftData.iaseTraits.antennaType = attr.value.toLowerCase();
+                        if (attr.trait_type === 'AI Core') nftData.iaseTraits.aiCore = attr.value.toLowerCase();
+                        if (attr.trait_type === 'Evolutive Trait') nftData.iaseTraits.evolutiveTrait = attr.value.toLowerCase();
+                      }
+                    }
+                  } else {
+                    console.error(`❌ SUPER DEBUG: Errore nel recupero metadati, status: ${metadataResponse.status}`);
+                  }
+                } catch (metadataError) {
+                  console.error(`❌ SUPER DEBUG: Errore nel recupero metadati per NFT #${tokenId.toString()}:`, metadataError);
+                }
+              }
+              
+              // Aggiungi l'NFT all'array (con metadati se disponibili)
+              nfts.push(nftData);
             } catch (err) {
               console.error(`❌ SUPER DEBUG: Errore nel recupero del token ${i}:`, err);
             }

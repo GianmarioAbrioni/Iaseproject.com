@@ -170,11 +170,60 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         provider
       );
       
-      // Verifica e correggi l'indirizzo del wallet (rimuovi eventuali puntini di sospensione)
-      // Verifica che walletAddress sia una stringa prima di usare includes
-      const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...')) 
-          ? walletAddress.replace(/\.\.\./g, '') // Rimuovi i puntini se presenti
-          : walletAddress;
+      // Verifica e correggi l'indirizzo del wallet
+      // Prima verifica che walletAddress sia una stringa
+      if (typeof walletAddress !== 'string') {
+        console.error(`❌ L'indirizzo wallet non è una stringa valida: ${typeof walletAddress}`);
+        throw new Error(`Indirizzo wallet non valido: tipo ${typeof walletAddress}`);
+      }
+      
+      // Pulizia base dell'indirizzo: rimuovi spazi, puntini di sospensione, ecc.
+      let cleanWalletAddress = walletAddress.trim();
+      cleanWalletAddress = cleanWalletAddress.replace(/\s+/g, ''); // Rimuovi tutti gli spazi
+      cleanWalletAddress = cleanWalletAddress.replace(/\.\.\./g, ''); // Rimuovi puntini di sospensione
+      
+      // Verifica che l'indirizzo inizi con 0x
+      if (!cleanWalletAddress.startsWith('0x')) {
+        console.error(`⚠️ L'indirizzo wallet non inizia con 0x: ${cleanWalletAddress}`);
+        cleanWalletAddress = '0x' + cleanWalletAddress; // Aggiungi 0x se manca
+        console.log(`⚠️ Corretto aggiungendo 0x: ${cleanWalletAddress}`);
+      }
+      
+      // Verifica che l'indirizzo abbia una lunghezza ragionevole (0x + 40 caratteri)
+      if (cleanWalletAddress.length < 42) {
+        console.error(`⚠️ L'indirizzo wallet è troppo corto: ${cleanWalletAddress} (${cleanWalletAddress.length} caratteri)`);
+        throw new Error(`L'indirizzo wallet è incompleto o non valido: ${cleanWalletAddress}`);
+      }
+      
+      // Se l'indirizzo è più lungo del necessario, tronca
+      if (cleanWalletAddress.length > 42) {
+        const originalAddress = cleanWalletAddress;
+        cleanWalletAddress = cleanWalletAddress.substring(0, 42);
+        console.log(`⚠️ Indirizzo troncato da ${originalAddress} a ${cleanWalletAddress}`);
+      }
+      
+      // Verifica che il resto dell'indirizzo contenga solo caratteri esadecimali
+      const hexBodyPattern = /^0x[a-fA-F0-9]{40}$/;
+      if (!hexBodyPattern.test(cleanWalletAddress)) {
+        console.error(`⚠️ L'indirizzo wallet contiene caratteri non esadecimali: ${cleanWalletAddress}`);
+        // Tenta una pulizia più aggressiva: rimuovi tutti i caratteri non esadecimali dopo 0x
+        const prefix = cleanWalletAddress.substring(0, 2); // 0x
+        const body = cleanWalletAddress.substring(2).replace(/[^a-fA-F0-9]/g, ''); // Rimuovi caratteri non hex
+        
+        // Se il corpo è troppo corto dopo la pulizia, non possiamo procedere
+        if (body.length < 40) {
+          console.error(`❌ L'indirizzo wallet non può essere corretto: ${cleanWalletAddress} -> ${prefix}${body}`);
+          throw new Error(`L'indirizzo wallet contiene troppi caratteri non validi: ${cleanWalletAddress}`);
+        }
+        
+        // Tronca il corpo a 40 caratteri e ricostruisci l'indirizzo
+        cleanWalletAddress = prefix + body.substring(0, 40);
+        console.log(`⚠️ Indirizzo corretto rimuovendo caratteri non validi: ${cleanWalletAddress}`);
+      }
+      
+      // Normalizza l'indirizzo (converte in lowercase)
+      cleanWalletAddress = cleanWalletAddress.toLowerCase();
+      console.log(`✅ Indirizzo wallet normalizzato: ${cleanWalletAddress}`);
       
       console.log(`🧹 Indirizzo wallet pulito: ${cleanWalletAddress}`);
       

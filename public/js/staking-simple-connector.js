@@ -354,20 +354,37 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('👋 User disconnected wallet');
       // Ferma il monitoraggio quando MetaMask riporta disconnessione
       stopConnectionWatcher();
-      // Simple UI update on disconnect - no alerts
-      updateUI();
+      
+      // SOLUZIONE CRUCIALE DA TOKEN.HTML: 
+      // Ricarica la pagina invece di aggiornare solo la UI
+      console.log('🔄 Ricaricando la pagina dopo disconnessione wallet...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } else {
       console.log('✓ Account switched to:', accounts[0]);
       // Assicuriamoci che il monitoraggio sia attivo quando c'è un account connesso
       startConnectionWatcher();
-      updateUI();
+      
+      // Quando cambia l'account, ricarica la pagina per essere sicuri
+      // che tutto il contesto venga resettato correttamente
+      console.log('🔄 Ricaricando la pagina dopo cambio account...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
   }
   
   // Handle chain/network changes
   function handleChainChanged(chainId) {
     console.log('🔄 Network changed:', chainId);
-    updateUI();
+    
+    // LA SOLUZIONE! Ricarica la pagina per resettare tutto quando cambia la rete
+    // Questo è esattamente ciò che fa token.html (riga 319) e garantisce il reset completo
+    console.log('🔄 Ricaricando la pagina dopo cambio rete...');
+    window.location.reload();
+    
+    // updateUI(); // Non necessario perché facciamo reload
   }
   
   // Check initial connection state on page load

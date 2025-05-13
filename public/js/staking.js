@@ -589,7 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Clean the wallet address (remove ellipsis if present)
-      const cleanWalletAddress = walletAddress.includes('...') 
+      // Verifica che walletAddress sia una stringa prima di usare includes
+      const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...')) 
           ? walletAddress.replace(/\.\.\./g, '') 
           : walletAddress;
       
@@ -634,7 +635,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Clean the wallet address (remove ellipsis if present)
-      const cleanWalletAddress = walletAddress.includes('...') 
+      // Verifica che walletAddress sia una stringa prima di usare includes
+      const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...')) 
           ? walletAddress.replace(/\.\.\./g, '') 
           : walletAddress;
       

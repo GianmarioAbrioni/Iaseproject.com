@@ -83,43 +83,158 @@ document.addEventListener('DOMContentLoaded', function() {
       // Wallet connected
       const address = window.ethereum.selectedAddress;
       
-      // Clean the wallet address and then create a short version for display
-      // Verifica che address sia una stringa prima di usare includes
-      const cleanAddress = (typeof address === 'string' && address.includes('...')) 
-          ? address.replace(/\.\.\./g, '') 
-          : address;
-      
-      // IMPORTANTE: Salva l'indirizzo completo e pulito in una variabile globale per le API
-      window.userWalletAddress = cleanAddress;
-      console.log('📝 Indirizzo wallet completo salvato per API:', window.userWalletAddress);
-      
-      // Verifiche aggiuntive sull'indirizzo
-      if (typeof address !== 'string') {
-        console.error('⚠️ L\'indirizzo wallet non è una stringa:', typeof address);
-      } else if (address.length < 42) {
-        console.error('⚠️ L\'indirizzo wallet è incompleto:', address, '(lunghezza:', address.length, ')');
-      } else if (!address.startsWith('0x')) {
-        console.error('⚠️ L\'indirizzo wallet non inizia con 0x:', address);
+      // Importante: Dobbiamo essere sicuri che l'indirizzo sia una stringa valida
+      if (!address) {
+        console.error('⚠️ Indirizzo wallet mancante nonostante isWalletConnected() sia true');
+        // Aggiorna l'interfaccia come se il wallet non fosse connesso
+        updateStatusIndicator(false);
+        if (walletStatusText) walletStatusText.textContent = 'Wallet non connesso (errore)';
+        if (walletAddress) walletAddress.textContent = '';
+        if (connectBtn) connectBtn.classList.remove('hidden');
+        if (disconnectBtn) disconnectBtn.classList.add('hidden');
+        if (stakingDashboard) stakingDashboard.classList.add('hidden');
+        return;
       }
       
-      // Versione abbreviata solo per visualizzazione nell'UI
-      const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+      // Validazione del tipo di address
+      if (typeof address !== 'string') {
+        console.error('⚠️ L\'indirizzo wallet non è una stringa:', typeof address);
+        // Tentativo di correzione
+        const stringAddress = String(address);
+        console.log('🔧 Tentativo di conversione dell\'indirizzo a stringa:', stringAddress);
+        // Continua con la stringa convertita
+        processWalletAddress(stringAddress);
+      } else {
+        // Procedi normalmente con la stringa
+        processWalletAddress(address);
+      }
+    } else {
+      // Wallet non connesso - gestito più in basso nella funzione
+      handleWalletDisconnected();
+    }
+    
+    // Funzione interna per elaborare un indirizzo wallet
+    function processWalletAddress(originalAddress) {
+      // Pulisci l'indirizzo
+      let cleanAddress = originalAddress.trim();
+      
+      // Rimuovi spazi bianchi
+      cleanAddress = cleanAddress.replace(/\s+/g, '');
+      
+      // Rimuovi i puntini di sospensione (solo se l'indirizzo sembra abbreviato)
+      if (cleanAddress.includes('...') && cleanAddress.length < 42) {
+        console.log('⚠️ Rilevato indirizzo abbreviato:', cleanAddress);
+        cleanAddress = cleanAddress.replace(/\.\.\./g, '');
+        console.log('🔧 Indirizzo dopo rimozione puntini:', cleanAddress);
+      }
+      
+      // Verifica che l'indirizzo inizi con 0x
+      if (!cleanAddress.startsWith('0x')) {
+        console.warn('⚠️ L\'indirizzo wallet non inizia con 0x:', cleanAddress);
+        cleanAddress = '0x' + cleanAddress;
+        console.log('🔧 Aggiunto 0x all\'indirizzo:', cleanAddress);
+      }
+      
+      // Verifiche sulla lunghezza
+      if (cleanAddress.length !== 42) {
+        console.warn(`⚠️ L'indirizzo wallet ha una lunghezza anomala: ${cleanAddress.length} caratteri`);
+        // Se troppo lungo, tronca a 42 caratteri
+        if (cleanAddress.length > 42) {
+          cleanAddress = cleanAddress.substring(0, 42);
+          console.log('🔧 Indirizzo troncato a 42 caratteri:', cleanAddress);
+        }
+        // Se troppo corto, mantienilo così ma segnala il problema
+        else {
+          console.error('⚠️ L\'indirizzo wallet è troppo corto e potrebbe non funzionare:', cleanAddress);
+        }
+      }
+      
+      // IMPORTANTE: Salva l'indirizzo pulito in una variabile globale per le API
+      window.userWalletAddress = cleanAddress;
+      console.log('📝 Indirizzo wallet pulito salvato per API:', window.userWalletAddress);
+      
+      // Salva in localStorage per persistenza tra sessioni
+      try {
+        localStorage.setItem('lastWalletAddress', cleanAddress);
+        console.log('💾 Indirizzo wallet salvato in localStorage');
+      } catch (e) {
+        console.error('❌ Errore nel salvare l\'indirizzo in localStorage:', e);
+      }
+      
+      // Crea versione abbreviata per UI
+      const shortAddress = `${cleanAddress.substring(0, 6)}...${cleanAddress.substring(cleanAddress.length - 4)}`;
+      
+      // Verifica network
       const chainId = window.ethereum.chainId;
       const isCorrectNetwork = chainId === NETWORK_DATA.ETHEREUM_MAINNET.chainId;
       
-      // Update status indicator to green
+      // Aggiorna UI con indirizzo e stato rete
+      updateUIWithWalletInfo(cleanAddress, shortAddress, chainId, isCorrectNetwork);
+    }
+    
+    // Funzione interna per aggiornare l'UI con le informazioni del wallet
+    function updateUIWithWalletInfo(cleanAddress, shortAddress, chainId, isCorrectNetwork) {
+      // Aggiorna indicatore di stato
       updateStatusIndicator(true);
       
-      // Update connection text
-      if (walletStatusText) walletStatusText.textContent = 'Wallet connected';
+      if (walletStatusText) walletStatusText.textContent = isCorrectNetwork ? 'Wallet connesso' : 'Rete errata';
       if (walletAddress) walletAddress.textContent = shortAddress;
       
-      // Show disconnect button, hide connect button
       if (connectBtn) connectBtn.classList.add('hidden');
       if (disconnectBtn) disconnectBtn.classList.remove('hidden');
       
-      // Show staking dashboard
-      if (stakingDashboard) stakingDashboard.classList.remove('hidden');
+      // Mostra avviso rete errata se necessario
+      if (wrongNetworkAlert) {
+        if (!isCorrectNetwork) {
+          wrongNetworkAlert.classList.remove('d-none');
+          const networkName = getNetworkName(chainId);
+          document.getElementById('currentNetwork').textContent = networkName;
+        } else {
+          wrongNetworkAlert.classList.add('d-none');
+        }
+      }
+      
+      // Mostra dashboard di staking solo se connesso alla rete corretta
+      if (stakingDashboard) {
+        if (isCorrectNetwork) {
+          stakingDashboard.classList.remove('hidden');
+          // Trigger custom event for staking.js
+          const event = new CustomEvent('wallet:connected', { 
+            detail: { address: cleanAddress, shortAddress, chainId } 
+          });
+          document.dispatchEvent(event);
+        } else {
+          stakingDashboard.classList.add('hidden');
+        }
+      }
+    }
+    
+    // Funzione interna per gestire il wallet disconnesso
+    function handleWalletDisconnected() {
+      // Wallet disconnected
+      // Update status indicator to red
+      updateStatusIndicator(false);
+      
+      // Update connection text
+      if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
+      if (walletAddress) walletAddress.textContent = '';
+      
+      // Show connect button, hide disconnect button
+      if (connectBtn) connectBtn.classList.remove('hidden');
+      if (disconnectBtn) disconnectBtn.classList.add('hidden');
+      
+      // Hide staking dashboard
+      if (stakingDashboard) stakingDashboard.classList.add('hidden');
+      
+      // Hide wrong network alert
+      if (wrongNetworkAlert) wrongNetworkAlert.classList.add('d-none');
+      
+      // Rimuovi indirizzo wallet attivo (ma mantieni in localStorage come ultimo indirizzo noto)
+      window.userWalletAddress = null;
+      
+      // Trigger custom event for staking.js
+      const event = new CustomEvent('wallet:disconnected');
+      document.dispatchEvent(event);
       
       // Check if on correct network
       if (wrongNetworkAlert) {

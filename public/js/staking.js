@@ -631,19 +631,86 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   async function loadAvailableNfts(contractAddress = null, walletAddressOverride = null) {
   try {
+    // Prima verifica se c'è un indirizzo salvato in localStorage
+    let storedAddress;
+    try {
+      storedAddress = localStorage.getItem('lastWalletAddress');
+      if (storedAddress) {
+        console.log(`📝 Trovato indirizzo wallet in localStorage: ${storedAddress}`);
+      }
+    } catch (err) {
+      console.error('❌ Errore nel recuperare indirizzo da localStorage:', err);
+    }
+    
+    // Verifica tutte le possibili fonti dell'indirizzo wallet in ordine di priorità
     let walletAddress = walletAddressOverride ||
       window.WALLET_STATE?.address ||
       window.ethereum?.selectedAddress ||
-      window.userWalletAddress;
+      window.userWalletAddress ||
+      storedAddress;
 
     if (!walletAddress) {
-      console.log("No wallet connected, cannot load NFTs");
+      console.log("⚠️ Nessun wallet connesso, impossibile caricare gli NFT");
+      // Mostra un messaggio all'utente
+      const availableNftGrid = document.getElementById('availableNftsContainer');
+      if (availableNftGrid) {
+        availableNftGrid.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-wallet-3-line"></i>
+            <h3>Nessun wallet connesso</h3>
+            <p>Collega il tuo wallet Ethereum per visualizzare i tuoi NFT disponibili per lo staking.</p>
+            <button id="connectWalletBtn" class="btn primary-btn mt-3">
+              <i class="ri-wallet-3-line"></i> Collega Wallet
+            </button>
+          </div>
+        `;
+        // Aggiungi event listener al pulsante
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
+        if (connectWalletBtn) {
+          connectWalletBtn.addEventListener('click', () => {
+            if (typeof window.connectWalletETH === 'function') {
+              window.connectWalletETH();
+            }
+          });
+        }
+      }
       return;
     }
+    
+    // Verifica se l'indirizzo wallet è una stringa valida
+    if (typeof walletAddress !== 'string') {
+      console.error(`❌ L'indirizzo wallet non è una stringa valida: ${typeof walletAddress}`);
+      throw new Error(`Indirizzo wallet non valido: tipo ${typeof walletAddress}`);
+    }
 
-    const cleanWalletAddress = (typeof walletAddress === 'string' && walletAddress.includes('...'))
-      ? walletAddress.replace(/\.\.\./g, '')
-      : walletAddress;
+    // Pulizia avanzata dell'indirizzo
+    let cleanWalletAddress = walletAddress.trim(); // Rimuovi spazi all'inizio e alla fine
+    cleanWalletAddress = cleanWalletAddress.replace(/\s+/g, ''); // Rimuovi tutti gli spazi
+    
+    // Rimuovi i puntini di sospensione solo se presenti e l'indirizzo non è un indirizzo completo
+    if (cleanWalletAddress.includes('...') && cleanWalletAddress.length < 42) {
+      console.log(`⚠️ Indirizzo abbreviato rilevato: ${cleanWalletAddress}`);
+      cleanWalletAddress = cleanWalletAddress.replace(/\.\.\./g, '');
+    }
+    
+    // Verifica che l'indirizzo inizi con 0x
+    if (!cleanWalletAddress.startsWith('0x')) {
+      console.warn(`⚠️ L'indirizzo wallet non inizia con 0x: ${cleanWalletAddress}`);
+      cleanWalletAddress = '0x' + cleanWalletAddress;
+      console.log(`⚠️ Aggiunto 0x all'indirizzo: ${cleanWalletAddress}`);
+    }
+    
+    // Salva l'indirizzo pulito per uso futuro
+    window.userWalletAddress = cleanWalletAddress;
+    
+    // Tenta di salvare in localStorage
+    try {
+      localStorage.setItem('lastWalletAddress', cleanWalletAddress);
+    } catch (err) {
+      console.error('❌ Errore nel salvare indirizzo in localStorage:', err);
+    }
+    
+    console.log(`🧹 Indirizzo wallet finale utilizzato: ${cleanWalletAddress}`);
 
     console.log("🔍 Fetching available NFTs for wallet:", cleanWalletAddress);
       
@@ -675,22 +742,89 @@ document.addEventListener('DOMContentLoaded', () => {
       let apiUrl = `/api/staking/get-available-nfts?wallet=${encodeURIComponent(cleanWalletAddress)}`;
       if (contractAddress) {
         apiUrl += `&contract=${encodeURIComponent(contractAddress)}`;
-        console.log("Using specific contract address:", contractAddress);
+        console.log("🏢 Utilizzo indirizzo contratto specifico:", contractAddress);
       }
-      console.log("API URL codificata correttamente:", apiUrl);
+      console.log("🔗 API URL codificata correttamente:", apiUrl);
       
-      console.log("📡 API request URL:", apiUrl);
-      const response = await fetch(apiUrl);
+      // Gestisci con timeout in caso di problemi di rete
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 secondi di timeout
       
-      if (!response.ok) {
-        throw new Error(`Error retrieving NFTs: ${response.status} ${response.statusText}`);
+      let response;
+      try {
+        console.log("📡 Invio richiesta API:", apiUrl);
+        response = await fetch(apiUrl, { 
+          signal: controller.signal,
+          // Aggiungi cache control headers per evitare problemi di cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
+        // Elimina il timeout se la richiesta ha successo
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const responseText = await response.text();
+          console.error(`❌ Errore API (${response.status} ${response.statusText}):`, responseText);
+          
+          // Se l'errore è relativo all'indirizzo wallet, mostra un messaggio più informativo
+          if (responseText.includes('wallet') && (responseText.includes('invalid') || responseText.includes('pattern'))) {
+            showNotification('error', 'Errore Indirizzo Wallet', 
+              'Il formato dell\'indirizzo del wallet non è valido. Prova a disconnettere e riconnettere il wallet.');
+            throw new Error(`Formato indirizzo wallet non valido: ${cleanWalletAddress}`);
+          }
+          
+          throw new Error(`Errore API: ${response.status} ${response.statusText} - ${responseText}`);
+        }
+      } catch (fetchError) {
+        if (fetchError.name === 'AbortError') {
+          console.error('⏱️ Timeout della richiesta API dopo 20 secondi');
+          showNotification('error', 'Errore di Connessione', 'La richiesta al server è scaduta. Verifica la tua connessione di rete e riprova.');
+        } else {
+          console.error('❌ Errore durante il fetch degli NFT:', fetchError);
+          showNotification('error', 'Errore di Caricamento', 
+            `Impossibile caricare gli NFT: ${fetchError.message || 'Errore sconosciuto'}`);
+        }
+        
+        // Mostra stato vuoto con pulsante retry
+        if (window.availableNftGrid) {
+          window.availableNftGrid.innerHTML = `
+            <div class="empty-state">
+              <i class="ri-error-warning-line"></i>
+              <h3>Errore di caricamento</h3>
+              <p>${fetchError.message || 'Impossibile caricare gli NFT. Verifica la tua connessione e riprova.'}</p>
+              <button id="retryNftLoadBtn" class="btn primary-btn mt-3">
+                <i class="ri-refresh-line"></i> Riprova
+              </button>
+            </div>
+          `;
+          
+          // Aggiungi event listener al pulsante retry
+          const retryBtn = document.getElementById('retryNftLoadBtn');
+          if (retryBtn) {
+            retryBtn.addEventListener('click', () => loadAvailableNfts(contractAddress, cleanWalletAddress));
+          }
+        }
+        
+        return; // Esci dalla funzione per evitare ulteriori elaborazioni
       }
       
-      const data = await response.json();
-      console.log("📦 NFTs data received:", data);
-      
-      // Log completo della risposta per debugging
-      console.log("📝 Full API response:", JSON.stringify(data));
+      let data;
+      try {
+        data = await response.json();
+        console.log("📦 Dati NFT ricevuti:", data);
+        
+        // Log completo della risposta per debugging
+        console.log("📝 Risposta API completa:", JSON.stringify(data).substring(0, 1000) + 
+          (JSON.stringify(data).length > 1000 ? '... (truncated)' : ''));
+      } catch (jsonError) {
+        console.error('❌ Errore nel parsing della risposta JSON:', jsonError);
+        showNotification('error', 'Errore di Formato', 'La risposta del server non è in formato valido. Contatta il supporto.');
+        return;
+      }
       
       // Verifica il wallet tornato dalla risposta come conferma
       if (data.wallet) {

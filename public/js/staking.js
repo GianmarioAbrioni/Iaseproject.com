@@ -1125,25 +1125,97 @@ document.addEventListener('DOMContentLoaded', () => {
       // Usa i dati dal fallback o dalla risposta API
       if (!nftData) {
         try {
-          console.log("🔍 SUPER DEBUG: Inizio parsing risposta JSON");
-          nftData = await response.json();
-          console.log("📦 SUPER DEBUG: Dati NFT ricevuti:", nftData);
+          // Prima verifica se la risposta è in un formato valido
+          let responseText = await response.text();
+          console.log("🔍 SUPER DEBUG: Risposta originale ricevuta:", responseText.substring(0, 200));
           
-          // Log completo della risposta per debugging
-          const respJson = JSON.stringify(nftData);
-          console.log("📝 SUPER DEBUG: Lunghezza risposta:", respJson.length);
-          console.log("📝 SUPER DEBUG: Risposta API completa:", respJson.substring(0, 1000) + 
+          let jsonParseSuccessful = false;
+          
+          try {
+            // Controlla se la risposta è vuota
+            if (!responseText || responseText.trim() === '') {
+              console.error("❌ SUPER DEBUG: Risposta API vuota");
+              throw new Error("Risposta API vuota");
+            }
+            
+            // Controlla se la risposta inizia con caratteri HTML (potrebbe essere una pagina di errore)
+            if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+              console.error("❌ SUPER DEBUG: Risposta è una pagina HTML, non JSON:", responseText.substring(0, 100));
+              throw new Error("Risposta API non valida (HTML ricevuto)");
+            }
+            
+            // Tenta di analizzare la risposta come JSON
+            let parsedData = JSON.parse(responseText);
+            
+            // Verifica se la risposta ha la struttura corretta
+            if (!parsedData) {
+              console.error("❌ SUPER DEBUG: Risposta JSON non valida (null o undefined)");
+              throw new Error("Risposta JSON non valida");
+            }
+            
+            // Verifica che ci sia un array 'nfts' nella risposta
+            if (!parsedData.nfts || !Array.isArray(parsedData.nfts)) {
+              console.error("❌ SUPER DEBUG: Risposta JSON senza array 'nfts' valido:", parsedData);
+              throw new Error("Struttura dati 'nfts' non valida nella risposta");
+            }
+            
+            // Se arriviamo qui, la risposta è valida
+            nftData = parsedData;
+            jsonParseSuccessful = true;
+            console.log("📦 SUPER DEBUG: Dati NFT ricevuti:", nftData);
+            
+            // Log completo della risposta per debugging
+            const respJson = JSON.stringify(nftData);
+            console.log("📝 SUPER DEBUG: Lunghezza risposta:", respJson.length);
+            console.log("📝 SUPER DEBUG: Risposta API completa:", respJson.substring(0, 1000) + 
             (respJson.length > 1000 ? '... (truncated)' : ''));
             
-          // Ispeziona la struttura della risposta
-          console.log("🔍 SUPER DEBUG: Chiavi dell'oggetto risposta:", Object.keys(nftData));
-          if (nftData.nfts) console.log("🔍 SUPER DEBUG: Tipo nfts:", typeof nftData.nfts, Array.isArray(nftData.nfts));
-          if (nftData.available) console.log("🔍 SUPER DEBUG: Tipo available:", typeof nftData.available, Array.isArray(nftData.available));
-        } catch (jsonError) {
-          console.error('❌ SUPER DEBUG: Errore nel parsing della risposta JSON:', jsonError);
-          console.error('❌ SUPER DEBUG: Stack trace completo:', jsonError.stack);
-          showNotification('error', 'Errore di Formato', 'La risposta del server non è in formato valido. Contatta il supporto.');
-          return;
+            // Ispeziona la struttura della risposta
+            console.log("🔍 SUPER DEBUG: Chiavi dell'oggetto risposta:", Object.keys(nftData));
+            
+          } catch (jsonParseError) {
+            console.error("❌ SUPER DEBUG: Errore parsing JSON:", jsonParseError);
+            console.log("⚠️ SUPER DEBUG: Risposta non valida, attivazione fallback blockchain...");
+            // Mostra una notifica all'utente per informarlo del problema
+            showNotification('warning', 'Cambio modalità', 'Utilizzando connessione diretta alla blockchain per il caricamento NFT');
+          }
+          
+          // Se il parsing JSON è fallito, usa il fallback blockchain
+          if (!jsonParseSuccessful) {
+            try {
+              nftData = await loadNftsDirectFromBlockchain();
+              usedFallback = true;
+              console.log("✅ SUPER DEBUG: Fallback riuscito, NFT recuperati dalla blockchain");
+            } catch (fallbackError) {
+              console.error("❌ SUPER DEBUG: Anche il fallback blockchain è fallito:", fallbackError);
+              showNotification('error', 'Errore di caricamento', 'Impossibile caricare gli NFT da tutte le fonti disponibili. Riprova più tardi.');
+              throw new Error("Fallimento completo nel caricamento NFT: " + fallbackError.message);
+            }
+          }
+          
+          // Log sui tipi di dati per debug
+          if (nftData && nftData.nfts) {
+            console.log("🔍 SUPER DEBUG: Tipo nfts:", typeof nftData.nfts, Array.isArray(nftData.nfts));
+          }
+          if (nftData && nftData.available) {
+            console.log("🔍 SUPER DEBUG: Tipo available:", typeof nftData.available, Array.isArray(nftData.available));
+          }
+          
+        } catch (error) {
+          console.error('❌ SUPER DEBUG: Errore generale nella gestione risposta:', error);
+          console.error('❌ SUPER DEBUG: Stack trace completo:', error.stack);
+          
+          // In caso di qualsiasi errore, tenta il fallback blockchain
+          try {
+            console.log("⚠️ SUPER DEBUG: Errore critico, tentativo fallback blockchain di emergenza...");
+            nftData = await loadNftsDirectFromBlockchain();
+            usedFallback = true;
+            console.log("✅ SUPER DEBUG: Fallback di emergenza riuscito");
+          } catch (fallbackError) {
+            console.error('❌ SUPER DEBUG: Anche il fallback blockchain è fallito:', fallbackError);
+            showNotification('error', 'Errore Critico', 'Impossibile recuperare gli NFT. Riprova più tardi.');
+            return;
+          }
         }
       }
       
@@ -1714,6 +1786,8 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {Object|string} nft - L'oggetto NFT completo o l'ID dell'NFT
    */
   function openStakeModal(nft) {
+    // Esporta globalmente la funzione per evitare errori di riferimento
+    window.openStakeModal = openStakeModal;
     console.log(`🔒 Apertura modale di staking per NFT`, nft);
     
     // Determina se è stato passato un oggetto completo o solo un ID

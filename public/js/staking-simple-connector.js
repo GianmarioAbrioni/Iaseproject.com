@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
   
   // Get UI elements
-  const connectBtn = document.getElementById('connectButtonETH');
+  let connectBtn = document.getElementById('connectButtonETH');
   const disconnectBtn = document.getElementById('disconnectWalletBtn');
   const walletStatusText = document.getElementById('walletStatusText');
   const walletAddress = document.getElementById('walletAddress');
@@ -583,16 +583,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Inizializza listeners per gli eventi di metamask
-  setupMetamaskListeners();
-  
-  // Add event listeners (rimossi perché li gestisce la pagina HTML direttamente)
-  
-  // Add event listener to network switch button
-  const switchNetworkBtn = document.getElementById('switch-network-btn');
-  if (switchNetworkBtn) {
-    switchNetworkBtn.addEventListener('click', switchToEthereum);
+  // Initialize all UI elements and events
+  function setupUIEvents() {
+    // Add event listeners for the connect button
+    connectBtn = document.getElementById('connectButtonETH');
+    if (connectBtn) {
+      connectBtn.addEventListener('click', connectEthWallet);
+    }
+    
+    // Add event listener to network switch button
+    const switchNetworkBtn = document.getElementById('switch-network-btn');
+    if (switchNetworkBtn) {
+      switchNetworkBtn.addEventListener('click', switchToEthereum);
+    }
   }
+  
+  // Network switch button is handled in setupUIEvents
   
   // Elegant handling of Metamask events
   function setupMetamaskListeners() {
@@ -659,8 +665,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function init() {
     addStatusIndicatorStyles();
     setupMetamaskListeners();
+    setupUIEvents();
     updateUI();
   }
   
   // Run initialization
-init();
+  init();
+});

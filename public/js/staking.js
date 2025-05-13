@@ -439,6 +439,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.userWalletAddress = address;
     console.log('Indirizzo wallet completo salvato per le API:', window.userWalletAddress);
     
+    // Salva in localStorage per persistenza
+    try {
+      localStorage.setItem('lastWalletAddress', address);
+      console.log('Indirizzo wallet salvato in localStorage');
+    } catch (err) {
+      console.error('Errore nel salvare indirizzo in localStorage:', err);
+    }
+    
     // Mostra dashboard di staking
     if (stakingDashboard) {
       stakingDashboard.classList.remove('hidden');
@@ -455,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Aggiorna stato wallet nel wallet-connection-section
     const walletStatusText = document.getElementById('walletStatusText');
     const walletAddress = document.getElementById('walletAddress');
-    const connectWalletBtn = document.getElementById('connectButtonETH');
+    const connectWalletBtn = document.getElementById('connectButtonETH') || document.getElementById('connectWalletBtn');
     const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
     
     if (walletStatusText) walletStatusText.textContent = 'Wallet connected';
@@ -466,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Carica gli NFT disponibili
     console.log('Loading NFTs after wallet connection');
-    loadAvailableNfts();
+    loadAvailableNfts(null, address);
   }
   
   /**
@@ -483,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Aggiorna stato wallet nel wallet-connection-section
     const walletStatusText = document.getElementById('walletStatusText');
     const walletAddress = document.getElementById('walletAddress');
-    const connectWalletBtn = document.getElementById('connectWalletBtn');
+    const connectWalletBtn = document.getElementById('connectButtonETH');
     const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
     
     if (walletStatusText) walletStatusText.textContent = 'Wallet not connected';
@@ -625,6 +633,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   /**
+   * Funzione per caricare dinamicamente la libreria ethers.js
+   */
+  function loadEthersLibrary() {
+    return new Promise((resolve, reject) => {
+      if (window.ethers) {
+        console.log("✅ Libreria ethers già caricata");
+        return resolve(window.ethers);
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js';
+      script.async = true;
+      script.onload = () => {
+        console.log("✅ Libreria ethers caricata con successo");
+        resolve(window.ethers);
+      };
+      script.onerror = (err) => {
+        console.error("❌ Errore nel caricamento della libreria ethers");
+        reject(err);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  /**
    * Load available NFTs for the connected wallet address
    * @param {string} contractAddress - Optional NFT contract address to filter by
    * @param {string} walletAddressOverride - Optional wallet address override
@@ -644,6 +677,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!contractAddress) {
       contractAddress = window.IASE_NFT_CONTRACT || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
       console.log(`🔄 SUPER DEBUG: Usando contratto predefinito: ${contractAddress}`);
+    }
+    
+    // Verifica se esiste la libreria ethers
+    if (!window.ethers) {
+      console.log("⚠️ Libreria ethers non trovata, tentativo di caricamento dinamico...");
+      try {
+        await loadEthersLibrary();
+      } catch (ethersLoadError) {
+        console.error("❌ Impossibile caricare la libreria ethers:", ethersLoadError);
+      }
     }
     
     // Inizializza il provider Ethereum per fallback direct-to-blockchain
@@ -696,6 +739,12 @@ document.addEventListener('DOMContentLoaded', () => {
           connectWalletBtn.addEventListener('click', () => {
             if (typeof window.connectWalletETH === 'function') {
               window.connectWalletETH();
+            } else {
+              console.error("Funzione connectWalletETH non trovata");
+              const connectButtonETH = document.getElementById('connectButtonETH');
+              if (connectButtonETH) {
+                connectButtonETH.click();
+              }
             }
           });
         }
@@ -793,9 +842,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       console.log("🔗 API URL codificata correttamente:", apiUrl);
       
-      // Flag per tenere traccia se abbiamo usato il fallback
+      // Inizializziamo le variabili per la gestione dei dati e del fallback
+      let nftData = null;
       let usedFallback = false;
-      let data = null;
       
       // Funzione per recuperare NFT direttamente dalla blockchain (fallback)
       async function loadNftsDirectFromBlockchain() {
@@ -803,21 +852,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.ethereum || !window.ethers) {
           console.warn("⚠️ SUPER DEBUG: Web3 o ethers non disponibile per il fallback, tentativo di caricamento diretto");
           
-          // Aggiungiamo ethers.js dinamicamente se non è già presente
+          // Utilizziamo la funzione globale per caricare ethers.js
           if (!window.ethers) {
             try {
-              console.log("🔄 SUPER DEBUG: Caricamento dinamico di ethers.js");
-              const script = document.createElement('script');
-              script.src = 'https://cdn.ethers.io/lib/ethers-5.6.umd.min.js';
-              script.async = true;
-              
-              // Attendiamo il caricamento
-              await new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-              });
-              
+              console.log("🔄 SUPER DEBUG: Caricamento dinamico di ethers.js tramite funzione globale");
+              await loadEthersLibrary();
               console.log("✅ SUPER DEBUG: ethers.js caricato con successo");
             } catch (err) {
               console.error("❌ SUPER DEBUG: Errore nel caricamento di ethers.js:", err);
@@ -842,9 +881,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (window.ethereum) {
             provider = new ethers.providers.Web3Provider(window.ethereum);
           } else {
-            // URL di Infura come fallback (usa chiave pubblica)
+            // URL di Infura come fallback (usa chiave IASE)
             provider = new ethers.providers.JsonRpcProvider(
-              "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+              "https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66"
             );
           }
           
@@ -991,8 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Flag per tracciare se il fallback è stato usato
-      let usedFallback = false;
+      // Il flag usedFallback è già stato inizializzato in precedenza
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 secondi di timeout
@@ -1024,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
           console.error(`❌ SUPER DEBUG: Errore API (${response.status} ${response.statusText}):`, responseText);
           
           console.log("⚠️ SUPER DEBUG: API fallita, tentativo di fallback sulla blockchain...");
-          data = await loadNftsViaBlockchain(cleanWalletAddress);
+          nftData = await loadNftsDirectFromBlockchain();
           usedFallback = true;
           console.log("✅ SUPER DEBUG: Fallback riuscito, NFT recuperati dalla blockchain");
         }
@@ -1035,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!usedFallback) {
           try {
             console.log("⚠️ SUPER DEBUG: Errore API fetch, tentativo fallback blockchain con Infura...");
-            data = await loadNftsViaBlockchain(cleanWalletAddress);
+            nftData = await loadNftsDirectFromBlockchain();
             usedFallback = true;
             console.log("✅ SUPER DEBUG: Fallback riuscito, NFT recuperati dalla blockchain");
           } catch (fallbackError) {
@@ -1050,13 +1088,14 @@ document.addEventListener('DOMContentLoaded', () => {
               showNotification('error', 'Errore di Caricamento', 
                 `Impossibile caricare gli NFT: ${fetchError.message || 'Errore sconosciuto'}`);
             }
-          console.log("🔍 SUPER DEBUG: Dati completi errore", {
-            error: fetchError,
-            message: fetchError.message,
-            stack: fetchError.stack,
-            wallet: cleanWalletAddress,
-            apiUrl: apiUrl
-          });
+            console.log("🔍 SUPER DEBUG: Dati completi errore", {
+              error: fetchError,
+              message: fetchError.message,
+              stack: fetchError.stack,
+              wallet: cleanWalletAddress,
+              apiUrl: apiUrl
+            });
+          }
         }
         console.groupEnd();
         
@@ -1083,66 +1122,67 @@ document.addEventListener('DOMContentLoaded', () => {
         return; // Esci dalla funzione per evitare ulteriori elaborazioni
       }
       
-      let data;
-      try {
-        console.log("🔍 SUPER DEBUG: Inizio parsing risposta JSON");
-        data = await response.json();
-        console.log("📦 SUPER DEBUG: Dati NFT ricevuti:", data);
-        
-        // Log completo della risposta per debugging
-        const respJson = JSON.stringify(data);
-        console.log("📝 SUPER DEBUG: Lunghezza risposta:", respJson.length);
-        console.log("📝 SUPER DEBUG: Risposta API completa:", respJson.substring(0, 1000) + 
-          (respJson.length > 1000 ? '... (truncated)' : ''));
+      // Usa i dati dal fallback o dalla risposta API
+      if (!nftData) {
+        try {
+          console.log("🔍 SUPER DEBUG: Inizio parsing risposta JSON");
+          nftData = await response.json();
+          console.log("📦 SUPER DEBUG: Dati NFT ricevuti:", nftData);
           
-        // Ispeziona la struttura della risposta
-        console.log("🔍 SUPER DEBUG: Chiavi dell'oggetto risposta:", Object.keys(data));
-        if (data.nfts) console.log("🔍 SUPER DEBUG: Tipo nfts:", typeof data.nfts, Array.isArray(data.nfts));
-        if (data.available) console.log("🔍 SUPER DEBUG: Tipo available:", typeof data.available, Array.isArray(data.available));
-        
-      } catch (jsonError) {
-        console.error('❌ SUPER DEBUG: Errore nel parsing della risposta JSON:', jsonError);
-        console.error('❌ SUPER DEBUG: Stack trace completo:', jsonError.stack);
-        showNotification('error', 'Errore di Formato', 'La risposta del server non è in formato valido. Contatta il supporto.');
-        return;
+          // Log completo della risposta per debugging
+          const respJson = JSON.stringify(nftData);
+          console.log("📝 SUPER DEBUG: Lunghezza risposta:", respJson.length);
+          console.log("📝 SUPER DEBUG: Risposta API completa:", respJson.substring(0, 1000) + 
+            (respJson.length > 1000 ? '... (truncated)' : ''));
+            
+          // Ispeziona la struttura della risposta
+          console.log("🔍 SUPER DEBUG: Chiavi dell'oggetto risposta:", Object.keys(nftData));
+          if (nftData.nfts) console.log("🔍 SUPER DEBUG: Tipo nfts:", typeof nftData.nfts, Array.isArray(nftData.nfts));
+          if (nftData.available) console.log("🔍 SUPER DEBUG: Tipo available:", typeof nftData.available, Array.isArray(nftData.available));
+        } catch (jsonError) {
+          console.error('❌ SUPER DEBUG: Errore nel parsing della risposta JSON:', jsonError);
+          console.error('❌ SUPER DEBUG: Stack trace completo:', jsonError.stack);
+          showNotification('error', 'Errore di Formato', 'La risposta del server non è in formato valido. Contatta il supporto.');
+          return;
+        }
       }
       
       // Verifica il wallet tornato dalla risposta come conferma
-      if (data.wallet) {
-        console.log(`✅ SUPER DEBUG: API conferma richiesta per wallet: ${data.wallet}`);
-        console.log(`✅ SUPER DEBUG: Confronto wallet richiesto vs risposta: ${cleanWalletAddress} vs ${data.wallet}`);
+      if (nftData.wallet) {
+        console.log(`✅ SUPER DEBUG: API conferma richiesta per wallet: ${nftData.wallet}`);
+        console.log(`✅ SUPER DEBUG: Confronto wallet richiesto vs risposta: ${cleanWalletAddress} vs ${nftData.wallet}`);
       } else {
         console.log(`⚠️ SUPER DEBUG: Nessun campo wallet nella risposta API`);
       }
       
       // Log dettagliato per il debugging
-      if (data.nfts && data.nfts.length > 0) {
-        console.log("✅ SUPER DEBUG: NFTs trovati nella proprietà 'nfts':", data.nfts.length);
+      if (nftData.nfts && nftData.nfts.length > 0) {
+        console.log("✅ SUPER DEBUG: NFTs trovati nella proprietà 'nfts':", nftData.nfts.length);
         
         // Log dettagliato dei primi 3 NFT per diagnosi
-        for (let i = 0; i < Math.min(3, data.nfts.length); i++) {
-          const nft = data.nfts[i];
+        for (let i = 0; i < Math.min(3, nftData.nfts.length); i++) {
+          const nft = nftData.nfts[i];
           console.log(`🔍 SUPER DEBUG: NFT #${i} dettaglio completo:`, nft);
           console.log(`🔍 SUPER DEBUG: Attributi NFT #${i}:`, nft.attributes || nft.metadata?.attributes || 'nessun attributo');
         }
         
-      } else if (data.available && data.available.length > 0) {
-        console.log("✅ SUPER DEBUG: NFTs trovati nella proprietà 'available':", data.available.length);
+      } else if (nftData.available && nftData.available.length > 0) {
+        console.log("✅ SUPER DEBUG: NFTs trovati nella proprietà 'available':", nftData.available.length);
         
         // Log dettagliato dei primi 3 NFT per diagnosi
-        for (let i = 0; i < Math.min(3, data.available.length); i++) {
-          const nft = data.available[i];
+        for (let i = 0; i < Math.min(3, nftData.available.length); i++) {
+          const nft = nftData.available[i];
           console.log(`🔍 SUPER DEBUG: NFT #${i} dettaglio completo:`, nft);
           console.log(`🔍 SUPER DEBUG: Attributi NFT #${i}:`, nft.attributes || nft.metadata?.attributes || 'nessun attributo');
         }
         
       } else {
         console.log("⚠️ SUPER DEBUG: Nessun NFT trovato nella risposta");
-        console.log("⚠️ SUPER DEBUG: Struttura completa risposta:", data);
+        console.log("⚠️ SUPER DEBUG: Struttura completa risposta:", nftData);
       }
       
       // Supporta sia "nfts" che "available" nella risposta per retrocompatibilità
-      window.availableNfts = data.nfts || data.available || [];
+      window.availableNfts = nftData.nfts || nftData.available || [];
       
       // Pre-processamento degli NFT per trasformare attributi in formato compatibile
       if (window.availableNfts.length > 0) {

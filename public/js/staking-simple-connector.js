@@ -315,6 +315,12 @@ document.addEventListener('DOMContentLoaded', function() {
         params: [{ chainId: NETWORK_DATA.ETHEREUM_MAINNET.chainId }]
       });
       console.log('✓ Switched to Ethereum Mainnet');
+      
+      // Dispatch network changed event
+      document.dispatchEvent(new CustomEvent('wallet:networkChanged', {
+        detail: { network: NETWORK_DATA.ETHEREUM_MAINNET.chainId }
+      }));
+      
     } catch (error) {
       console.error('❌ Error switching network:', error);
       // If network doesn't exist in MetaMask, we don't add it (because Ethereum is pre-installed)
@@ -357,6 +363,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle disconnect event
   function handleDisconnect(error) {
     console.log('MetaMask disconnect event triggered', error);
+    
+    // Dispatch disconnect event for other components
+    document.dispatchEvent(new CustomEvent('wallet:disconnected'));
+    
     updateUI();
   }
   
@@ -367,6 +377,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (accounts.length === 0) {
       // No accounts - user disconnected
       console.log('No accounts found, user disconnected');
+      
+      // Dispatch disconnect event for other components
+      document.dispatchEvent(new CustomEvent('wallet:disconnected'));
     } else {
       // Connected with new account
       console.log('Connected with account:', accounts[0]);
@@ -374,6 +387,11 @@ document.addEventListener('DOMContentLoaded', function() {
       // Clean the wallet address
       const cleanAddress = cleanWalletAddress(accounts[0]);
       window.userWalletAddress = cleanAddress;
+      
+      // Dispatch connect event for other components
+      document.dispatchEvent(new CustomEvent('wallet:connected', {
+        detail: { address: cleanAddress, network: window.ethereum.chainId }
+      }));
       
       // We must check the network after account change
       checkAndSwitchNetwork();
@@ -385,6 +403,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle chain changed event
   function handleChainChanged(chainId) {
     console.log('MetaMask network changed', chainId);
+    
+    // Dispatch network changed event for other components to react
+    document.dispatchEvent(new CustomEvent('wallet:networkChanged', {
+      detail: { network: chainId }
+    }));
     
     // Force a page reload on chain change to ensure everything is in sync
     // This is recommended by MetaMask

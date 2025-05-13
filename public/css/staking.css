@@ -1,275 +1,46 @@
 /* IASE Staking Platform CSS */
 
-/* General Staking Styles */
-.staking-page {
-  background-color: #030721;
-}
-
-.staking-hero {
-  min-height: 300px;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(3,7,33,1)), url('../img/staking-bg.jpg');
-  background-size: cover;
-  background-position: center;
-}
-
-.staking-page .section-title {
-  color: #ffffff;
-  font-family: 'Orbitron', sans-serif;
-  margin-bottom: 2rem;
-  position: relative;
-  display: inline-block;
-}
-
-.staking-page .section-title:after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  width: 60px;
-  height: 3px;
-  background: linear-gradient(90deg, #00ccff, #3d00b3);
-}
-
-/* Wallet Connection Section */
-.wallet-connection-section {
-  padding: 4rem 0;
-  background-color: rgba(6, 13, 45, 0.8);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.wallet-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-.wallet-status-indicator {
-  display: flex;
-  align-items: center;
-}
-
-.indicator {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 1rem;
-  font-size: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.indicator.disconnected {
-  background-color: rgba(255, 59, 48, 0.2);
-  color: #ff3b30;
-  border: 2px solid #ff3b30;
-}
-
-.indicator.connected {
-  background-color: rgba(52, 199, 89, 0.2);
-  color: #34c759;
-  border: 2px solid #34c759;
-}
-
-.wallet-info {
-  color: #fff;
-}
-
-#walletStatusText {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.wallet-address {
-  font-family: monospace;
-  color: rgba(255,255,255,0.7);
-  word-break: break-all;
-}
-
-.wallet-controls {
-  display: flex;
-  gap: 1rem;
-}
-
-/* Authentication Section */
-.auth-section {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  padding: 2rem;
-  margin-top: 2rem;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-.auth-tabs {
-  display: flex;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.auth-tab-btn {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.6);
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.auth-tab-btn.active {
-  color: #fff;
-  border-bottom: 2px solid #00ccff;
-}
-
-.auth-form-container {
-  display: none;
-}
-
-.auth-form-container.active {
-  display: block;
-}
-
-.auth-form {
-  max-width: 400px;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  color: #fff;
-  margin-bottom: 0.5rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 4px;
-  color: #fff;
-}
-
-/* Staking Dashboard */
-.staking-dashboard {
-  padding: 4rem 0;
-}
-
-.dashboard-header {
-  margin-bottom: 3rem;
-}
-
-.dashboard-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.summary-card {
-  background-color: rgba(6, 13, 45, 0.8);
-  border-radius: 10px;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(255,255,255,0.05);
-  transition: transform 0.3s ease;
-}
-
-.summary-card:hover {
-  transform: translateY(-5px);
-}
-
-.summary-icon {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #00ccff, #3d00b3);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 1rem;
-  color: #fff;
-  font-size: 1.25rem;
-}
-
-.summary-info h3 {
-  font-size: 0.9rem;
-  color: rgba(255,255,255,0.7);
-  margin: 0 0 0.5rem 0;
-}
-
-.summary-info p {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-  color: #fff;
-}
-
-.dashboard-tabs {
-  display: flex;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-.tab-btn {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.6);
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.tab-btn.active {
-  color: #fff;
-  border-bottom: 2px solid #00ccff;
-}
-
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-}
-
+/* Stili grid e cards NFT */
 .nft-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
+  margin: 1.5rem 0;
 }
 
 .nft-card {
-  background-color: rgba(6, 13, 45, 0.8);
-  border-radius: 10px;
+  background-color: rgba(18, 24, 38, 0.8);
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .nft-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+.nft-image-container {
+  position: relative;
+  width: 100%;
+  padding-top: 100%; /* 1:1 Aspect Ratio */
+  overflow: hidden;
 }
 
 .nft-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.nft-card:hover .nft-image {
+  transform: scale(1.05);
 }
 
 .nft-details {
@@ -277,27 +48,95 @@
 }
 
 .nft-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.2rem;
-  color: #fff;
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: white;
 }
 
 .nft-id {
-  color: rgba(255,255,255,0.5);
-  font-size: 0.9rem;
-  margin: 0 0 1rem 0;
-  font-family: monospace;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1rem;
 }
 
-.rarity-badge {
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background-color: rgba(18, 24, 38, 0.5);
+  border-radius: 12px;
+  border: 1px dashed rgba(59, 130, 246, 0.3);
+  margin: 2rem 0;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: rgba(59, 130, 246, 0.5);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.empty-state h3 {
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.empty-state p {
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 400px;
+  margin: 0 auto 1.5rem;
+}
+
+.stake-action-btn {
+  width: 100%;
+}
+
+/* Aggiunte per supportare metadati IASE */
+.nft-attributes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.nft-traits {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-size: 0.8rem;
+}
+
+.trait {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  color: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  text-transform: capitalize;
+}
+
+.trait i {
+  margin-right: 0.4rem;
+  font-size: 0.85rem;
+  color: #00ccff;
+}
+
+.rarity-badge, .boost-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 1rem;
 }
 
+.boost-badge {
+  background-color: rgba(255, 204, 0, 0.2);
+  color: #ffcc00;
+  border: 1px solid #ffcc00;
+}
+
+/* Stili esistenti per rarità */
 .standard {
   background-color: rgba(52, 199, 89, 0.2);
   color: #34c759;
@@ -320,598 +159,4 @@
   background-color: rgba(255, 149, 0, 0.2);
   color: #ff9500;
   border: 1px solid #ff9500;
-}
-
-.nft-rewards {
-  margin-bottom: 1rem;
-}
-
-.reward-rate {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.reward-label {
-  color: rgba(255,255,255,0.7);
-}
-
-.reward-value {
-  color: #00ccff;
-  font-weight: 600;
-}
-
-.nft-card-actions {
-  display: flex;
-  justify-content: space-between;
-}
-
-/* Rewards Tab */
-.rewards-summary {
-  background-color: rgba(6, 13, 45, 0.8);
-  border-radius: 10px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(255,255,255,0.05);
-  text-align: center;
-}
-
-.pending-rewards h3 {
-  margin-top: 0;
-  color: rgba(255,255,255,0.7);
-}
-
-.reward-amount {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #00ccff;
-  margin: 1rem 0 2rem;
-}
-
-.rewards-history h3 {
-  margin-bottom: 1.5rem;
-}
-
-.rewards-table-container {
-  background-color: rgba(6, 13, 45, 0.8);
-  border-radius: 10px;
-  padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.05);
-  overflow-x: auto;
-}
-
-.rewards-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.rewards-table th,
-.rewards-table td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.rewards-table th {
-  color: rgba(255,255,255,0.7);
-  font-weight: 600;
-}
-
-.rewards-table td {
-  color: #fff;
-}
-
-.rewards-table tr:last-child td {
-  border-bottom: none;
-}
-
-/* Empty States */
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: rgba(255,255,255,0.5);
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.3;
-}
-
-.empty-state h3 {
-  margin: 0 0 0.5rem 0;
-  color: rgba(255,255,255,0.7);
-}
-
-.empty-state p {
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-/* How It Works Section */
-.how-it-works-section {
-  padding: 4rem 0;
-  background-color: rgba(6, 13, 45, 0.8);
-}
-
-.staking-process {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 2rem;
-  margin-bottom: 4rem;
-}
-
-.process-step {
-  position: relative;
-  text-align: center;
-  padding: 2rem 1rem;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-.step-number {
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30px;
-  height: 30px;
-  background: linear-gradient(135deg, #00ccff, #3d00b3);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 600;
-}
-
-.step-icon {
-  width: 60px;
-  height: 60px;
-  background-color: rgba(0, 204, 255, 0.1);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  color: #00ccff;
-  font-size: 1.5rem;
-}
-
-.process-step h3 {
-  margin-top: 0;
-  color: #fff;
-}
-
-.process-step p {
-  color: rgba(255,255,255,0.7);
-  margin-bottom: 0;
-}
-
-.staking-rewards-info {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  padding: 2rem;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-.staking-rewards-info h3 {
-  margin-top: 0;
-  color: #fff;
-}
-
-.rewards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin: 2rem 0;
-}
-
-.reward-card {
-  background-color: rgba(6, 13, 45, 0.8);
-  border-radius: 10px;
-  padding: 1.5rem;
-  text-align: center;
-  position: relative;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-.reward-card h4 {
-  font-size: 1.5rem;
-  margin: 1.5rem 0 0.5rem;
-  color: #fff;
-}
-
-.reward-card p {
-  color: rgba(255,255,255,0.7);
-  margin: 0.5rem 0;
-}
-
-.reward-card strong {
-  color: #00ccff;
-}
-
-.staking-note {
-  display: flex;
-  align-items: flex-start;
-  background-color: rgba(255, 204, 0, 0.1);
-  border-radius: 10px;
-  padding: 1rem;
-  border: 1px solid rgba(255, 204, 0, 0.3);
-  margin-top: 2rem;
-}
-
-.staking-note i {
-  color: #ffcc00;
-  margin-right: 1rem;
-  margin-top: 0.25rem;
-}
-
-.staking-note p {
-  color: rgba(255,255,255,0.8);
-  margin: 0;
-}
-
-/* FAQ Section */
-.faq-section {
-  padding: 4rem 0;
-}
-
-.faq-container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.faq-item {
-  background-color: rgba(6, 13, 45, 0.8);
-  border-radius: 10px;
-  margin-bottom: 1rem;
-  border: 1px solid rgba(255,255,255,0.05);
-  overflow: hidden;
-}
-
-.faq-question {
-  padding: 1.25rem;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.faq-question h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #fff;
-}
-
-.faq-toggle {
-  color: rgba(255,255,255,0.5);
-  transition: transform 0.3s ease;
-}
-
-.faq-item.active .faq-toggle {
-  transform: rotate(45deg);
-}
-
-.faq-answer {
-  padding: 0 1.25rem 1.25rem;
-  display: none;
-}
-
-.faq-item.active .faq-answer {
-  display: block;
-}
-
-.faq-answer p {
-  color: rgba(255,255,255,0.7);
-  margin: 0;
-}
-
-/* Modals */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
-  z-index: 1000;
-  overflow-y: auto;
-}
-
-.modal-content {
-  background-color: rgba(12, 20, 56, 0.95);
-  margin: 5% auto;
-  padding: 2rem;
-  border-radius: 10px;
-  max-width: 600px;
-  position: relative;
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-}
-
-.close-modal {
-  position: absolute;
-  right: 1.25rem;
-  top: 1.25rem;
-  font-size: 1.5rem;
-  color: rgba(255,255,255,0.5);
-  cursor: pointer;
-}
-
-.close-modal:hover {
-  color: #fff;
-}
-
-.modal-content h2 {
-  margin-top: 0;
-  color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 1rem;
-}
-
-.modal-body {
-  margin-top: 1.5rem;
-}
-
-.nft-preview {
-  display: flex;
-  margin-bottom: 2rem;
-}
-
-.nft-preview img {
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
-  object-fit: cover;
-  margin-right: 1.5rem;
-}
-
-.nft-info h3 {
-  margin: 0 0 0.5rem 0;
-  color: #fff;
-}
-
-.nft-info p {
-  color: rgba(255,255,255,0.5);
-  font-size: 0.9rem;
-  margin: 0 0 0.5rem 0;
-  font-family: monospace;
-}
-
-.reward-preview {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin-bottom: 2rem;
-}
-
-.reward-preview h4 {
-  margin-top: 0;
-  color: rgba(255,255,255,0.7);
-  font-size: 0.9rem;
-}
-
-.reward-amounts {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.reward-item {
-  display: flex;
-  justify-content: space-between;
-}
-
-.reward-item span {
-  color: rgba(255,255,255,0.7);
-}
-
-.reward-item strong {
-  color: #00ccff;
-}
-
-.note {
-  font-size: 0.9rem;
-  color: rgba(255, 149, 0, 0.8);
-  margin-top: 1rem;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-/* Button Styles */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: 5px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.btn i {
-  margin-right: 0.5rem;
-}
-
-.primary-btn {
-  background: linear-gradient(90deg, #00ccff, #3d00b3);
-  color: #fff;
-}
-
-.primary-btn:hover {
-  background: linear-gradient(90deg, #00bbee, #3400a0);
-  transform: translateY(-2px);
-}
-
-.secondary-btn {
-  background-color: rgba(255,255,255,0.1);
-  color: #fff;
-}
-
-.secondary-btn:hover {
-  background-color: rgba(255,255,255,0.15);
-  transform: translateY(-2px);
-}
-
-.warning-btn {
-  background-color: rgba(255, 59, 48, 0.8);
-  color: #fff;
-}
-
-.warning-btn:hover {
-  background-color: rgb(255, 59, 48);
-  transform: translateY(-2px);
-}
-
-.outline-btn {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
-  color: #fff;
-}
-
-.outline-btn:hover {
-  border-color: rgba(255,255,255,0.5);
-  transform: translateY(-2px);
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* Notification System */
-.notification-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1100;
-  max-width: 350px;
-}
-
-.notification {
-  display: flex;
-  align-items: flex-start;
-  background-color: rgba(12, 20, 56, 0.95);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  transform: translateX(120%);
-  animation: slide-in 0.3s forwards;
-  border-left: 3px solid #00ccff;
-}
-
-.notification.success {
-  border-color: #34c759;
-}
-
-.notification.error {
-  border-color: #ff3b30;
-}
-
-.notification.warning {
-  border-color: #ffcc00;
-}
-
-.notification-icon {
-  color: #00ccff;
-  margin-right: 1rem;
-  font-size: 1.25rem;
-}
-
-.notification.success .notification-icon {
-  color: #34c759;
-}
-
-.notification.error .notification-icon {
-  color: #ff3b30;
-}
-
-.notification.warning .notification-icon {
-  color: #ffcc00;
-}
-
-.notification-content {
-  flex: 1;
-}
-
-.notification-title {
-  margin: 0 0 0.25rem 0;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.notification-message {
-  margin: 0;
-  color: rgba(255,255,255,0.7);
-  font-size: 0.9rem;
-}
-
-.notification-close {
-  color: rgba(255,255,255,0.5);
-  cursor: pointer;
-  margin-left: 0.75rem;
-  font-size: 0.9rem;
-}
-
-@keyframes slide-in {
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@keyframes fade-out {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-}
-
-/* Responsive Styles */
-@media (max-width: 768px) {
-  .wallet-status {
-    flex-direction: column;
-  }
-  
-  .wallet-status-indicator {
-    margin-bottom: 1.5rem;
-  }
-  
-  .nft-preview {
-    flex-direction: column;
-  }
-  
-  .nft-preview img {
-    width: 100%;
-    height: auto;
-    margin-right: 0;
-    margin-bottom: 1rem;
-  }
-  
-  .modal-content {
-    margin: 10% 5%;
-    padding: 1.5rem;
-  }
-  
-  .modal-actions {
-    flex-direction: column;
-  }
-  
-  .modal-actions .btn {
-    width: 100%;
-    margin-bottom: 0.75rem;
-  }
 }

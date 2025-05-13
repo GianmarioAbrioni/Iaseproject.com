@@ -1108,7 +1108,18 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nft-details">
             <h3 class="nft-title">${nftTitle}</h3>
             <p class="nft-id">ID: ${nftId}</p>
-            <span class="rarity-badge ${rarityClass}">${nft.rarity || 'Standard'}</span>
+            <div class="nft-attributes">
+              <span class="rarity-badge ${rarityClass}">${nft.rarity || 'Standard'}</span>
+              ${nft.aiBooster ? `<span class="boost-badge">AI-Booster: ${nft.aiBooster}</span>` : ''}
+            </div>
+            ${nft.iaseTraits ? `
+            <div class="nft-traits">
+              <div class="trait" title="Orbital Design Module"><i class="ri-planet-line"></i> ${nft.iaseTraits.orbitalModule.replace('orbital_', '')}</div>
+              <div class="trait" title="Energy Panels"><i class="ri-battery-2-charge-line"></i> ${nft.iaseTraits.energyPanels.replace('panel_', '')}</div>
+              <div class="trait" title="Antenna Type"><i class="ri-broadcast-line"></i> ${nft.iaseTraits.antennaType.replace('antenna_', '')}</div>
+              <div class="trait" title="AI Core"><i class="ri-cpu-line"></i> ${nft.iaseTraits.aiCore.replace('ai_core_', '')}</div>
+            </div>
+            ` : ''}
             <div class="nft-card-actions mt-3">
               <button class="btn primary-btn stake-action-btn" data-action="stake" data-nft-id="${nftId}">
                 <i class="ri-lock-line"></i> Metti in Staking

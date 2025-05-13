@@ -350,6 +350,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle account changes
   function handleAccountsChanged(accounts) {
     console.log('🔄 Accounts changed:', accounts);
+    
+    // Verifica se è il primo collegamento (non ricarica in fase di connessione)
+    const isInitialConnection = !window.userWasConnected;
+    
     if (accounts.length === 0) {
       console.log('👋 User disconnected wallet');
       // Ferma il monitoraggio quando MetaMask riporta disconnessione
@@ -366,12 +370,21 @@ document.addEventListener('DOMContentLoaded', function() {
       // Assicuriamoci che il monitoraggio sia attivo quando c'è un account connesso
       startConnectionWatcher();
       
-      // Quando cambia l'account, ricarica la pagina per essere sicuri
-      // che tutto il contesto venga resettato correttamente
-      console.log('🔄 Ricaricando la pagina dopo cambio account...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      // Imposta la flag per indicare che ora siamo collegati
+      window.userWasConnected = true;
+      
+      // Solo se NON è la connessione iniziale ma un cambio account, 
+      // allora ricarica la pagina
+      if (!isInitialConnection) {
+        console.log('🔄 Ricaricando la pagina dopo cambio account...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      } else {
+        // Se è la prima connessione, aggiorna solo la UI senza ricaricare
+        console.log('✓ Connessione iniziale, aggiornamento UI senza reload');
+        updateUI();
+      }
     }
   }
   
@@ -379,12 +392,25 @@ document.addEventListener('DOMContentLoaded', function() {
   function handleChainChanged(chainId) {
     console.log('🔄 Network changed:', chainId);
     
-    // LA SOLUZIONE! Ricarica la pagina per resettare tutto quando cambia la rete
-    // Questo è esattamente ciò che fa token.html (riga 319) e garantisce il reset completo
-    console.log('🔄 Ricaricando la pagina dopo cambio rete...');
-    window.location.reload();
+    // Verifica se è la prima connessione
+    const isInitialConnection = !window.networkWasDetected;
     
-    // updateUI(); // Non necessario perché facciamo reload
+    // Imposta la flag per indicare che abbiamo rilevato una rete
+    window.networkWasDetected = true;
+    
+    // Solo se non è la prima rilevazione rete (connessione iniziale)
+    if (!isInitialConnection) {
+      // Soluzione: Ricarica la pagina per resettare tutto quando cambia la rete
+      // Questo è ciò che fa token.html (riga 319) e garantisce il reset completo
+      console.log('🔄 Ricaricando la pagina dopo cambio rete...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } else {
+      // Se è la prima rilevazione rete, aggiorna solo la UI senza ricaricare
+      console.log('✓ Rilevazione rete iniziale, aggiornamento UI senza reload');
+      updateUI();
+    }
   }
   
   // Check initial connection state on page load
@@ -459,6 +485,10 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Flag per evitare sovrapposizioni di richieste
   let isCheckingConnection = false;
+  
+  // Flag per tracciare lo stato della connessione
+  window.userWasConnected = false;
+  window.networkWasDetected = false;
   
   // Avvia il monitoraggio periodico della connessione
   function startConnectionWatcher() {

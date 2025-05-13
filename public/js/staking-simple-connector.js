@@ -455,10 +455,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialAddress = window.ethereum ? window.ethereum.selectedAddress : null;
     console.log('📝 Avvio monitoraggio disconnessione per indirizzo:', initialAddress);
     
-    // Controlla lo stato della connessione ogni 3 secondi
-    // con un limite massimo di 10 verifiche (30 secondi totali)
+    // Controlla lo stato della connessione OGNI SECONDO
+    // con un limite massimo di 30 verifiche (30 secondi totali)
     let checkCount = 0;
-    const MAX_CHECKS = 20;
+    const MAX_CHECKS = 30;
     
     // Esegui una verifica immediata
     checkConnectionStatus();
@@ -482,11 +482,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
+      // SOLUZIONE ALTERNATIVA: Controlla manualmente disconnessione tramite ethereum.isConnected
+      // Solo alcuni wallet supportano questa proprietà
+      if (window.ethereum && typeof window.ethereum.isConnected === 'function' && 
+          !window.ethereum.isConnected() && isWalletConnected()) {
+        console.log('🔌 Disconnessione rilevata tramite ethereum.isConnected()!');
+        handleDisconnect({ code: 'IS_CONNECTED_FALSE_EVENT', message: 'ethereum.isConnected() ritorna false' });
+        return;
+      }
+      
       checkCount++;
       checkConnectionStatus();
-    }, 3000);
+    }, 1000); // Intervallo ridotto a 1 secondo per reazione immediata
     
-    console.log('🔍 Avviato monitoraggio connessione wallet (limite: 60 secondi)');
+    console.log('🔍 Avviato monitoraggio connessione wallet (limite: 30 secondi, check ogni 1s)');
   }
   
   // Ferma il monitoraggio della connessione
@@ -509,10 +518,47 @@ document.addEventListener('DOMContentLoaded', function() {
     // Flag per evitare chiamate sovrapposte
     isCheckingConnection = true;
     
-    // Usiamo eth_accounts che è il metodo più affidabile per verificare la connessione
+    // SOLUZIONE DIRETTA: Controlla direttamente lo stato ethereum._state.isUnlocked
+    // MetaMask e altri wallet compatibili hanno questa proprietà interna
+    let manuallyDisconnected = false;
+    
+    // Metodo 1: Proprietà metamask._state.isUnlocked è false quando l'utente disconnette manualmente
+    if (window.ethereum._state && 
+        typeof window.ethereum._state.isUnlocked !== 'undefined' && 
+        window.ethereum._state.isUnlocked === false && 
+        isWalletConnected()) {
+      manuallyDisconnected = true;
+      console.log('🔥 DISCONNESSIONE RILEVATA: _state.isUnlocked=false ma selectedAddress presente');
+      handleDisconnect({ code: 'UNLOCKED_FALSE', message: 'Stato wallet isUnlocked=false' });
+      isCheckingConnection = false;
+      return;
+    }
+    
+    // Metodo 2: Fallback - Usa eth_accounts che è il metodo standard
     window.ethereum.request({ method: 'eth_accounts' })
       .then(accounts => {
-        // Verifica 1: Se non ci sono account ma selectedAddress esiste (stato inconsistente)
+        // VERIFICA CRUCIALE: Controllo disconnessione manuale - Questo è il test più importante
+        // Se non ci sono account ma selectedAddress è ancora impostato, 
+        // l'utente ha disconnesso manualmente il wallet
+        if (accounts.length === 0 && isWalletConnected()) {
+          console.log('🔥 DISCONNESSIONE MANUALE RILEVATA via eth_accounts');
+          
+          // SOLUZIONE TOKEN.HTML: Forza reset del selectedAddress prima della disconnessione
+          try {
+            window.ethereum.selectedAddress = null;
+          } catch(e) { /* Ignora errori se read-only */ }
+          
+          // Forza un reload immediato per ricaricare completamente lo stato
+          setTimeout(() => {
+            window.location.reload();
+          }, 100); // Tempo ridotto al minimo per una reazione immediata
+          
+          handleDisconnect({ code: 'MANUAL_DISCONNECT_CONFIRMED', message: 'Disconnessione wallet manuale confermata' });
+          isCheckingConnection = false;
+          return;
+        }
+        
+        // Verifiche originali (mantenute come fallback)
         if (accounts.length === 0 && window.ethereum.selectedAddress) {
           console.log('🔄 Rilevata disconnessione manuale (selectedAddress presente ma nessun account)');
           handleDisconnect({ code: 'INCONSISTENT_STATE', message: 'Stato inconsistente rilevato' });
@@ -520,15 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         
-        // Verifica 2: Se non ci sono account ma isWalletConnected() ritorna true
-        if (accounts.length === 0 && isWalletConnected()) {
-          console.log('🔄 Rilevata disconnessione manuale (wallet considerato connesso ma eth_accounts vuoto)');
-          handleDisconnect({ code: 'MANUAL_DISCONNECT', message: 'Disconnessione wallet manuale rilevata' });
-          isCheckingConnection = false;
-          return;
-        }
-        
-        // Verifica 3: Se isConnected() è false ma abbiamo account (alcuni wallet lo implementano)
         if (typeof window.ethereum.isConnected === 'function' && 
             !window.ethereum.isConnected() && 
             accounts.length > 0) {

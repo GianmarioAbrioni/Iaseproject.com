@@ -1,23 +1,31 @@
 /* IASE Staking Platform CSS */
 
-/* Stili minimi per supportare la visualizzazione degli NFT */
+/* Base styles per grid e cards */
 .nft-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1rem;
+  margin: 1.5rem 0;
 }
 
 .nft-card {
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
+  background-color: rgba(6, 20, 45, 0.85);
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(0, 170, 255, 0.3);
+  border: 1px solid rgba(0, 196, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.nft-card:hover {
+  border-color: rgba(0, 196, 255, 0.6);
+  box-shadow: 0 0 15px rgba(0, 196, 255, 0.2);
 }
 
 .nft-image-container {
   position: relative;
   width: 100%;
   padding-top: 100%;
+  overflow: hidden;
 }
 
 .nft-image {
@@ -30,26 +38,66 @@
 }
 
 .nft-details {
-  padding: 0.75rem;
+  padding: 1rem;
+  text-align: center;
 }
 
 .nft-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: white;
   margin-bottom: 0.3rem;
 }
 
 .nft-id {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.75rem;
 }
 
 .empty-state {
   text-align: center;
-  padding: 2rem 1rem;
-  background-color: rgba(0, 0, 0, 0.2);
+  padding: 2.5rem 1rem;
+  background-color: rgba(0, 20, 50, 0.3);
+  border-radius: 12px;
+  border: 1px dashed rgba(0, 196, 255, 0.3);
+  margin: 2rem 0;
+}
+
+.empty-state i {
+  font-size: 2.5rem;
+  color: rgba(0, 196, 255, 0.5);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: white;
+}
+
+.empty-state p {
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 400px;
+  margin: 0 auto 1rem;
+}
+
+.stake-action-btn {
+  display: inline-block;
+  background-color: rgba(0, 196, 255, 0.15);
+  color: #00c4ff;
+  border: 1px solid rgba(0, 196, 255, 0.5);
   border-radius: 8px;
-  margin: 1rem 0;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stake-action-btn:hover {
+  background-color: rgba(0, 196, 255, 0.25);
 }
 
 /* Aggiunte per supportare metadati IASE */

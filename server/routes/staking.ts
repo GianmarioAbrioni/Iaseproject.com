@@ -102,7 +102,30 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       });
     }
     
-    console.log(`🔍 Cercando NFT reali per wallet: ${walletAddress}`);
+    // Pulizia e validazione avanzata dell'indirizzo wallet
+    let validWalletAddress = walletAddress.trim();
+    
+    // Rimuovi ellissi se presenti
+    if (validWalletAddress.includes('...')) {
+      validWalletAddress = validWalletAddress.replace(/\.\.\./g, '');
+      console.log(`⚠️ Rimossi puntini di sospensione dall'indirizzo: ${validWalletAddress}`);
+    }
+    
+    // Rimuovi spazi
+    validWalletAddress = validWalletAddress.replace(/\s+/g, '');
+    
+    // Assicurati che inizi con 0x
+    if (!validWalletAddress.startsWith('0x')) {
+      console.log(`⚠️ Aggiunto prefisso 0x all'indirizzo: ${validWalletAddress}`);
+      validWalletAddress = '0x' + validWalletAddress;
+    }
+    
+    // Verifica la lunghezza dell'indirizzo (42 caratteri per indirizzi Ethereum validi)
+    if (validWalletAddress.length !== 42) {
+      console.warn(`⚠️ Indirizzo wallet di lunghezza insolita (${validWalletAddress.length} caratteri): ${validWalletAddress}`);
+    }
+    
+    console.log(`🔍 Cercando NFT reali per wallet: ${validWalletAddress}`);
 
     // Utilizziamo ethers importato all'inizio del file
     
@@ -369,12 +392,20 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
               continue; // Passa al prossimo NFT
             }
             
-            // Normalizza l'URL (alcuni TokenURI potrebbero iniziare con ipfs:// o essere relativi)
+            // Normalizza l'URL (Manifold può usare diversi formati)
             let normalizedURI = tokenURI;
             if (tokenURI.startsWith('ipfs://')) {
+              // Supporta più gateway IPFS per resilienza
               normalizedURI = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
               console.log(`🔄 TokenURI normalizzato da IPFS: ${normalizedURI}`);
+            } else if (tokenURI.includes('w3s.link')) {
+              // Web3 Storage link - già normalizzato
+              console.log(`🔄 TokenURI già in formato Web3 Storage: ${normalizedURI}`);
+            } else if (tokenURI.includes('manifoldxyz') || tokenURI.includes('manifold.xyz')) {
+              // Manifold API - già normalizzato
+              console.log(`🔄 TokenURI già in formato Manifold: ${normalizedURI}`);
             } else if (!tokenURI.startsWith('http')) {
+              // URL relativo, aggiungi il dominio base
               normalizedURI = `https://iaseproject.com${tokenURI.startsWith('/') ? '' : '/'}${tokenURI}`;
               console.log(`🔄 TokenURI normalizzato da path relativo: ${normalizedURI}`);
             }
@@ -388,23 +419,63 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 const metadata = await response.json();
                 console.log(`📄 Metadati per NFT #${tokenId.toString()} recuperati`);
                 
-                // Trova la rarità tra gli attributi (se presente)
+                // Trova la rarità basata sul Card Frame e AI-Booster
                 let rarity = "Standard"; // Default
+                let aiBooster = "X1.0"; // Default
+                
                 if (metadata.attributes && Array.isArray(metadata.attributes)) {
+                  // Cerca Card Frame (determina la rarità base)
                   const frameTrait = metadata.attributes.find((attr: any) => 
-                    attr.trait_type && attr.trait_type.toUpperCase() === 'CARD FRAME');
-                  if (frameTrait) {
-                    rarity = frameTrait.value;
+                    attr.trait_type && 
+                    (attr.trait_type.toUpperCase() === 'CARD FRAME' || 
+                     attr.trait_type.toUpperCase() === 'FRAME'));
+                  
+                  // Cerca AI-Booster (moltiplicatore)
+                  const boosterTrait = metadata.attributes.find((attr: any) => 
+                    attr.trait_type && 
+                    (attr.trait_type.toUpperCase() === 'AI-BOOSTER' || 
+                     attr.trait_type.toUpperCase() === 'AI BOOSTER'));
+                  
+                  // Imposta rarità in base al Card Frame
+                  if (frameTrait && frameTrait.value) {
+                    // Pulisce il valore (rimuove prefissi come "Frame_")
+                    let frameValue = frameTrait.value;
+                    if (typeof frameValue === 'string') {
+                      frameValue = frameValue.replace('Frame_', '');
+                    }
+                    rarity = frameValue;
                   }
+                  
+                  // Salva il valore di AI-Booster
+                  if (boosterTrait && boosterTrait.value) {
+                    aiBooster = boosterTrait.value;
+                  }
+                  
+                  console.log(`📊 NFT #${tokenId}: Card Frame = ${rarity}, AI-Booster = ${aiBooster}`);
                 }
                 
-                // Aggiungi l'NFT all'array
+                // Costruisci un oggetto NFT più completo con i dati IASE specifici
                 nfts.push({
                   id: tokenId.toString(),
-                  name: metadata.name || `IASE Unit #${tokenId.toString()}`,
-                  image: metadata.image || "images/nft-samples/placeholder.jpg",
+                  name: metadata.name || `IASE_Unit #${tokenId.toString()}`,
+                  description: metadata.description || "IASE Unit NFT",
+                  image: metadata.image || "/images/nft-placeholder.png",
                   rarity: rarity,
-                  traits: metadata.attributes || []
+                  aiBooster: aiBooster,
+                  traits: metadata.attributes || [],
+                  // Estrai i tratti specifici di IASE per un accesso più facile
+                  iaseTraits: {
+                    orbitalModule: metadata.attributes?.find((attr: any) => 
+                      attr.trait_type === 'Orbital Design Module')?.value || 'orbital_standard',
+                    energyPanels: metadata.attributes?.find((attr: any) => 
+                      attr.trait_type === 'Energy Panels')?.value || 'panel_standard',
+                    antennaType: metadata.attributes?.find((attr: any) => 
+                      attr.trait_type === 'Antenna Type')?.value || 'antenna_standard',
+                    aiCore: metadata.attributes?.find((attr: any) => 
+                      attr.trait_type === 'AI Core')?.value || 'ai_core_standard',
+                    evolutiveTrait: metadata.attributes?.find((attr: any) => 
+                      attr.trait_type === 'Evolutive Trait')?.value || 'trait_standard'
+                  }
                 });
               } else {
                 console.warn(`⚠️ Impossibile recuperare i metadati per NFT #${tokenId.toString()}: ${response.status}`);

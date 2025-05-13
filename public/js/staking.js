@@ -588,8 +588,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      console.log("Fetching staked NFTs for wallet:", walletAddress);
-      const response = await fetch(`/api/staking/get-staked-nfts?wallet=${walletAddress}`);
+      // Clean the wallet address (remove ellipsis if present)
+      const cleanWalletAddress = walletAddress.includes('...') 
+          ? walletAddress.replace(/\.\.\./g, '') 
+          : walletAddress;
+      
+      console.log("Fetching staked NFTs for wallet:", cleanWalletAddress);
+      const response = await fetch(`/api/staking/get-staked-nfts?wallet=${cleanWalletAddress}`);
       
       if (!response.ok) {
         throw new Error('Error retrieving staked NFTs');
@@ -628,7 +633,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      console.log("🔍 Fetching available NFTs for wallet:", walletAddress);
+      // Clean the wallet address (remove ellipsis if present)
+      const cleanWalletAddress = walletAddress.includes('...') 
+          ? walletAddress.replace(/\.\.\./g, '') 
+          : walletAddress;
+      
+      console.log("🔍 Fetching available NFTs for wallet:", cleanWalletAddress);
       
       // Show staking dashboard in advance to improve perceived loading time
       if (window.stakingDashboard) {
@@ -654,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Add contract address to query if provided
-      let apiUrl = `/api/staking/get-available-nfts?wallet=${walletAddress}`;
+      let apiUrl = `/api/staking/get-available-nfts?wallet=${cleanWalletAddress}`;
       if (contractAddress) {
         apiUrl += `&contract=${contractAddress}`;
         console.log("Using specific contract address:", contractAddress);

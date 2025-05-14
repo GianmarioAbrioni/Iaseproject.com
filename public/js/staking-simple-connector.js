@@ -25,8 +25,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
-  // IASE NFT contract address
+  // IASE NFT contract address (ERC721Enumerable)
   const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+  
+  // Esporta globalmente l'indirizzo del contratto
+  window.IASE_NFT_CONTRACT = IASE_NFT_CONTRACT;
   
   // UI elements
   let connectBtn = null;
@@ -141,11 +144,9 @@ document.addEventListener('DOMContentLoaded', function() {
               detail: { address: cleanAddress, contract: IASE_NFT_CONTRACT } 
             }));
             
-            // Forza visualizzazione dashboard
-            const stakingDashboard = document.getElementById('stakingDashboard');
-            if (stakingDashboard) {
-              stakingDashboard.classList.remove('hidden');
-            }
+            // Nota: la visualizzazione della dashboard viene gestita dall'evento wallet:connected
+            // Non è necessario forzare la visualizzazione qui poiché staking.js riceverà l'evento
+            // e mostrerà la dashboard tramite handleWalletConnected
           }, 1500);
         } else {
           stakingDashboard.classList.add('hidden');
@@ -175,35 +176,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Ensure address is a string
     if (typeof address !== 'string') {
-      console.error('⚠️ L\'indirizzo wallet non è una stringa:', typeof address);
       address = String(address);
     }
     
     // Clean whitespace
     let cleanAddress = address.trim().replace(/\s+/g, '');
     
-    // Remove ellipsis if present and address is not a full address
-    if (cleanAddress.includes('...') && cleanAddress.length < 42) {
-      console.log('⚠️ Rilevato indirizzo abbreviato:', cleanAddress);
+    // Remove ellipsis if present
+    if (cleanAddress.includes('...')) {
       cleanAddress = cleanAddress.replace(/\.\.\./g, '');
-      console.log('🔧 Indirizzo dopo rimozione puntini:', cleanAddress);
     }
     
     // Ensure address starts with 0x
     if (!cleanAddress.startsWith('0x')) {
-      console.warn('⚠️ L\'indirizzo wallet non inizia con 0x:', cleanAddress);
       cleanAddress = '0x' + cleanAddress;
-      console.log('🔧 Aggiunto 0x all\'indirizzo:', cleanAddress);
     }
     
-    // Check length and log warnings
-    if (cleanAddress.length < 42) {
-      console.error('⚠️ L\'indirizzo wallet è incompleto:', cleanAddress, '(lunghezza:', cleanAddress.length, ')');
-    } else if (cleanAddress.length > 42) {
-      console.warn('⚠️ L\'indirizzo wallet è troppo lungo:', cleanAddress, '(lunghezza:', cleanAddress.length, ')');
-      // Truncate to 42 characters if too long
+    // Truncate if too long
+    if (cleanAddress.length > 42) {
       cleanAddress = cleanAddress.substring(0, 42);
-      console.log('🔧 Indirizzo troncato a 42 caratteri:', cleanAddress);
     }
     
     return cleanAddress;
@@ -489,7 +480,15 @@ document.addEventListener('DOMContentLoaded', function() {
     walletStatusText = document.getElementById('walletStatusText');
     walletAddress = document.getElementById('walletAddress');
     disconnectBtn = document.getElementById('disconnectWalletBtn');
-    stakingDashboard = document.getElementById('stakingDashboard');
+    
+    // Usando riferimento globale per stakingDashboard per evitare conflitti di scope
+    if (document.getElementById('stakingDashboard')) {
+      stakingDashboard = document.getElementById('stakingDashboard');
+      console.log('✅ Riferimento stakingDashboard acquisito correttamente');
+    } else {
+      console.error('❌ Elemento stakingDashboard non trovato nell\'inizializzazione');
+    }
+    
     wrongNetworkAlert = document.getElementById('wrong-network-alert');
     walletStatusIndicator = document.getElementById('walletIndicator');
     

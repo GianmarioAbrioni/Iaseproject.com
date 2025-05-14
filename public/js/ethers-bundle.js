@@ -4,15 +4,13 @@
  * Questo file carica ethers.js v5.6 da CDN e lo espone globalmente.
  * Utilizzalo quando non puoi installare ethers.js tramite npm.
  * 
- * Istruzioni:
- * 1. Aggiungi questo file nella cartella public/js/ del tuo progetto
- * 2. Includi questo script nell'HTML con un tag <script> normale (non di tipo module)
- *    PRIMA di qualsiasi script che usa ethers.js
+ * Configurazione attuale:
+ * - API key Infura: 84ed164327474b4499c085d2e4345a66
+ * - NFT Contract: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
+ * - Rewards Contract: 0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F
  * 
- * Esempio:
- * <script src="js/ethers-bundle.js"></script>
- * <script type="module" src="js/nft-reader-adapter.js"></script>
- * <script src="js/staking.js"></script>
+ * Script già pronti e configurati con tutti i dati reali.
+ * Non è necessaria alcuna configurazione aggiuntiva.
  */
 
 (function() {

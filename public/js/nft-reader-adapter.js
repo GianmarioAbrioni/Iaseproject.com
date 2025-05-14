@@ -4,6 +4,11 @@
  * e il codice non-modulo nella pagina HTML.
  * 
  * Versione aggiornata con caricamento dinamico di ethers.js e fallback
+ * 
+ * Configurato per funzionare automaticamente con:
+ * - API key Infura: 84ed164327474b4499c085d2e4345a66
+ * - NFT Contract: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
+ * - Rewards Contract: 0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F
  */
 
 // Funzione per caricare dinamicamente ethers.js se non presente
@@ -17,12 +22,25 @@ async function ensureEthersLoaded() {
   console.log('⚠️ ethers.js non trovato, tentativo di caricamento dinamico...');
   
   try {
+    // Prima prova il caricamento da ethers-bundle.js locale
+    if (document.querySelector('script[src*="ethers-bundle.js"]')) {
+      console.log('🔍 Individuato ethers-bundle.js, attendo inizializzazione...');
+      // Attendi un po' per l'inizializzazione
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (typeof ethers !== 'undefined') {
+        console.log('✅ ethers.js caricato da ethers-bundle.js');
+        return true;
+      }
+    }
+    
+    // Fallback al CDN se necessario
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = "https://cdn.ethers.io/lib/ethers-5.6.umd.min.js";
       script.async = true;
       script.onload = () => {
-        console.log("✅ ethers.js v5.6 caricato dinamicamente");
+        console.log("✅ ethers.js v5.6 caricato dinamicamente dal CDN");
         resolve();
       };
       script.onerror = () => {

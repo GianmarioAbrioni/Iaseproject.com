@@ -3,8 +3,10 @@
  * Utility script per leggere direttamente gli NFT dal wallet dell'utente usando ethers.js
  */
 
-// Indirizzo contratto NFT IASE
+// Configurazioni globali con dati reali
 const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+const INFURA_API_KEY = '84ed164327474b4499c085d2e4345a66';
+const REWARDS_CONTRACT = '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
 
 // ABI completo per contratto ERC721Enumerable (IASE NFT)
 const ERC721_ABI = [
@@ -49,6 +51,9 @@ export async function getUserNFTs() {
     } else {
       throw new Error("Versione di ethers.js non supportata");
     }
+    
+    // Nota: Qui non usiamo il fallback a Infura perché per getUserNFTs
+    // serve obbligatoriamente un wallet connesso per leggere gli NFT
 
     console.log(`👤 Utente connesso: ${userAddress}`);
 
@@ -138,10 +143,22 @@ export async function getNFTMetadata(tokenId) {
       let provider, contract;
       
       if (isEthersV5) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+        try {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+        } catch (error) {
+          // Usa direttamente l'API key Infura reale come fallback
+          console.log("⚠️ Fallback a Infura API (v5)");
+          provider = new ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66");
+        }
         contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
       } else if (isEthersV6) {
-        provider = new ethers.BrowserProvider(window.ethereum);
+        try {
+          provider = new ethers.BrowserProvider(window.ethereum);
+        } catch (error) {
+          // Usa direttamente l'API key Infura reale come fallback
+          console.log("⚠️ Fallback a Infura API (v6)");
+          provider = new ethers.JsonRpcProvider("https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66");
+        }
         contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
       } else {
         throw new Error("Versione di ethers.js non supportata");

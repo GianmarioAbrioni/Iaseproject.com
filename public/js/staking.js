@@ -3,6 +3,9 @@
  * Gestisce la UI e le funzionalità di staking degli NFT IASE Units
  */
 
+// Imposta configurazioni globali con dati reali
+window.INFURA_API_KEY = "84ed164327474b4499c085d2e4345a66";
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 IASE Staking Platform initialized");
   
@@ -841,7 +844,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.ethereum) {
               provider = new ethers.providers.Web3Provider(window.ethereum);
             } else {
-              // Prova Infura
+              // Prova Infura con chiave dinamica
+              // Usa l'API key Infura reale hardcoded
               provider = new ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66");
             }
           } catch (error) {

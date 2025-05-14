@@ -6,12 +6,12 @@
 // Indirizzo contratto NFT IASE
 const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
 
-// ABI minimo per ERC721 con Enumerable extension
+// ABI completo per contratto ERC721Enumerable (IASE NFT)
 const ERC721_ABI = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
-  "function tokenURI(uint256 tokenId) view returns (string)",
-  "function ownerOf(uint256 tokenId) view returns (address)"
+  {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}
 ];
 
 /**
@@ -28,11 +28,27 @@ export async function getUserNFTs() {
     }
 
     console.log("🔍 Inizializzazione lettura NFT dal wallet...");
-
-    // Richiedi l'accesso al wallet
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const userAddress = await signer.getAddress();
+    
+    // Compatibilità con diverse versioni di ethers.js
+    const isEthersV5 = ethers.providers && ethers.providers.Web3Provider;
+    const isEthersV6 = ethers.BrowserProvider;
+    
+    let provider, signer, userAddress;
+    
+    // Richiedi l'accesso al wallet con compatibilità per ethers v5 e v6
+    if (isEthersV5) {
+      // ethers v5
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+    } else if (isEthersV6) {
+      // ethers v6
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      userAddress = await signer.getAddress();
+    } else {
+      throw new Error("Versione di ethers.js non supportata");
+    }
 
     console.log(`👤 Utente connesso: ${userAddress}`);
 
@@ -48,7 +64,11 @@ export async function getUserNFTs() {
 
     // Se ci sono NFT, recupera gli ID di ciascuno
     if (balance > 0) {
-      for (let i = 0; i < balance; i++) {
+      // Gestione BigInt in ethers v6
+      const balanceNumber = typeof balance === 'bigint' ? Number(balance) : 
+                           (typeof balance.toNumber === 'function' ? balance.toNumber() : parseInt(balance.toString(), 10));
+      
+      for (let i = 0; i < balanceNumber; i++) {
         try {
           const tokenId = await contract.tokenOfOwnerByIndex(userAddress, i);
           console.log(`✅ NFT #${tokenId.toString()} trovato`);
@@ -109,10 +129,23 @@ export async function getNFTMetadata(tokenId) {
     // Logged per debug
     console.log(`🪙 NFT ID per contratto: ${tokenIdForContract} (tipo: ${typeof tokenIdForContract})`);
 
+    // Compatibilità con diverse versioni di ethers.js
+    const isEthersV5 = ethers.providers && ethers.providers.Web3Provider;
+    const isEthersV6 = ethers.BrowserProvider;
+    
     try {
-      // Crea provider ed istanza contratto
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
+      // Crea provider ed istanza contratto con compatibilità per ethers v5 e v6
+      let provider, contract;
+      
+      if (isEthersV5) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
+      } else if (isEthersV6) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
+      } else {
+        throw new Error("Versione di ethers.js non supportata");
+      }
 
       // Ottieni l'URI dei metadati - QUI è importante il numero corretto
       const tokenURI = await contract.tokenURI(tokenIdForContract);
@@ -184,13 +217,44 @@ function getRarityFromMetadata(metadata) {
  */
 export async function loadAllIASENFTs() {
   try {
-    console.log("🔄 Avvio caricamento NFT IASE - versione corretta 1.0.1");
+    console.log("🔄 Avvio caricamento NFT IASE - versione corretta 1.0.2");
     
-    // Verifica che ethers.js sia disponibile
-    if (typeof ethers !== 'object' || !ethers.providers) {
+    // Verifica che ethers.js sia disponibile e carico al meccanismo di fallback
+    if (typeof ethers !== 'object') {
       console.error("❌ Errore critico: ethers.js non disponibile");
-      throw new Error("Ethers.js library not loaded");
+      console.log("⚠️ Tentativo di caricamento dinamico di ethers.js...");
+      
+      try {
+        // Tentativo di caricamento dinamico di ethers.js
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = "https://cdn.ethers.io/lib/ethers-5.6.umd.min.js";
+          script.async = true;
+          script.onload = () => {
+            console.log("✅ ethers.js caricato dinamicamente");
+            resolve();
+          };
+          script.onerror = () => {
+            reject(new Error("Impossibile caricare ethers.js"));
+          };
+          document.head.appendChild(script);
+        });
+      } catch (loadError) {
+        console.error("❌ Fallito caricamento dinamico ethers.js:", loadError);
+        throw new Error("Ethers.js library not loaded and dynamic loading failed");
+      }
+      
+      // Verifica che ethers.js sia disponibile dopo il caricamento
+      if (typeof ethers !== 'object') {
+        throw new Error("Ethers.js library not loaded even after dynamic loading attempt");
+      }
     }
+    
+    // Compatibilità con diverse versioni di ethers.js
+    const isEthersV5 = ethers.providers && ethers.providers.Web3Provider;
+    const isEthersV6 = ethers.BrowserProvider;
+    
+    console.log(`🔧 Rilevata versione ethers.js: ${isEthersV5 ? "v5" : isEthersV6 ? "v6" : "sconosciuta"}`);
     
     // Verifica che il wallet sia connesso
     if (!window.ethereum) {
@@ -209,8 +273,9 @@ export async function loadAllIASENFTs() {
     console.log(`🔍 Recupero metadati per ${userNFTs.nftIds.length} NFT...`);
     
     // Per ogni NFT, recuperiamo i metadati completi con gestione robusta dei tipi
-    // CORREZIONE IMPORTANTE: Trattiamo ogni ID come numero per la blockchain e stringa per la UI
-    const nftsWithMetadata = await Promise.all(
+    // Utilizziamo Promise.allSettled invece di Promise.all per evitare che un errore singolo 
+    // blocchi tutto il processo di recupero dei metadati
+    const metadataResults = await Promise.allSettled(
       userNFTs.nftIds.map(async (tokenId) => {
         try {
           // CORREZIONE: Conversione esplicita a stringa e poi a numero (sicuro per BigInt)
@@ -245,6 +310,11 @@ export async function loadAllIASENFTs() {
         }
       })
     );
+    
+    // Filtra i risultati per ottenere solo quelli riusciti
+    const nftsWithMetadata = metadataResults
+      .filter(result => result.status === "fulfilled")
+      .map(result => result.value);
 
     console.log(`✅ Caricati con successo ${nftsWithMetadata.length} NFT IASE con metadati`);
     return nftsWithMetadata;

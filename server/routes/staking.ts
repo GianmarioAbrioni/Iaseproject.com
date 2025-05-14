@@ -135,28 +135,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     const ETHEREUM_RPC_FALLBACK = "https://rpc.ankr.com/eth";
     
     // ABI completo per contratto ERC721Enumerable (IASE NFT)
-    const ERC721_ABI = [
-      // Standard ERC721
-      'function balanceOf(address owner) view returns (uint256)',
-      'function ownerOf(uint256 tokenId) view returns (address)',
-      'function safeTransferFrom(address from, address to, uint256 tokenId)',
-      'function transferFrom(address from, address to, uint256 tokenId)',
-      'function approve(address to, uint256 tokenId)',
-      'function getApproved(uint256 tokenId) view returns (address)',
-      'function setApprovalForAll(address operator, bool approved)',
-      'function isApprovedForAll(address owner, address operator) view returns (bool)',
-      'function tokenURI(uint256 tokenId) view returns (string)',
-      
-      // ERC721Enumerable extension
-      'function totalSupply() view returns (uint256)',
-      'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
-      'function tokenByIndex(uint256 index) view returns (uint256)',
-      
-      // Eventi
-      'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
-      'event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)',
-      'event ApprovalForAll(address indexed owner, address indexed operator, bool approved)'
-    ];
+    const ERC721EnumerableABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"stateMutability":"payable","type":"fallback"},{"inputs":[],"name":"implementation","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"stateMutability":"payable","type":"receive"}];
     
     try {
       // Crea provider con fallback automatico
@@ -170,7 +149,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       // Crea istanza del contratto NFT
       const nftContract = new ethers.Contract(
         NFT_CONTRACT_ADDRESS,
-        ERC721_ABI,
+        ERC721EnumerableABI,
         provider
       );
       

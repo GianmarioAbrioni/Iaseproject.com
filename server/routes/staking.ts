@@ -147,11 +147,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       }
       
       // Crea istanza del contratto NFT
-      const nftContract = new ethers.Contract(
-        NFT_CONTRACT_ADDRESS,
-        ERC721EnumerableABI,
-        provider
-      );
+      const nftContract = new ethers.Contract(nftContractAddress, ERC721EnumerableABI, provider);
       
       // Recupera NFT dell'utente
       try {

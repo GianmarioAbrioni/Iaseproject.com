@@ -428,6 +428,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('walletConnected', handleWalletConnected);
   document.addEventListener('walletDisconnected', handleWalletDisconnected);
   
+  // Listener per eventi di caricamento NFT manuale
+  document.addEventListener('manual:loadNFTs', function(event) {
+    console.log('🔄 Ricevuto evento manual:loadNFTs', event.detail);
+    if (event.detail && event.detail.address) {
+      loadAvailableNfts(event.detail.contract, event.detail.address);
+    }
+  });
+  
   // Verifica iniziale dello stato wallet
   checkWalletStatus();
   
@@ -802,7 +810,30 @@ document.addEventListener('DOMContentLoaded', () => {
           const nftContractAddress = nftContract;
           
           // ABI completo per contratto ERC721Enumerable (IASE NFT)
-          const ERC721EnumerableABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"stateMutability":"payable","type":"fallback"},{"inputs":[],"name":"implementation","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"stateMutability":"payable","type":"receive"}];
+          const ERC721EnumerableABI = [
+            {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
+            {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"implementation","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"stateMutability":"payable","type":"fallback"},
+            {"stateMutability":"payable","type":"receive"}
+          ];
           
           // Crea provider con fallback (prima prova Web3, poi Infura, poi Ankr)
           let provider;
@@ -1000,7 +1031,9 @@ document.addEventListener('DOMContentLoaded', () => {
           
           const retryBtn = document.getElementById('retryNftLoadBtn');
           if (retryBtn) {
-            retryBtn.addEventListener('click', () => loadAvailableNfts(nftContract, cleanWalletAddress));
+            // Utilizza l'indirizzo wallet attualmente connesso o quello salvato globalmente
+            const walletAddr = window.ethereum?.selectedAddress || window.userWalletAddress;
+            retryBtn.addEventListener('click', () => loadAvailableNfts(nftContract, walletAddr));
           }
         }
         
@@ -1126,7 +1159,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const retryBtn = document.getElementById('retryNftLoad');
         if (retryBtn) {
           retryBtn.addEventListener('click', () => {
-            loadAvailableNfts(contractAddress, walletAddress);
+            // Utilizza l'indirizzo wallet attualmente connesso o quello salvato globalmente
+            const walletAddr = window.ethereum?.selectedAddress || window.userWalletAddress;
+            loadAvailableNfts(contractAddress, walletAddr);
           });
         }
       }

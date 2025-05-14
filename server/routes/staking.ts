@@ -15,7 +15,7 @@ const router = Router();
 router.get('/claim-config', (req: Request, res: Response) => {
   // Invia l'indirizzo del contratto dal .env
   res.json({
-    contractAddress: process.env.REWARD_DISTRIBUTOR_CONTRACT || '',
+    contractAddress: process.env.REWARD_DISTRIBUTOR_CONTRACT || '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F',
     networkRpc: process.env.BSC_RPC_URL || 'https://bsc-dataseed.binance.org/',
     tokenAddress: '0x5A170D59ae8B851DC4DD0D14cC89E5fE541752CE' // IASE Token address
   });

@@ -22,7 +22,7 @@ const isModule = typeof exports === 'object' && typeof module !== 'undefined';
 const IASE_NFT_CONTRACT = window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
 const ALCHEMY_API_KEY = window.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB';
 const REWARDS_CONTRACT = window.REWARDS_CONTRACT_ADDRESS || '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
-const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/nft/v2/${ALCHEMY_API_KEY}`;
 
 // Log delle configurazioni (solo in modalità debug)
 console.log("📊 IASE NFT Reader - Configurazione:");
@@ -354,13 +354,45 @@ function normalizeURI(uri) {
 function getRarityFromMetadata(metadata) {
   if (!metadata || !metadata.attributes) return "Common";
   
-  // Cerca l'attributo rarità negli attributi
-  const rarityAttribute = metadata.attributes.find(attr => 
-    attr.trait_type?.toLowerCase() === 'rarity' || 
-    attr.trait_type?.toLowerCase() === 'rarità'
+  // Cerca gli attributi per determinare la rarità
+  // Prima cerca CARD FRAME come fonte primaria (priorità assoluta)
+  const cardFrameAttr = metadata.attributes.find(attr => 
+    attr.trait_type?.toUpperCase() === 'CARD FRAME'
   );
   
-  return rarityAttribute?.value || "Common";
+  if (cardFrameAttr) {
+    const frameValue = cardFrameAttr.value.toLowerCase();
+    // Determina la rarità in base al valore di Card Frame
+    if (frameValue.includes("elite")) {
+      return "Elite";
+    } else if (frameValue.includes("advanced")) {
+      return "Advanced";
+    } else if (frameValue.includes("prototype")) {
+      return "Prototype";
+    } else {
+      return "Standard";
+    }
+  }
+  
+  // Fallback ad AI-BOOSTER se Card Frame non è presente
+  const boosterAttr = metadata.attributes.find(attr => 
+    attr.trait_type?.toUpperCase() === 'AI-BOOSTER'
+  );
+  
+  if (boosterAttr) {
+    const boosterValue = boosterAttr.value.toString().toUpperCase();
+    // Determina la rarità in base al valore di AI-Booster
+    if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+      return "Prototype"; // 2.5x = Prototype
+    } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+      return "Elite"; // 2.0x = Elite
+    } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+      return "Advanced"; // 1.5x = Advanced
+    }
+  }
+  
+  // Default se non viene trovato nessun attributo che indica rarità
+  return "Standard";
 }
 
 /**

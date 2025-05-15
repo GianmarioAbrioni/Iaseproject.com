@@ -305,6 +305,17 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 nftItem.aiBooster = aiBooster;
                 nftItem["AI-Booster"] = aiBooster;
                 
+                // Aggiungi daily reward fisso in base alla rarità
+                if (rarity === "Legendary" || rarity === "Prototype") {
+                  nftItem.dailyReward = 83.33; // Prototype
+                } else if (rarity === "Epic" || rarity === "Elite") {
+                  nftItem.dailyReward = 66.67; // Elite
+                } else if (rarity === "Rare" || rarity === "Advanced") {
+                  nftItem.dailyReward = 50.00; // Advanced
+                } else {
+                  nftItem.dailyReward = 33.33; // Standard/Common
+                }
+                
                 // Aggiungi l'NFT all'array
                 nfts.push(nftItem);
               }
@@ -447,6 +458,16 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 }
               }
               
+              // Calcola il reward fisso in base alla rarità
+              let dailyReward = 33.33; // Standard/Common (default)
+              if (rarity === "Legendary" || rarity === "Prototype") {
+                dailyReward = 83.33; // Prototype
+              } else if (rarity === "Epic" || rarity === "Elite") {
+                dailyReward = 66.67; // Elite
+              } else if (rarity === "Rare" || rarity === "Advanced") {
+                dailyReward = 50.00; // Advanced
+              }
+
               // Ritorna oggetto NFT con tutti i dati necessari
               return {
                 id: tokenId.toString(),
@@ -457,6 +478,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 cardFrame,
                 aiBooster,
                 "AI-Booster": aiBooster,
+                dailyReward,
                 traits: [],
                 attributes: metadata.attributes || []
               };
@@ -471,6 +493,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 cardFrame: "Standard",
                 aiBooster: "X1.0",
                 "AI-Booster": "X1.0",
+                dailyReward: 33.33, // Default reward per Common/Standard
                 traits: []
               };
             }
@@ -485,6 +508,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
               cardFrame: "Standard",
               aiBooster: "X1.0",
               "AI-Booster": "X1.0",
+              dailyReward: 33.33, // Default reward per Common/Standard
               traits: []
             };
           }

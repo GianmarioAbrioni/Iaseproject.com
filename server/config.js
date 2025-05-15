@@ -16,6 +16,15 @@ console.log(`🔧 Ambiente: ${ENV}`);
 
 // Configurazioni generali
 export const CONFIG = {
+  // Configurazione Alchemy API (priorità principale)
+  alchemy: {
+    apiKey: process.env.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB",
+    apiUrl: process.env.ALCHEMY_API_URL || `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB"}`,
+    useAlchemyApi: process.env.USE_ALCHEMY_API !== "false", // Abilita di default
+    enhancedApis: process.env.ALCHEMY_ENHANCED_APIS !== "false",
+    network: process.env.ALCHEMY_NETWORK || "1",
+  },
+  
   // Configurazione smart contract
   eth: {
     networkUrl: process.env.ETH_NETWORK_URL || `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66"}`,

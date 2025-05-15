@@ -18,6 +18,9 @@ export const CONFIG = {
   // Blockchain
   NFT_CONTRACT_ADDRESS: process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F",
   REWARD_DISTRIBUTOR_CONTRACT: process.env.REWARD_DISTRIBUTOR_CONTRACT || "0x38c62fcfb6a6bbce341b41ba6740b07739bf6e1f",
+  ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB",
+  ALCHEMY_API_URL: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB"}`,
+  USE_ALCHEMY_API: process.env.USE_ALCHEMY_API !== "false", // Abilita di default
   ETH_NETWORK_URL: process.env.ETH_NETWORK_URL || "https://eth.drpc.org",
   BSC_RPC_URL: process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org/",
   

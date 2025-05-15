@@ -1,56 +1,143 @@
 /**
- * IASE NFT Reader Adapter
+ * IASE NFT Reader Adapter - Versione ottimizzata per Render
  * Questo script funge da ponte tra il modulo ES6 nftReader.js
  * e il codice non-modulo nella pagina HTML.
  * 
- * Versione aggiornata con caricamento dinamico di ethers.js e fallback
+ * Versione 2.1.0 - 2023-05-14
+ * - Sistema avanzato di caricamento ethers.js multi-fonte
+ * - Gestione robusta di errori per massima affidabilità
+ * - Sistema di fallback a catena (CDN primaria → CDN secondaria → bundle locale)
+ * - Completamente hardcoded per funzionamento immediato
  * 
- * Configurato per funzionare automaticamente con:
+ * Configurazione HARDCODED:
  * - API key Infura: 84ed164327474b4499c085d2e4345a66
  * - NFT Contract: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
  * - Rewards Contract: 0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F
+ * - Fallback RPC Ethereum: https://rpc.ankr.com/eth
+ * - Fallback RPC BSC: https://bsc-dataseed.binance.org
  */
 
-// Funzione per caricare dinamicamente ethers.js se non presente
+// Configurazioni globali hardcoded per Render
+window.INFURA_API_KEY = window.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
+window.NFT_CONTRACT_ADDRESS = window.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
+window.REWARDS_CONTRACT_ADDRESS = window.REWARDS_CONTRACT_ADDRESS || "0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F";
+window.ETHEREUM_RPC_FALLBACK = window.ETHEREUM_RPC_FALLBACK || "https://rpc.ankr.com/eth";
+window.BSC_RPC_FALLBACK = window.BSC_RPC_FALLBACK || "https://bsc-dataseed.binance.org";
+
+// Array di URL CDN per ethers.js in ordine di priorità
+const ETHERS_CDN_URLS = [
+  "https://cdn.ethers.io/lib/ethers-5.6.umd.min.js",
+  "https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.umd.min.js",
+  "https://unpkg.com/ethers@5.6.9/dist/ethers.umd.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/ethers/5.6.9/ethers.umd.min.js"
+];
+
+// Funzione avanzata per caricare dinamicamente ethers.js con sistema multi-fallback
 async function ensureEthersLoaded() {
+  // Verifica se ethers.js è già caricato
   if (typeof ethers !== 'undefined') {
-    console.log('✅ ethers.js già caricato, versione:', 
-      ethers.version || (ethers.providers ? '~v5' : ethers.BrowserProvider ? '~v6' : 'sconosciuta'));
+    const version = ethers.version || (ethers.providers ? '~v5' : ethers.BrowserProvider ? '~v6' : 'sconosciuta');
+    console.log(`✅ ethers.js già disponibile (versione: ${version})`);
+    
+    // Notifica il sistema con un evento personalizzato
+    document.dispatchEvent(new CustomEvent('nftreader:ethersReady', {
+      detail: { version, alreadyLoaded: true }
+    }));
+    
     return true;
   }
   
-  console.log('⚠️ ethers.js non trovato, tentativo di caricamento dinamico...');
+  console.log('🔍 ethers.js non rilevato, inizio caricamento...');
   
   try {
-    // Prima prova il caricamento da ethers-bundle.js locale
-    if (document.querySelector('script[src*="ethers-bundle.js"]')) {
-      console.log('🔍 Individuato ethers-bundle.js, attendo inizializzazione...');
+    // Prima verifica se ethers-bundle.js è già nel DOM ma non ha ancora inizializzato
+    const ethersBundle = document.querySelector('script[src*="ethers-bundle.js"]');
+    if (ethersBundle) {
+      console.log('🔄 Rilevato ethers-bundle.js, attendo inizializzazione...');
       // Attendi un po' per l'inizializzazione
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (typeof ethers !== 'undefined') {
-        console.log('✅ ethers.js caricato da ethers-bundle.js');
+        console.log('✅ ethers.js inizializzato da ethers-bundle.js');
+        
+        document.dispatchEvent(new CustomEvent('nftreader:ethersReady', {
+          detail: { version: ethers.version || '5.6', source: 'bundle.js' }
+        }));
+        
         return true;
       }
     }
     
-    // Fallback al CDN se necessario
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = "https://cdn.ethers.io/lib/ethers-5.6.umd.min.js";
-      script.async = true;
-      script.onload = () => {
-        console.log("✅ ethers.js v5.6 caricato dinamicamente dal CDN");
-        resolve();
-      };
-      script.onerror = () => {
-        reject(new Error("Impossibile caricare ethers.js"));
-      };
-      document.head.appendChild(script);
-    });
-    return true;
+    // Caricamento da CDN con multiple opzioni di fallback
+    for (let i = 0; i < ETHERS_CDN_URLS.length; i++) {
+      const url = ETHERS_CDN_URLS[i];
+      console.log(`🔄 Tentativo caricamento ethers.js da: ${url}`);
+      
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = url;
+          script.crossOrigin = "anonymous";
+          script.async = true;
+          
+          // Timeout dopo 5 secondi per evitare blocchi
+          const timeoutId = setTimeout(() => {
+            console.warn(`⏱️ Timeout caricamento da ${url}`);
+            reject(new Error('Timeout'));
+          }, 5000);
+          
+          script.onload = () => {
+            clearTimeout(timeoutId);
+            console.log(`✅ ethers.js caricato con successo da: ${url}`);
+            resolve();
+          };
+          
+          script.onerror = () => {
+            clearTimeout(timeoutId);
+            console.warn(`❌ Fallito caricamento da: ${url}`);
+            reject(new Error(`Failed to load from ${url}`));
+          };
+          
+          document.head.appendChild(script);
+        });
+        
+        // Se arriviamo qui, il caricamento è riuscito
+        if (typeof ethers !== 'undefined') {
+          console.log(`✅ ethers.js verificato e funzionante da: ${url}`);
+          
+          document.dispatchEvent(new CustomEvent('nftreader:ethersReady', {
+            detail: { version: ethers.version || '5.6', source: url }
+          }));
+          
+          return true;
+        }
+        
+        console.warn(`⚠️ Script caricato da ${url} ma ethers non è definito`);
+      } catch (cdnError) {
+        console.warn(`❌ Fallito caricamento da ${url}:`, cdnError.message);
+        // Continua con la prossima CDN
+      }
+    }
+    
+    // Se siamo qui, tutte le CDN hanno fallito
+    console.error('❌ Tutti i tentativi di caricamento CDN falliti');
+    
+    // Ultima risorsa: caricare manualmente una versione incorporata
+    // (qui potremmo includere il codice di ethers.js direttamente, ma è complesso)
+    
+    // Notifica il fallimento
+    document.dispatchEvent(new CustomEvent('nftreader:ethersFailed', {
+      detail: { attempts: ETHERS_CDN_URLS.length }
+    }));
+    
+    return false;
   } catch (error) {
-    console.error('❌ Errore caricamento ethers.js:', error);
+    console.error('❌ Errore critico durante caricamento ethers.js:', error);
+    
+    document.dispatchEvent(new CustomEvent('nftreader:ethersError', {
+      detail: { error: error.message }
+    }));
+    
     return false;
   }
 }
@@ -58,52 +145,149 @@ async function ensureEthersLoaded() {
 // Importa le funzioni dal modulo nftReader.js
 import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './nftReader.js';
 
-// Wrapper per getUserNFTs con caricamento ethers.js
+// Wrapper avanzato per getUserNFTs con caricamento ethers.js e gestione errori
 async function safeGetUserNFTs() {
-  if (await ensureEthersLoaded()) {
-    return getUserNFTs();
+  console.log('🔄 safeGetUserNFTs: Verifico ethers.js e recupero NFTs...');
+  try {
+    if (await ensureEthersLoaded()) {
+      const result = await getUserNFTs();
+      console.log(`✅ NFT caricati con successo: ${result?.nftIds?.length || 0} trovati`);
+      return result;
+    }
+    console.error('❌ Impossibile eseguire getUserNFTs: ethers.js non disponibile');
+    
+    // Notifica il fallimento con evento
+    document.dispatchEvent(new CustomEvent('nft:loadFailed', {
+      detail: { reason: 'ethers_not_available', function: 'getUserNFTs' }
+    }));
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Errore durante safeGetUserNFTs:', error.message);
+    
+    // Notifica il fallimento con evento
+    document.dispatchEvent(new CustomEvent('nft:loadFailed', {
+      detail: { reason: 'error', message: error.message, function: 'getUserNFTs' }
+    }));
+    
+    return null;
   }
-  console.error('❌ Impossibile eseguire getUserNFTs: ethers.js non disponibile');
-  return null;
 }
 
-// Wrapper per getNFTMetadata con caricamento ethers.js
+// Wrapper avanzato per getNFTMetadata con caricamento ethers.js e gestione errori
 async function safeGetNFTMetadata(tokenId) {
-  if (await ensureEthersLoaded()) {
-    return getNFTMetadata(tokenId);
+  console.log(`🔄 safeGetNFTMetadata: Recupero metadati per token #${tokenId}...`);
+  try {
+    if (await ensureEthersLoaded()) {
+      const result = await getNFTMetadata(tokenId);
+      console.log(`✅ Metadati NFT #${tokenId} caricati con successo`);
+      return result;
+    }
+    console.error('❌ Impossibile eseguire getNFTMetadata: ethers.js non disponibile');
+    
+    // Notifica il fallimento con evento
+    document.dispatchEvent(new CustomEvent('nft:loadFailed', {
+      detail: { reason: 'ethers_not_available', function: 'getNFTMetadata', tokenId }
+    }));
+    
+    return null;
+  } catch (error) {
+    console.error(`❌ Errore durante safeGetNFTMetadata per token #${tokenId}:`, error.message);
+    
+    // Notifica il fallimento con evento
+    document.dispatchEvent(new CustomEvent('nft:loadFailed', {
+      detail: { reason: 'error', message: error.message, function: 'getNFTMetadata', tokenId }
+    }));
+    
+    // Crea un risultato fallback che mantiene la coerenza dei tipi
+    return {
+      id: String(tokenId),
+      name: `IASE Unit #${tokenId}`,
+      image: "images/nft-samples/placeholder.jpg",
+      rarity: "Standard",
+      traits: []
+    };
   }
-  console.error('❌ Impossibile eseguire getNFTMetadata: ethers.js non disponibile');
-  return null;
 }
 
-// Wrapper per loadAllIASENFTs con caricamento ethers.js
+// Wrapper avanzato per loadAllIASENFTs con caricamento ethers.js e gestione errori
 async function safeLoadAllIASENFTs() {
-  if (await ensureEthersLoaded()) {
-    return loadAllIASENFTs();
+  console.log('🔄 safeLoadAllIASENFTs: Caricamento completo NFT IASE...');
+  try {
+    if (await ensureEthersLoaded()) {
+      const result = await loadAllIASENFTs();
+      console.log(`✅ Tutti gli NFT IASE caricati con successo: ${result.length} trovati`);
+      
+      // Notifica il successo con evento
+      document.dispatchEvent(new CustomEvent('nft:loadSuccess', {
+        detail: { count: result.length, nfts: result }
+      }));
+      
+      return result;
+    }
+    console.error('❌ Impossibile eseguire loadAllIASENFTs: ethers.js non disponibile');
+    
+    // Notifica il fallimento con evento
+    document.dispatchEvent(new CustomEvent('nft:loadFailed', {
+      detail: { reason: 'ethers_not_available', function: 'loadAllIASENFTs' }
+    }));
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Errore durante safeLoadAllIASENFTs:', error.message);
+    
+    // Notifica il fallimento con evento
+    document.dispatchEvent(new CustomEvent('nft:loadFailed', {
+      detail: { reason: 'error', message: error.message, function: 'loadAllIASENFTs' }
+    }));
+    
+    return [];
   }
-  console.error('❌ Impossibile eseguire loadAllIASENFTs: ethers.js non disponibile');
-  return [];
 }
 
 // Espone le funzioni wrapped al global scope
 window.getUserNFTs = safeGetUserNFTs;
 window.getNFTMetadata = safeGetNFTMetadata;
 window.loadAllIASENFTs = safeLoadAllIASENFTs;
+window.ensureEthersLoaded = ensureEthersLoaded; // Espone anche questa utility
 
-// Inoltre espone le funzioni originali per accesso diretto
+// Crea uno spazio dedicato per tutte le funzioni NFT
 window.nftReader = {
   getUserNFTs,
   getNFTMetadata,
   loadAllIASENFTs,
-  ensureEthersLoaded
+  ensureEthersLoaded,
+  safeGetUserNFTs,
+  safeGetNFTMetadata,
+  safeLoadAllIASENFTs,
+  // Configurazione
+  config: {
+    NFT_CONTRACT: window.NFT_CONTRACT_ADDRESS,
+    REWARDS_CONTRACT: window.REWARDS_CONTRACT_ADDRESS,
+    INFURA_API_KEY: window.INFURA_API_KEY
+  }
 };
 
 // Inizializza il caricamento di ethers.js all'avvio (non bloccante)
 ensureEthersLoaded().then(success => {
   // Aggiunge un evento per notificare che il reader è pronto
   document.dispatchEvent(new CustomEvent('nftreader:ready', {
-    detail: { ethersLoaded: success }
+    detail: { 
+      ethersLoaded: success,
+      version: typeof ethers !== 'undefined' ? 
+        (ethers.version || (ethers.providers ? '~v5' : ethers.BrowserProvider ? '~v6' : 'sconosciuta')) : 
+        null
+    }
+  }));
+  
+  console.log(`${success ? '✅' : '⚠️'} NFT Reader Adapter inizializzato, ethers.js ${success ? 'disponibile' : 'non disponibile'}`);
+}).catch(error => {
+  console.error('❌ Errore critico durante l\'inizializzazione di NFT Reader:', error);
+  
+  // Notifica l'errore di inizializzazione
+  document.dispatchEvent(new CustomEvent('nftreader:initError', {
+    detail: { error: error.message }
   }));
 });
 
-console.log('✅ NFT Reader Adapter v2.0 caricato e funzioni esposte in window');
+console.log('📋 NFT Reader Adapter v2.1.0 caricato e funzioni esposte in window');

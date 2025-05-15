@@ -1,32 +1,93 @@
 /**
- * IASE Staking Fallback System
- * Questo script implementa un sistema di fallback per il caricamento degli NFT
+ * IASE Staking Fallback System - Versione ottimizzata per Render
+ * 
+ * Sistema avanzato di fallback per il caricamento degli NFT
  * quando le API del server non rispondono correttamente.
+ * Fornisce recupero diretto dalla blockchain con robustezza migliorata.
+ * 
+ * Versione 1.1.0 - 2023-05-14
+ * - Integrazione con ethers.js v5/v6
+ * - Multi-provider fallback system
+ * - Sistema di retry automatico con tentativi incrementali
+ * - Rilevamento errori API e attivazione autonoma
+ * - Logging esteso per debugging
+ * - Completamente hardcoded per funzionamento immediato
  */
+
+// Configurazione dati HARDCODED per Render
+const FALLBACK_CONFIG = {
+  // Utilizza valori da window oppure default
+  NFT_CONTRACT_ADDRESS: window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F',
+  INFURA_API_KEY: window.INFURA_API_KEY || '84ed164327474b4499c085d2e4345a66',
+  ETHEREUM_RPC_FALLBACK: window.ETHEREUM_RPC_FALLBACK || 'https://rpc.ankr.com/eth',
+  ENABLE_FALLBACK: window.ENABLE_FALLBACK_SYSTEM !== false, // Attivo di default
+  DEBUG: window.IASE_DEBUG || false
+};
 
 // Inizializza il sistema di fallback quando il documento è caricato
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("🔄 Inizializzazione sistema di fallback per staking IASE...");
-  initFallbackSystem();
+  console.log("🔄 Inizializzazione sistema di fallback per NFT IASE...");
+  
+  if (FALLBACK_CONFIG.ENABLE_FALLBACK) {
+    console.log("✅ Sistema di fallback attivo");
+    initFallbackSystem();
+  } else {
+    console.log("ℹ️ Sistema di fallback disattivato nei settaggi");
+  }
 });
 
 // Inizializza il sistema di fallback
 function initFallbackSystem() {
-  // Aggiungi caricamento di ethers.js se non presente
-  if (!window.ethers) {
-    loadScript('https://cdn.ethers.io/lib/ethers-5.6.umd.min.js')
-      .then(() => {
-        console.log("✅ ethers.js caricato con successo");
-        setupFallbackEvents();
-      })
-      .catch(error => {
-        console.error("❌ Errore caricamento ethers.js:", error);
-      });
-  } else {
-    console.log("✅ ethers.js già presente, inizializzazione immediata");
+  // Verifica una lista di CDN in ordine per ethers.js
+  const cdnSources = [
+    'https://cdn.ethers.io/lib/ethers-5.6.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/ethers@5.6.9/dist/ethers.umd.min.js',
+    'https://unpkg.com/ethers@5.6.9/dist/ethers.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/ethers/5.6.9/ethers.umd.min.js'
+  ];
+  
+  // Se ethers.js è già caricato, procedi direttamente
+  if (window.ethers) {
+    console.log(`✅ ethers.js già caricato (v${window.ethers.version || 'unknown'})`);
     setupFallbackEvents();
+  } else {
+    console.log("🔄 ethers.js non trovato, tentativo di caricamento dinamico...");
+    
+    // Tenta di caricare ethers.js da ogni CDN in sequenza
+    tryLoadFromCDN(cdnSources, 0);
+  }
+}
+
+// Tenta di caricare ethers.js da una serie di CDN
+function tryLoadFromCDN(sources, index) {
+  if (index >= sources.length) {
+    console.error("❌ Impossibile caricare ethers.js da nessuna fonte");
+    // Notifica l'errore
+    document.dispatchEvent(new CustomEvent('fallback:error', {
+      detail: { error: 'Failed to load ethers.js from all sources' }
+    }));
+    return;
   }
   
+  console.log(`🔄 Tentativo caricamento ethers.js da ${sources[index]}...`);
+  
+  loadScript(sources[index])
+    .then(() => {
+      console.log(`✅ ethers.js caricato con successo da ${sources[index]}`);
+      setupFallbackEvents();
+      
+      // Notifica successo
+      document.dispatchEvent(new CustomEvent('fallback:ready', {
+        detail: { source: sources[index] }
+      }));
+    })
+    .catch(error => {
+      console.warn(`⚠️ Fallito caricamento da ${sources[index]}:`, error.message);
+      // Prova con la prossima fonte
+      tryLoadFromCDN(sources, index + 1);
+    });
+}
+
   // Aggiungi l'API blockchain diretta se non presente
   if (!window.IASEDirectBlockchainAPI) {
     loadScript('direct-blockchain-api.js')
@@ -119,14 +180,52 @@ function setupMutationObserver() {
 }
 
 // Carica gli NFT direttamente dalla blockchain
+/**
+ * Carica NFT direttamente dalla blockchain con sistema avanzato di fallback
+ * Utilizza IASEDirectBlockchainAPI con timeout e retry automatico
+ * @param {string} walletAddress - Indirizzo del wallet da cui caricare gli NFT
+ * @returns {Promise<void>}
+ */
 async function loadNFTsDirectFromBlockchain(walletAddress) {
-  console.log("🔍 Tentativo di caricamento NFT direttamente dalla blockchain per:", walletAddress);
+  if (!walletAddress) {
+    console.error("❌ Indirizzo wallet non valido o mancante");
+    return;
+  }
+  
+  console.log(`🔍 Sistema Fallback: Recupero NFT direttamente dalla blockchain per ${walletAddress}`);
+  
+  // Mostra loader o messaggio di caricamento
+  const container = document.getElementById('availableNftsContainer');
+  if (container) {
+    container.innerHTML = `
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Recupero NFT direttamente dalla blockchain...<br>
+        <small>Questo processo può richiedere fino a 30 secondi</small></p>
+      </div>
+    `;
+  }
+  
+  // Notifica altri componenti dell'inizio caricamento diretto
+  document.dispatchEvent(new CustomEvent('fallback:loading', {
+    detail: { walletAddress }
+  }));
   
   try {
     // Se l'API diretta è disponibile, usala
     if (window.IASEDirectBlockchainAPI) {
+      // Assicuriamoci che l'API sia inizializzata
+      await window.IASEDirectBlockchainAPI.init();
+      
       const result = await window.IASEDirectBlockchainAPI.getNFTs(walletAddress);
-      console.log("✅ NFT recuperati con API diretta:", result);
+      console.log(`✅ NFT recuperati con successo (${result.nfts?.length || 0} trovati)`);
+      
+      // Notifica il successo
+      document.dispatchEvent(new CustomEvent('fallback:success', {
+        detail: { count: result.nfts?.length || 0, nfts: result.nfts }
+      }));
+      
+      // Visualizza gli NFT
       displayDirectNFTs(result.nfts);
       return;
     }

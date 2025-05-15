@@ -469,24 +469,45 @@ document.addEventListener('DOMContentLoaded', () => {
    * Gestisce evento connessione wallet
    */
   function handleWalletConnected(event) {
-    const address = event.detail?.address || window.ethereum?.selectedAddress;
-    if (!address) return;
+    console.log('🔌 Evento connessione wallet rilevato:', event);
     
-    console.log('Evento connessione wallet rilevato, indirizzo:', address);
+    const rawAddress = event.detail?.address || window.ethereum?.selectedAddress;
+    if (!rawAddress) {
+      console.error('❌ ERRORE CRITICO: Nessun indirizzo trovato nell\'evento wallet:connected!');
+      console.log('⚠️ Event.detail:', event.detail);
+      console.log('⚠️ Window.ethereum:', window.ethereum);
+      return;
+    }
+    
+    console.log('✅ Indirizzo wallet grezzo:', rawAddress);
+    
+    // Usa la funzione unificata per normalizzare l'indirizzo
+    const cleanAddress = normalizeWalletAddress(rawAddress);
+    
+    if (!cleanAddress || cleanAddress.length < 10) {
+      console.error('❌ ERRORE: Indirizzo normalizzato non valido:', cleanAddress);
+      return;
+    }
+    
+    console.log('✅ Indirizzo wallet normalizzato:', cleanAddress);
     
     // Salva l'indirizzo wallet per uso globale
-    window.userWalletAddress = address;
+    window.userWalletAddress = cleanAddress;
     
     // Salva in localStorage per persistenza
     try {
-      localStorage.setItem('lastWalletAddress', address);
+      localStorage.setItem('lastWalletAddress', cleanAddress);
+      console.log('✅ Indirizzo salvato in localStorage');
     } catch (err) {
-      console.error('Errore nel salvare indirizzo in localStorage:', err);
+      console.error('❌ Errore nel salvare indirizzo in localStorage:', err);
     }
     
     // Mostra dashboard di staking
     if (window.stakingDashboard) {
+      console.log('✅ Mostra dashboard di staking');
       window.stakingDashboard.classList.remove('hidden');
+    } else {
+      console.error('❌ ERRORE CRITICO: Dashboard di staking non trovata!');
     }
     
     // Imposta indirizzo wallet nella dashboard (solo per visualizzazione)
@@ -692,31 +713,74 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {string} contractAddress - Opzionale: indirizzo del contratto NFT
    * @param {string} walletAddressOverride - Opzionale: override indirizzo wallet
    */
+  /**
+   * Funzione helper per normalizzare gli indirizzi wallet
+   * @param {string} address - Indirizzo wallet da normalizzare
+   * @returns {string} - Indirizzo normalizzato
+   */
+  function normalizeWalletAddress(address) {
+    if (!address) {
+      console.error('❌ ERRORE: Indirizzo wallet nullo o undefined');
+      return '';
+    }
+    
+    // Converti a stringa, rimuovi spazi e converti in lowercase
+    let normalized = address.toString().trim().toLowerCase().replace(/\s+/g, '');
+    
+    // Rimuovi punti di sospensione (... nell'indirizzo)
+    if (normalized.includes('...')) {
+      normalized = normalized.replace(/\.\.\./g, '');
+    }
+    
+    // Aggiungi prefisso 0x se mancante
+    if (!normalized.startsWith('0x') && normalized.length > 0) {
+      normalized = '0x' + normalized;
+    }
+    
+    console.log(`📋 Normalizzazione indirizzo: "${address}" → "${normalized}"`);
+    return normalized;
+  }
+
   async function loadAvailableNfts(contractAddress = null, walletAddressOverride = null) {
+    console.log('🔄 Avvio caricamento NFT disponibili...');
+    console.log('📋 Parametri:', { contractAddress, walletAddressOverride });
+    
     try {
       // Usa contratto predefinito se non specificato
       const nftContract = contractAddress || window.IASE_NFT_CONTRACT || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
+      console.log('📝 Indirizzo contratto NFT:', nftContract);
       
       // Carica ethers.js se necessario
       if (!window.ethers) {
+        console.log('⚠️ Ethers.js non trovato, caricamento automatico...');
         await loadEthersLibrary();
+        console.log('✅ Ethers.js caricato:', typeof window.ethers);
+      } else {
+        console.log('✅ Ethers.js già disponibile:', typeof window.ethers);
       }
       
       // Inizializza il provider Ethereum se necessario
       if (window.ethereum && window.ethers && !window.ethersProvider) {
+        console.log('🔄 Inizializzazione provider Ethereum...');
         window.ethersProvider = new window.ethers.providers.Web3Provider(window.ethereum);
+        console.log('✅ Provider Ethereum inizializzato');
       }
       
       // Determina l'indirizzo wallet da usare
       let storedAddress;
       try {
         storedAddress = localStorage.getItem('lastWalletAddress');
-      } catch (e) {}
+        console.log('📋 Indirizzo wallet da localStorage:', storedAddress);
+      } catch (e) {
+        console.error('❌ Errore nel recupero indirizzo da localStorage:', e);
+      }
       
       const walletAddress = walletAddressOverride ||
         window.ethereum?.selectedAddress ||
         window.userWalletAddress ||
         storedAddress;
+        
+      console.log('👤 Indirizzo wallet finale:', walletAddress);
 
       // Verifica che ci sia un indirizzo wallet valido
       if (!walletAddress) {
@@ -749,22 +813,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      // Assicurati che l'indirizzo sia in formato corretto
-      let cleanWalletAddress = walletAddress.toString().trim().replace(/\s+/g, '');
+      // Utilizza la funzione unificata per normalizzare l'indirizzo
+      const cleanWalletAddress = normalizeWalletAddress(walletAddress);
       
-      // Rimuovi eventuali puntini di sospensione o abbreviazioni
-      if (cleanWalletAddress.includes('...')) {
-        cleanWalletAddress = cleanWalletAddress.replace(/\.\.\./g, '');
-      }
-      
-      // Aggiungi prefisso 0x se mancante
-      if (!cleanWalletAddress.startsWith('0x')) {
-        cleanWalletAddress = '0x' + cleanWalletAddress;
-      }
+      console.log('📋 Indirizzo normalizzato:', cleanWalletAddress);
       
       // Verifica che l'indirizzo sia valido
       if (!cleanWalletAddress || cleanWalletAddress.length < 10) {
+        console.error('❌ ERRORE: Indirizzo normalizzato non valido:', cleanWalletAddress);
         showNotification('error', 'Errore indirizzo wallet', 'L\'indirizzo del wallet non è valido. Riconnetti il wallet e riprova.');
+        
+        // Mostra un errore visivo nella UI
+        const availableNftGrid = document.getElementById('availableNftsContainer') || window.availableNftGrid;
+        if (availableNftGrid) {
+          availableNftGrid.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">❌</div>
+              <h3>Indirizzo wallet non valido</h3>
+              <p>Riconnetti il wallet per visualizzare i tuoi NFT.</p>
+              <button class="btn btn-primary connect-wallet-btn" onclick="connectWalletETH()">
+                <i class="fas fa-wallet"></i> Riconnetti Wallet
+              </button>
+            </div>
+          `;
+        }
+        
         throw new Error('Indirizzo wallet non valido o troppo corto');
       }
       
@@ -804,14 +877,53 @@ document.addEventListener('DOMContentLoaded', () => {
        * Recupera NFT direttamente dalla blockchain (sistema di fallback)
        */
       async function loadNftsDirectFromBlockchain() {
+        console.log('🚀 Avvio caricamento NFT direttamente dalla blockchain (fallback)...');
+        
+        // Verifica che l'indirizzo sia valido
+        if (!cleanWalletAddress || cleanWalletAddress.length < 10) {
+          console.error('❌ ERRORE CRITICO: Indirizzo wallet non valido per caricamento blockchain', cleanWalletAddress);
+          
+          // Tenta di normalizzare nuovamente con indirizzo da altre fonti
+          const addressFromEthereum = window.ethereum?.selectedAddress;
+          const addressFromLS = localStorage.getItem('lastWalletAddress');
+          
+          console.log('⚠️ Tentativo di recupero indirizzo da altre fonti:',
+            { ethereum: addressFromEthereum, localStorage: addressFromLS });
+            
+          // Se disponibile, usa l'indirizzo da ethereum
+          if (addressFromEthereum) {
+            const fixedAddress = normalizeWalletAddress(addressFromEthereum);
+            console.log('✅ Recuperato nuovo indirizzo da ethereum:', fixedAddress);
+            
+            if (fixedAddress && fixedAddress.length >= 10) {
+              return loadAvailableNfts(nftContract, fixedAddress);
+            }
+          }
+          
+          showErrorWithRetry(
+            availableNftGrid || document.getElementById('availableNftsContainer'),
+            'Errore: indirizzo wallet non valido per caricamento diretto NFT',
+            () => connectWalletETH()
+          );
+          
+          throw new Error('Indirizzo wallet non valido per caricamento blockchain');
+        }
+        
+        console.log('⚙️ Indirizzo wallet per blockchain:', cleanWalletAddress);
+        
+        // Carica ethers.js se necessario
         if (!window.ethers) {
+          console.log('⚠️ Ethers.js non disponibile, caricamento...');
           await loadEthersLibrary();
+          console.log('✅ Ethers.js caricato con successo');
+        } else {
+          console.log('✅ Ethers.js già disponibile');
         }
         
         try {
           // Configurazione del contratto e ABI
           const nftContractAddress = nftContract;
-          
+          console.log('📝 Indirizzo contratto NFT per chiamata diretta:', nftContractAddress);
           // ABI completo per contratto ERC721Enumerable (IASE NFT)
           const ERC721EnumerableABI = [
             {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
@@ -859,14 +971,21 @@ document.addEventListener('DOMContentLoaded', () => {
           const nftContractInstance = new ethers.Contract(nftContractAddress, ERC721EnumerableABI, provider);
           const balance = await nftContractInstance.balanceOf(cleanWalletAddress);
           
+          // Gestione robusta del balance per compatibilità con ethers v5 e v6
+          // In v6 balance è un BigInt, in v5 è un oggetto con metodo toNumber()
+          const balanceNumber = typeof balance === 'bigint' ? Number(balance) : 
+                              (typeof balance.toNumber === 'function' ? balance.toNumber() : parseInt(balance.toString(), 10));
+          
+          console.log(`📊 NFT balance: ${balanceNumber} (tipo balance: ${typeof balance})`);
+          
           // Se non ci sono NFT, ritorna array vuoto
-          if (balance.toNumber() === 0) {
+          if (balanceNumber === 0) {
             return { nfts: [] };
           }
           
           // Recupera ogni NFT
           const nfts = [];
-          for (let i = 0; i < balance.toNumber(); i++) {
+          for (let i = 0; i < balanceNumber; i++) {
             try {
               // Ottieni ID token e URI dei metadati
               const tokenId = await nftContractInstance.tokenOfOwnerByIndex(cleanWalletAddress, i);

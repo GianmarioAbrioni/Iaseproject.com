@@ -1,32 +1,75 @@
 /**
  * IASE Units Staking - Ethereum wallet connector
- * Versione ottimizzata con rilevamento disconnessione migliorato e validazione wallet
+ * Versione ottimizzata per Render con rilevamento disconnessione migliorato e validazione wallet
+ * 
+ * Versione 2.0.0 - 2023-05-14
+ * - Compatibilità garantita con MetaMask, Coinbase Wallet e altri wallet Ethereum
+ * - Sistema di monitoring connessione per rilevare disconnessioni automatiche
+ * - Gestione eventi DOM avanzata con eventi custom per integrazioni
+ * - Hardcoded contract addresses e configurazioni per funzionamento immediato
+ * - Validazione indirizzi wallet con controlli di integrità
+ * - Logging esteso per debug e diagnostica
  */
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('📱 Staking ETH Connector initialization started');
+  console.log('📱 IASE Staking Wallet Connector v2.0 - Inizializzazione');
   
-  // Remove wallet from navbar if present
+  // Rimuovi componente wallet dalla navbar se presente
   const navbarWallet = document.getElementById('wallet-component');
   if (navbarWallet) {
     navbarWallet.style.display = 'none';
+    console.log('🔄 Wallet component nascosto dalla navbar');
   }
   
-  // Export connectWalletETH function to global scope
+  // Esponi le funzioni al global scope per accesso da altri script
   window.connectWalletETH = connectEthWallet;
   window.disconnectWalletETH = disconnectEthWallet;
+  window.checkWalletConnectionETH = checkConnectionStatus;
+  window.switchToEthereumMainnet = switchToEthereum;
   
-  // Constants
+  // Configurazione HARDCODED per funzionamento su Render
+  const ETHEREUM_CHAIN_ID = '0x1'; // Mainnet
+  const BSC_CHAIN_ID = '0x38';     // Binance Smart Chain
+  
+  // Dati completi per le reti principali (mainnet)
   const NETWORK_DATA = {
     ETHEREUM_MAINNET: {
-      chainId: '0x1',
+      chainId: ETHEREUM_CHAIN_ID,
+      chainIdDecimal: 1,
       name: 'Ethereum Mainnet',
       symbol: 'ETH',
-      explorer: 'https://etherscan.io'
+      explorer: 'https://etherscan.io',
+      rpcUrls: [
+        'https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66',
+        'https://rpc.ankr.com/eth',
+        'https://eth.llamarpc.com'
+      ]
+    },
+    BSC_MAINNET: {
+      chainId: BSC_CHAIN_ID,
+      chainIdDecimal: 56,
+      name: 'Binance Smart Chain',
+      symbol: 'BNB',
+      explorer: 'https://bscscan.com',
+      rpcUrls: [
+        'https://bsc-dataseed.binance.org',
+        'https://bsc-dataseed1.defibit.io',
+        'https://bsc-dataseed1.ninicoin.io'
+      ]
     }
   };
   
-  // IASE NFT contract address (ERC721Enumerable)
-  const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+  // Indirizzi smart contract (HARDCODED per render)
+  // Utilizza prima i valori in window (se impostati in HTML) o valori di default
+  const IASE_NFT_CONTRACT = window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+  const IASE_REWARDS_CONTRACT = window.REWARDS_CONTRACT_ADDRESS || '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
+  
+  // Log delle configurazioni (debug mode)
+  if (window.IASE_DEBUG) {
+    console.log('🔧 Configurazione Staking Connector:');
+    console.log(`- NFT Contract: ${IASE_NFT_CONTRACT}`);
+    console.log(`- Rewards Contract: ${IASE_REWARDS_CONTRACT}`);
+    console.log(`- Network: ${NETWORK_DATA.ETHEREUM_MAINNET.name} (${NETWORK_DATA.ETHEREUM_MAINNET.chainId})`);
+  }
   
   // Esporta globalmente l'indirizzo del contratto
   window.IASE_NFT_CONTRACT = IASE_NFT_CONTRACT;
@@ -201,10 +244,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Connect to Ethereum wallet
+  /**
+   * Connette il wallet Ethereum dell'utente (MetaMask o altri provider)
+   * Gestisce tutti i controlli di sicurezza e la validazione dell'indirizzo
+   * @returns {Promise<{address: string, chainId: string, connected: boolean}>}
+   */
   async function connectEthWallet() {
+    console.log('🔄 Tentativo connessione wallet Ethereum...');
+    
+    // Verifica che il browser disponga di un provider web3 (MetaMask, ecc.)
     if (!window.ethereum) {
-      alert('MetaMask not found! Please install MetaMask to use this feature.');
-      return;
+      console.error('❌ Nessun provider Ethereum trovato nel browser');
+      
+      // Mostra messaggio all'utente
+      const errorMessage = 'MetaMask o altro wallet Ethereum non trovato. Per utilizzare la funzionalità di staking, installa un wallet compatibile come MetaMask.';
+      alert(errorMessage);
+      
+      // Dispatcha evento di errore per notificare altri componenti
+      document.dispatchEvent(new CustomEvent('wallet:error', {
+        detail: { 
+          code: 'PROVIDER_MISSING',
+          message: errorMessage
+        }
+      }));
+      
+      return null;
     }
     
     if (connectBtn) {

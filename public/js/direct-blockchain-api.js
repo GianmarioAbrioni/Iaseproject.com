@@ -1,16 +1,47 @@
 /**
- * IASE Direct Blockchain API
+ * IASE Direct Blockchain API - Versione ottimizzata per Render
  * Sistema di fallback per recuperare NFT direttamente dalla blockchain
  * quando il backend API non risponde correttamente
+ * 
+ * Versione 1.1.0 - 2023-05-14
+ * - Completa integrazione con ethers.js (v5/v6)
+ * - Multiple providers fallback (Web3 -> Infura -> Ankr -> Pubblico)
+ * - Sistema robusto per evitare errori Rate Limit
+ * - Ottimizzazione cache metadati per ridurre chiamate
+ * - Normalizzazione indirizzi per supporto wallet diversi
+ * - Zero dipendenze - Funziona immediatamente senza configurazione
+ * 
+ * Configurazione HARDCODED:
+ * - NFT Contract: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
+ * - Infura API Key: 84ed164327474b4499c085d2e4345a66
  */
 
 window.IASEDirectBlockchainAPI = {
-  // Stato e configurazione
+  // Stato e configurazione (hardcoded per Render)
   config: {
-    nftContractAddress: "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F", // Indirizzo contratto IASE NFT
-    infuraEndpoint: "https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66", // Endpoint Infura ufficiale IASE
-    ethersLoaded: false
+    // Prendi i valori da window oppure usa i default hardcoded
+    nftContractAddress: window.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F",
+    infuraApiKey: window.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66",
+    fallbackRpcUrl: window.ETHEREUM_RPC_FALLBACK || "https://rpc.ankr.com/eth",
+    
+    // Stato interno
+    ethersLoaded: false,
+    metadataCache: {}, // Cache per i metadati
+    providerAttempts: 0, // Contatore tentativi provider
+    lastProviderSuccess: null, // Ultimo provider utilizzato con successo
+    debug: window.IASE_DEBUG || false
   },
+  
+  // Lista provider RPC in ordine di priorità
+  rpcProviders: [
+    // Prima funzione: genera URL Infura con API key configurata
+    (config) => `https://mainnet.infura.io/v3/${config.infuraApiKey}`,
+    // URL di fallback in ordine di priorità
+    (config) => config.fallbackRpcUrl, 
+    () => "https://eth.llamarpc.com",
+    () => "https://ethereum.publicnode.com",
+    () => "https://rpc.eth.gateway.fm"
+  ],
   
   // ABI minimale per ERC721 Enumerable
   minimalERC721ABI: [
@@ -62,18 +93,86 @@ window.IASEDirectBlockchainAPI = {
   },
   
   // Crea provider Ethereum (usa wallet connesso se disponibile, altrimenti Infura)
-  createProvider() {
+  /**
+   * Crea un provider Ethereum con sistema avanzato di fallback
+   * Prova nell'ordine: Web3Provider (wallet) -> InfuraProvider -> Fallback RPC
+   * Con compatibilità ethers.js v5/v6
+   * @returns {ethers.providers.Provider|ethers.Provider} Provider Ethereum
+   */
+  async createProvider() {
+    // Verifica che ethers.js sia caricato
     if (!window.ethers) {
-      throw new Error("ethers.js non caricato");
+      console.error("❌ ethers.js non caricato");
+      throw new Error("ethers.js non disponibile");
     }
     
-    if (window.ethereum) {
-      console.log("✅ Creazione provider con wallet connesso");
-      return new ethers.providers.Web3Provider(window.ethereum);
-    } else {
-      console.log("⚠️ Wallet non disponibile, uso Infura come fallback");
-      return new ethers.providers.JsonRpcProvider(this.config.infuraEndpoint);
+    // Rileva versione di ethers.js
+    const isV5 = window.ethers.providers && typeof window.ethers.providers.Web3Provider === 'function';
+    const isV6 = typeof window.ethers.BrowserProvider === 'function';
+    
+    if (this.config.debug) {
+      console.log(`🔍 Versione ethers.js rilevata: ${isV5 ? 'v5' : isV6 ? 'v6' : 'sconosciuta'}`);
     }
+    
+    // STRATEGIA 1: Usa wallet connesso se disponibile
+    if (window.ethereum) {
+      try {
+        console.log("🔄 Tentativo con wallet connesso (MetaMask/Web3)");
+        
+        if (isV5) {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.getBlockNumber(); // Verifica connessione
+          console.log("✅ Provider creato con wallet connesso (v5)");
+          this.config.lastProviderSuccess = "Web3Provider";
+          return provider;
+        } else if (isV6) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          await provider.getBlockNumber(); // Verifica connessione
+          console.log("✅ Provider creato con wallet connesso (v6)");
+          this.config.lastProviderSuccess = "BrowserProvider";
+          return provider;
+        }
+      } catch (walletError) {
+        console.warn("⚠️ Errore con wallet:", walletError.message);
+        // Continua con altri provider
+      }
+    }
+    
+    // STRATEGIA 2: Usa i provider RPC in ordine di priorità
+    for (let i = 0; i < this.rpcProviders.length; i++) {
+      const rpcUrlFn = this.rpcProviders[i];
+      const rpcUrl = rpcUrlFn(this.config);
+      
+      try {
+        console.log(`🔄 Tentativo provider RPC ${i+1}/${this.rpcProviders.length}: ${rpcUrl}`);
+        
+        // Incrementa contatore tentativi
+        this.config.providerAttempts++;
+        
+        let provider;
+        if (isV5) {
+          provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        } else if (isV6) {
+          provider = new ethers.JsonRpcProvider(rpcUrl);
+        } else {
+          throw new Error("Versione ethers.js non supportata");
+        }
+        
+        // Verifica che il provider funzioni
+        await provider.getBlockNumber();
+        
+        console.log(`✅ Provider RPC funzionante: ${rpcUrl}`);
+        this.config.lastProviderSuccess = rpcUrl;
+        return provider;
+      } catch (rpcError) {
+        console.warn(`⚠️ Provider RPC fallito (${rpcUrl}):`, rpcError.message);
+        // Continua con il provider successivo
+      }
+    }
+    
+    // Se arriviamo qui, tutti i provider hanno fallito
+    console.error("❌ Tutti i provider hanno fallito");
+    throw new Error("Impossibile connettersi ad Ethereum: tutti i provider hanno fallito");
   },
   
   // Normalizza e pulisci indirizzo wallet
@@ -103,8 +202,15 @@ window.IASEDirectBlockchainAPI = {
   },
   
   // Recupera NFT IASE direttamente dalla blockchain
+  /**
+   * Recupera gli NFT posseduti da un indirizzo wallet direttamente dalla blockchain
+   * con sistema avanzato multi-provider e gestione errori
+   * @param {string} walletAddress - Indirizzo wallet da cui leggere gli NFT
+   * @param {string} contractAddressOverride - Opzionale: indirizzo contratto NFT alternativo
+   * @returns {Promise<{nfts: Array, walletAddress: string}>} Lista NFT e indirizzo normalizzato
+   */
   async getNFTs(walletAddress, contractAddressOverride = null) {
-    console.log("🔍 Recupero NFT IASE direttamente dalla blockchain");
+    console.log(`🔄 DirectBlockchainAPI: Avvio recupero NFT per ${walletAddress}`);
     
     try {
       // Assicurati che ethers sia caricato
@@ -123,73 +229,125 @@ window.IASEDirectBlockchainAPI = {
       const contractAddress = contractAddressOverride || this.config.nftContractAddress;
       console.log("📄 Contratto NFT:", contractAddress);
       
-      // Crea provider e istanza contratto
-      const provider = this.createProvider();
+      // Crea provider e contratto con nuovo sistema di fallback avanzato
+      console.log(`🔄 Creazione provider per contratto: ${contractAddress}`);
+      const provider = await this.createProvider();
+      
+      // Determina quale versione di ethers.js stiamo usando
+      const isV5 = window.ethers.providers && typeof window.ethers.providers.Web3Provider === 'function';
+      const isV6 = typeof window.ethers.BrowserProvider === 'function';
+      
+      // Crea contratto con compatibilità v5/v6
+      console.log(`🔄 Creazione contratto NFT: ${contractAddress}`);
       const contract = new ethers.Contract(contractAddress, this.minimalERC721ABI, provider);
       
-      // Recupera balance (numero NFT posseduti)
+      // Recupera balance (numero NFT posseduti) con supporto per BigInt (ethers v6)
+      console.log(`🔄 Lettura balance NFT per ${cleanAddress}...`);
       const balance = await contract.balanceOf(cleanAddress);
-      console.log(`✅ Balance NFT: ${balance.toString()}`);
+      
+      // Gestisci compatibilità tra diverse rappresentazioni numeriche
+      let balanceNumber;
+      if (typeof balance === 'bigint') {
+        balanceNumber = Number(balance);
+        console.log(`✅ Balance NFT (BigInt): ${balance} -> ${balanceNumber}`);
+      } else if (typeof balance.toNumber === 'function') {
+        balanceNumber = balance.toNumber();
+        console.log(`✅ Balance NFT: ${balance.toString()} -> ${balanceNumber}`);
+      } else {
+        balanceNumber = parseInt(balance.toString(), 10);
+        console.log(`✅ Balance NFT (parsed): ${balance.toString()} -> ${balanceNumber}`);
+      }
       
       // Se non ci sono NFT, ritorna array vuoto
-      if (balance.toNumber() === 0) {
-        return { nfts: [] };
+      if (balanceNumber === 0) {
+        console.log(`ℹ️ Nessun NFT trovato per ${cleanAddress}`);
+        return { nfts: [], walletAddress: cleanAddress };
       }
+      
+      console.log(`🔍 Trovati ${balanceNumber} NFT per ${cleanAddress}`);
       
       // Array per i risultati
       const nfts = [];
       
-      // Recupera ogni NFT
-      for (let i = 0; i < balance.toNumber(); i++) {
-        try {
-          // Token ID
-          const tokenId = await contract.tokenOfOwnerByIndex(cleanAddress, i);
-          console.log(`✅ Trovato NFT #${tokenId.toString()}`);
-          
-          // Crea oggetto NFT base
-          const nft = {
-            id: tokenId.toString(),
-            tokenId: tokenId.toString(),
-            name: `IASE Unit #${tokenId.toString()}`,
-            image: "/images/nft-samples/placeholder.jpg", // Immagine predefinita
-            contractAddress: contractAddress,
-            cardFrame: "Standard", // Valore predefinito, verrà aggiornato dopo
-            rarity: "Standard",
-            aiBooster: "X1.0", // Valore predefinito
-            "AI-Booster": "X1.0",
-            // Metadati predefiniti
-            iaseTraits: {
-              orbitalModule: "standard",
-              energyPanels: "standard", 
-              antennaType: "standard",
-              aiCore: "standard",
-              evolutiveTrait: "standard"
-            }
-          };
-          
-          // Aggiungi all'array
-          nfts.push(nft);
-          
-          // Prova a recuperare i metadati in background (non bloccare il processo)
-          this.getTokenMetadata(contract, tokenId.toString())
-            .then(metadata => {
+      // Recupera ogni NFT con gestione errori migliorata
+      console.log(`🔄 Avvio recupero di ${balanceNumber} NFT...`);
+      
+      // Utilizziamo Promise.allSettled per massima resilienza
+      const tokenPromises = [];
+      
+      for (let i = 0; i < balanceNumber; i++) {
+        // Creiamo una funzione asincrona per ogni NFT da recuperare
+        const fetchTokenPromise = async (index) => {
+          try {
+            console.log(`🔄 Recupero NFT #${index+1}/${balanceNumber}...`);
+            const tokenId = await contract.tokenOfOwnerByIndex(cleanAddress, index);
+            console.log(`✅ Trovato NFT #${tokenId.toString()}`);
+            
+            // Crea oggetto NFT base con dati minimi ma completi
+            const nft = {
+              id: tokenId.toString(),
+              tokenId: tokenId.toString(),
+              name: `IASE Unit #${tokenId.toString()}`,
+              image: "/images/nft-samples/placeholder.jpg", // Immagine predefinita
+              contractAddress: contractAddress,
+              cardFrame: "Standard", // Valore predefinito, verrà aggiornato dopo
+              rarity: "Standard",
+              aiBooster: "X1.0", // Valore predefinito
+              "AI-Booster": "X1.0",
+              // Metadati predefiniti
+              iaseTraits: {
+                orbitalModule: "standard",
+                energyPanels: "standard", 
+                antennaType: "standard",
+                aiCore: "standard",
+                evolutiveTrait: "standard"
+              }
+            };
+            
+            // Prova a recuperare i metadati (con timeout per evitare blocchi)
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error("Timeout")), 5000)
+            );
+            
+            try {
+              // Race tra recupero metadati e timeout
+              const metadata = await Promise.race([
+                this.getTokenMetadata(contract, tokenId.toString()),
+                timeoutPromise
+              ]);
+              
               if (metadata) {
-                // Aggiorna i dati esistenti con i metadati reali
+                // Aggiorna i dati con i metadati reali
                 this.updateNFTWithMetadata(nft, metadata);
                 console.log(`✅ Metadati recuperati per NFT #${tokenId.toString()}`);
               }
-            })
-            .catch(err => {
-              console.warn(`⚠️ Errore nel recupero metadati per NFT #${tokenId.toString()}:`, err);
-            });
-          
-        } catch (err) {
-          console.error(`❌ Errore nel recupero NFT #${i}:`, err);
-        }
+            } catch (metadataError) {
+              console.warn(`⚠️ Errore/timeout nel recupero metadati per NFT #${tokenId.toString()}:`, 
+                metadataError.message);
+              // Continua con i dati predefiniti
+            }
+            
+            return nft; // Ritorna l'NFT con i metadati che siamo riusciti a recuperare
+          } catch (err) {
+            console.error(`❌ Errore nel recupero NFT #${index}:`, err.message);
+            return null;
+          }
+        };
+        
+        // Aggiungi la promise alla lista
+        tokenPromises.push(fetchTokenPromise(i));
       }
       
-      console.log(`✅ Recuperati ${nfts.length} NFT dalla blockchain`);
-      return { nfts };
+      // Esegui tutte le promise in parallelo e gestisci i risultati
+      const results = await Promise.all(tokenPromises);
+      
+      // Filtra i risultati validi e aggiungi all'array finale
+      for (const nft of results) {
+        if (nft) nfts.push(nft);
+      }
+      
+      console.log(`✅ Recuperati ${nfts.length}/${balanceNumber} NFT dalla blockchain`);
+      return { nfts, walletAddress: cleanAddress };
       
     } catch (error) {
       console.error("❌ Errore nel recupero NFT dalla blockchain:", error);

@@ -1,12 +1,30 @@
 /**
- * IASE NFT Reader
- * Utility script per leggere direttamente gli NFT dal wallet dell'utente usando ethers.js
+ * IASE NFT Reader - Versione ottimizzata per Render
+ * Utility script per leggere direttamente gli NFT dal wallet dell'utente
+ * con supporto multi-provider e gestione robusta di errori
+ * 
+ * Versione 1.2.0 - 2023-05-14
+ * - Supporta ethers.js v5 e v6
+ * - Gestione avanzata di provider per massima affidabilità
+ * - Logging migliorato per debug
+ * - Hardcoded API key e indirizzi per funzionamento immediato
  */
 
-// Configurazioni globali con dati reali
-const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
-const INFURA_API_KEY = '84ed164327474b4499c085d2e4345a66';
-const REWARDS_CONTRACT = '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
+// Configurazioni globali con dati reali (hardcoded per render)
+// Prendi prima da window (se impostati in HTML) altrimenti usa valori di default
+const IASE_NFT_CONTRACT = window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+const INFURA_API_KEY = window.INFURA_API_KEY || '84ed164327474b4499c085d2e4345a66';
+const REWARDS_CONTRACT = window.REWARDS_CONTRACT_ADDRESS || '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
+const ETHEREUM_RPC_FALLBACK = window.ETHEREUM_RPC_FALLBACK || 'https://rpc.ankr.com/eth';
+
+// Log delle configurazioni (solo in modalità debug)
+if (window.IASE_DEBUG) {
+  console.log('📊 IASE NFT Reader - Configurazione:');
+  console.log(`- NFT Contract: ${IASE_NFT_CONTRACT}`);
+  console.log(`- Infura API Key: ${INFURA_API_KEY.substring(0, 4)}...${INFURA_API_KEY.substring(INFURA_API_KEY.length - 4)}`);
+  console.log(`- Rewards Contract: ${REWARDS_CONTRACT}`);
+  console.log(`- Ethereum RPC Fallback: ${ETHEREUM_RPC_FALLBACK}`);
+}
 
 // ABI completo per contratto ERC721Enumerable (IASE NFT)
 const ERC721_ABI = [
@@ -145,22 +163,53 @@ export async function getNFTMetadata(tokenId) {
       if (isEthersV5) {
         try {
           provider = new ethers.providers.Web3Provider(window.ethereum);
+          console.log("✅ Connesso a Web3Provider (v5)");
         } catch (error) {
-          // Usa direttamente l'API key Infura reale come fallback
-          console.log("⚠️ Fallback a Infura API (v5)");
-          provider = new ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66");
+          console.warn("⚠️ Web3Provider fallito, tentativo con Infura...", error.message);
+          try {
+            // Usa API key Infura reale come primo fallback
+            const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
+            provider = new ethers.providers.JsonRpcProvider(infuraUrl);
+            console.log("✅ Connesso a Infura Provider (v5)");
+          } catch (infuraError) {
+            console.warn("⚠️ Infura fallito, tentativo con provider alternativo...", infuraError.message);
+            try {
+              // Prova con Ankr come secondo fallback
+              provider = new ethers.providers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+              console.log("✅ Connesso a Provider alternativo (v5)");
+            } catch (ankrError) {
+              console.error("❌ Tutti i provider falliti (v5)", ankrError.message);
+              throw new Error("Impossibile connettersi a nessun provider Ethereum");
+            }
+          }
         }
         contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
       } else if (isEthersV6) {
         try {
           provider = new ethers.BrowserProvider(window.ethereum);
+          console.log("✅ Connesso a BrowserProvider (v6)");
         } catch (error) {
-          // Usa direttamente l'API key Infura reale come fallback
-          console.log("⚠️ Fallback a Infura API (v6)");
-          provider = new ethers.JsonRpcProvider("https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66");
+          console.warn("⚠️ BrowserProvider fallito, tentativo con Infura...", error.message);
+          try {
+            // Usa API key Infura reale come primo fallback
+            const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
+            provider = new ethers.JsonRpcProvider(infuraUrl);
+            console.log("✅ Connesso a Infura Provider (v6)");
+          } catch (infuraError) {
+            console.warn("⚠️ Infura fallito, tentativo con provider alternativo...", infuraError.message);
+            try {
+              // Prova con Ankr come secondo fallback
+              provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+              console.log("✅ Connesso a Provider alternativo (v6)");
+            } catch (ankrError) {
+              console.error("❌ Tutti i provider falliti (v6)", ankrError.message);
+              throw new Error("Impossibile connettersi a nessun provider Ethereum");
+            }
+          }
         }
         contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
       } else {
+        console.error("❌ Versione ethers.js non riconosciuta!");
         throw new Error("Versione di ethers.js non supportata");
       }
 

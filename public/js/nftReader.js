@@ -101,92 +101,80 @@ export async function getUserNFTs() {
       const balanceNumber = typeof balance === 'bigint' ? Number(balance) : 
                            (typeof balance.toNumber === 'function' ? balance.toNumber() : parseInt(balance.toString(), 10));
       
-      // METODO 1: Tenta di usare tokenOfOwnerByIndex prima (ERC721Enumerable)
-      let useTransferEvents = false;
+      // METODO DEFINITIVO: Scansione diretta dei tokenId con ownerOf
+      // Eliminiamo completamente i metodi precedenti (Enumerable e Transfer events) 
+      // perché non sono affidabili su alcuni contratti e provider
+      console.log("🔍 Reading NFTs using direct scanning method (balanceOf + ownerOf)...");
       
-      try {
-        // Prova a leggere il primo NFT con tokenOfOwnerByIndex
-        // Se questo fallisce, il contratto non è Enumerable
-        await contract.tokenOfOwnerByIndex(userAddress, 0);
-        
-        // Se arriviamo qui, il contratto supporta Enumerable
-        console.log("✅ NFT contract supports ERC721Enumerable interface");
-        
-        // Loop attraverso tutti gli NFT usando tokenOfOwnerByIndex
-        for (let i = 0; i < balanceNumber; i++) {
-          try {
-            const tokenId = await contract.tokenOfOwnerByIndex(userAddress, i);
-            console.log(`✅ NFT #${tokenId.toString()} found with Enumerable method`);
-            nftIds.push(tokenId.toString());
-          } catch (error) {
-            console.error(`❌ Error retrieving NFT at index ${i}:`, error);
+      // Normalizza l'indirizzo del wallet per confronti case-insensitive
+      const normalizedUserAddress = userAddress.toLowerCase();
+      
+      // Definisci i limiti della scansione per la collezione IASE
+      const START_TOKEN_ID = 1;
+      const END_TOKEN_ID = 3000; // Limite massimo ragionevole per IASE collection
+      
+      console.log(`🔄 Starting direct scan from tokenId ${START_TOKEN_ID} to ${END_TOKEN_ID}...`);
+      
+      // Contatore per tracciare quanti NFT abbiamo trovato
+      let foundNFTs = 0;
+      
+      // Esegui la scansione in batch di 10 per non sovraccaricare la rete
+      const BATCH_SIZE = 10;
+      
+      // Resetta l'array degli NFT IDs
+      nftIds = [];
+      
+      // Funzione per verificare la proprietà di un token
+      async function checkTokenOwnership(tokenId) {
+        try {
+          const currentOwner = (await contract.ownerOf(tokenId)).toLowerCase();
+          
+          if (currentOwner === normalizedUserAddress) {
+            console.log(`✅ NFT #${tokenId} verified as owned by user`);
+            return tokenId.toString();
           }
+          return null;
+        } catch (ownerError) {
+          // Un errore qui generalmente significa che il token non esiste
+          // o non appartiene all'utente, quindi è corretto ritornare null
+          return null;
         }
-      } catch (error) {
-        // Se tokenOfOwnerByIndex fallisce, probabilmente il contratto non è Enumerable
-        console.log("⚠️ Contract does not support ERC721Enumerable interface");
-        console.log("🔄 Switching to Transfer events method...");
-        useTransferEvents = true;
       }
       
-      // METODO 2: Se il primo metodo fallisce, usa Transfer events
-      if (useTransferEvents || nftIds.length === 0) {
-        console.log("🔍 Reading NFTs via Transfer events...");
-        
-        // Normalizza l'indirizzo per confronti case-insensitive
-        const normalizedUserAddress = userAddress.toLowerCase();
-        
-        // Configura filtro per Transfer events
-        // Compatibile con entrambe le versioni di ethers
-        const filter = isEthersV5 ? 
-          contract.filters.Transfer(null, userAddress) : 
-          contract.filters.Transfer(null, userAddress, null);
-        
-        try {
-          // Query tutti gli eventi Transfer all'indirizzo dell'utente
-          const transferEvents = await contract.queryFilter(filter);
-          console.log(`📊 Found ${transferEvents.length} Transfer events to user address`);
-          
-          // Mappa per tenere traccia dei token ricevuti
-          const receivedTokens = {};
-          
-          // Elabora gli eventi Transfer
-          for (const event of transferEvents) {
-            const to = event.args.to.toLowerCase();
-            const tokenId = event.args.tokenId.toString();
-            
-            if (to === normalizedUserAddress) {
-              receivedTokens[tokenId] = true;
-            }
-          }
-          
-          // Verifica quali token sono ancora posseduti dall'utente
-          nftIds = []; // Reset ids array
-          
-          for (const tokenId of Object.keys(receivedTokens)) {
-            try {
-              // Verifica se l'utente è ancora il proprietario di questo token
-              const currentOwner = (await contract.ownerOf(tokenId)).toLowerCase();
-              
-              if (currentOwner === normalizedUserAddress) {
-                console.log(`✅ NFT #${tokenId} verified as owned by user`);
-                nftIds.push(tokenId);
-                
-                // Ottimizzazione: se abbiamo trovato tutti i token attesi, fermiamo la ricerca
-                if (nftIds.length >= balanceNumber) {
-                  console.log(`✅ Found all ${balanceNumber} tokens expected from balanceOf`);
-                  break;
-                }
-              }
-            } catch (error) {
-              console.error(`❌ Error checking ownership of NFT #${tokenId}:`, error);
-            }
-          }
-          
-          console.log(`✅ Successfully found ${nftIds.length} NFTs via Transfer events`);
-        } catch (transferError) {
-          console.error("❌ Error reading NFTs via Transfer events:", transferError);
+      // Loop attraverso tutti i possibili token IDs in batch
+      for (let startId = START_TOKEN_ID; startId <= END_TOKEN_ID; startId += BATCH_SIZE) {
+        // Se abbiamo già trovato tutti gli NFT, interrompiamo la scansione
+        if (foundNFTs >= balanceNumber) {
+          console.log(`✅ Found all ${balanceNumber} NFTs expected from balanceOf`);
+          break;
         }
+        
+        // Crea array di promesse per verificare la proprietà in parallelo
+        const checkPromises = [];
+        
+        for (let i = 0; i < BATCH_SIZE && (startId + i) <= END_TOKEN_ID; i++) {
+          const tokenId = startId + i;
+          checkPromises.push(checkTokenOwnership(tokenId));
+        }
+        
+        // Attendi il completamento di tutte le verifiche nel batch
+        const batchResults = await Promise.all(checkPromises);
+        
+        // Filtra i risultati validi e aggiungili alla lista
+        const validTokenIds = batchResults.filter(id => id !== null);
+        nftIds.push(...validTokenIds);
+        
+        // Aggiorna contatore
+        foundNFTs += validTokenIds.length;
+      }
+      
+      console.log(`✅ Direct scan complete. Found ${nftIds.length} NFTs`);
+      
+      // Se non abbiamo trovato nessun NFT ma balanceOf indica che ce ne sono,
+      // potrebbe essere necessario ampliare l'intervallo di ricerca
+      if (nftIds.length === 0 && balanceNumber > 0) {
+        console.warn("⚠️ No NFTs found in the standard range but balanceOf indicates ownership.");
+        console.warn("⚠️ Consider expanding the token ID search range if needed.");
       }
     }
 

@@ -3,7 +3,8 @@
  * Modulo principale per il funzionamento del sistema di staking
  * 
  * Questo file gestisce il caricamento e la visualizzazione degli NFT,
- * utilizzando le funzionalità ottimizzate di nftReader.js
+ * utilizzando il metodo di scansione diretta implementato in nftReader.js
+ * con approccio balanceOf + ownerOf per massima compatibilità
  */
 
 // Importazione delle funzioni da nftReader.js (ES6 module syntax)
@@ -110,8 +111,8 @@ async function loadAvailableNfts() {
     showLoader(container, 'Caricamento NFT disponibili...');
     
     // Carica gli NFT con getUserNFTs() da nftReader.js
-    // Utilizzerà automaticamente il metodo ottimale per il contratto (Enumerable o Transfer events)
-    console.log('🔄 Caricamento NFTs utilizzando nftReader.js con metodo dual-mode...');
+    // Utilizzerà il metodo di scansione diretta con balanceOf + ownerOf
+    console.log('🔄 Caricamento NFTs utilizzando nftReader.js con metodo di scansione diretta...');
     const nftData = await getUserNFTs();
     
     // Verifica se ci sono NFT

@@ -5,14 +5,22 @@
  * Questo file gestisce il caricamento e la visualizzazione degli NFT,
  * utilizzando il metodo di scansione diretta implementato in nftReader.js
  * con approccio balanceOf + ownerOf per massima compatibilità
+ * 
+ * Versione 1.2.0 - 2025-05-15
+ * - Rimosso import ES6 per compatibilità cross-browser
+ * - Utilizzo di funzioni globali da window (caricate da nftReader.js)
+ * - Ottimizzazione per Render con hardcoded values
  */
 
-// Importazione delle funzioni da nftReader.js (ES6 module syntax)
-import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './nftReader.js';
+// Utilizzo delle funzioni globali caricate da nftReader.js
+// Le funzioni sono disponibili globalmente tramite window
+const getUserNFTs = window.getUserNFTs;
+const getNFTMetadata = window.getNFTMetadata;
+const loadAllIASENFTs = window.loadAllIASENFTs;
 
-// Contanti di configurazione
+// Contanti di configurazione (hardcoded per Render)
 const STAKING_API_ENDPOINT = '/api/staking';
-const IASE_NFT_CONTRACT = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+const IASE_NFT_CONTRACT = window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
 
 // Elementi DOM 
 const domElements = {

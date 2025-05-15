@@ -478,3 +478,9 @@ if (typeof window !== 'undefined') {
   window.normalizeURI = normalizeURI;
   console.log("✅ NFT Reader functions exposed to global window");
 }
+
+// Per supporto ES6 module (anche se non lo usiamo più - manteniamo per retrocompatibilità)
+if (isModule) {
+  console.log("📦 NFT Reader exporting as ES6 module");
+  export { getUserNFTs, getNFTMetadata, loadAllIASENFTs, normalizeURI };
+}

@@ -798,9 +798,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- Caricamento dinamico JavaScript con ES Modules -->
+<!-- Carica lo script nftReader.js direttamente per essere disponibile a livello globale -->
+<script src="./js/nftReader.js"></script>
+
+<!-- Caricamento dinamico JavaScript con ES Modules - se fallisce, abbiamo il fallback -->
 <script type="module">
-  import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './nftReader.js';
+  // Prova a importare come modulo ES6
+  try {
+    import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './js/nftReader.js';
+    // Se l'importazione riesce, rendiamo queste funzioni disponibili globalmente
+    window.getUserNFTs = getUserNFTs;
+    window.getNFTMetadata = getNFTMetadata;
+    window.loadAllIASENFTs = loadAllIASENFTs;
+  } catch (error) {
+    console.warn("ES6 module import failed, falling back to global functions:", error);
+    // Utilizzeremo le funzioni già disponibili a livello globale dallo script caricato sopra
+  }
   
   async function renderNFTs() {
     const container = document.getElementById('availableNftsContainer');

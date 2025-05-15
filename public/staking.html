@@ -801,9 +801,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Rimosso caricamento duplicato di nftReader.js e approccio ES modules -->
 <script>
-  // Verifica che le funzioni siano disponibili
+  // Verifica che le funzioni e le configurazioni siano disponibili
   document.addEventListener('DOMContentLoaded', function() {
-    console.log("🔍 Verifica funzioni nftReader.js...");
+    console.log("🔍 Verifica funzioni nftReader.js e configurazione Alchemy...");
+    
+    // Verifica funzioni nftReader
     if (typeof window.getUserNFTs === 'function' && 
         typeof window.getNFTMetadata === 'function' && 
         typeof window.loadAllIASENFTs === 'function') {
@@ -811,18 +813,54 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       console.error("❌ ERRORE: Funzioni nftReader.js non disponibili");
     }
+    
+    // Verifica configurazione Alchemy
+    console.log("🔍 Verifica Alchemy API Key:", 
+      window.ALCHEMY_API_KEY ? 
+        `Configurata (${window.ALCHEMY_API_KEY.substring(0, 4)}...${window.ALCHEMY_API_KEY.substring(window.ALCHEMY_API_KEY.length - 4)})` : 
+        "Non configurata");
+    
+    // Verifica configurazione NFT Contract
+    console.log("🔍 NFT Contract:", window.NFT_CONTRACT_ADDRESS || "Non configurato");
+    
+    // Verifica Direct Blockchain API
+    if (window.IASEDirectBlockchainAPI) {
+      console.log("✅ DirectBlockchainAPI disponibile");
+      console.log("🔍 Provider primario:", window.IASEDirectBlockchainAPI.rpcProviders[0](window.IASEDirectBlockchainAPI.config));
+    } else {
+      console.log("⚠️ DirectBlockchainAPI non disponibile");
+    }
   });
   
   async function renderNFTs() {
     const container = document.getElementById('availableNftsContainer');
-    if (!container) return;
+    if (!container) {
+      console.error("❌ Container NFT non trovato");
+      return;
+    }
     
-    container.innerHTML = '<p>Loading NFTs...</p>';
+    console.log("🔄 Inizio caricamento NFTs...");
+    container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading NFTs...</p></div>';
     
     try {
-      const nftData = await loadAllIASENFTs();
+      console.log("🔄 Chiamata a loadAllIASENFTs()...");
+      const result = await loadAllIASENFTs();
+      console.log("✅ Risultato loadAllIASENFTs:", result);
       
-      if (!nftData || !nftData.nftIds || nftData.nftIds.length === 0) {
+      // Log dettagliato della struttura dati
+      console.log("📊 Dettagli risultato:");
+      console.log("- Address:", result?.address);
+      console.log("- Balance:", result?.balance);
+      console.log("- nftIds:", result?.nftIds);
+      console.log("- nfts array:", result?.nfts);
+      
+      if (result?.nfts) {
+        console.log("- Primo NFT (esempio):", result.nfts[0]);
+      }
+      
+      // Verifica se ci sono NFT
+      if (!result || !result.nfts || result.nfts.length === 0) {
+        console.log("Nessun NFT trovato nel risultato:", result);
         container.innerHTML = `
           <div class="empty-state">
             <i class="ri-nft-line"></i>
@@ -833,24 +871,27 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       container.innerHTML = ''; // Pulisci il container
+      console.log(`Rendering ${result.nfts.length} NFT nel container`);
       
-      for (const nft of nftData) {
+      // Itera sull'array nfts, non direttamente su nftData
+      for (const nft of result.nfts) {
         const nftElement = document.createElement('div');
         nftElement.classList.add('nft-card');
         
+        // Usa i campi direttamente sull'oggetto nft, non su nft.metadata
         nftElement.innerHTML = `
           <div class="nft-image">
-            <img src="${nft.metadata.image}" alt="NFT #${nft.tokenId}" loading="lazy">
+            <img src="${nft.image}" alt="NFT #${nft.id}" loading="lazy">
           </div>
           <div class="nft-details">
-            <h3 class="nft-title">NFT #${nft.tokenId}</h3>
-            <div class="nft-id">Token ID: ${nft.tokenId}</div>
-            <div class="rarity-badge ${nft.metadata.rarity?.toLowerCase() || 'standard'}">${nft.metadata.rarity || 'Standard'}</div>
+            <h3 class="nft-title">NFT #${nft.id}</h3>
+            <div class="nft-id">Token ID: ${nft.id}</div>
+            <div class="rarity-badge ${nft.rarity?.toLowerCase() || 'standard'}">${nft.rarity || 'Standard'}</div>
             
             <div class="nft-rewards">
               <div class="reward-rate">
                 <span class="reward-label">AI Booster:</span>
-                <span class="reward-value">${nft.metadata['AI-Booster'] || nft.metadata.aiBooster || 'X1.0'}</span>
+                <span class="reward-value">${nft['AI-Booster'] || nft.aiBooster || 'X1.0'}</span>
               </div>
               <div class="reward-rate">
                 <span class="reward-label">Daily Reward:</span>
@@ -859,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="nft-card-actions">
-              <button class="btn stake-btn" data-nft-id="${nft.tokenId}">
+              <button class="btn stake-btn" data-nft-id="${nft.id}">
                 <i class="ri-login-box-line"></i> Stake
               </button>
             </div>
@@ -867,7 +908,17 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         container.appendChild(nftElement);
+        
+        // Add event listener for stake button
+        const stakeBtn = nftElement.querySelector('.stake-btn');
+        if (stakeBtn) {
+          stakeBtn.addEventListener('click', function() {
+            openStakeModal(nft.id);
+          });
+        }
       }
+      
+      console.log("✅ Tutti gli NFT sono stati renderizzati con successo");
     } catch (error) {
       console.error('Error loading NFTs:', error);
       container.innerHTML = `
@@ -894,6 +945,54 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check if wallet is already connected when page loads
   if (window.ethereum && window.ethereum.selectedAddress) {
     renderNFTs();
+  }
+  
+  // Funzione per aprire il modal di staking
+  function openStakeModal(tokenId) {
+    console.log(`🔄 Apertura modal staking per NFT #${tokenId}`);
+    
+    // Ottieni il modal
+    const stakeModal = document.getElementById('stakeModal');
+    if (!stakeModal) {
+      console.error('❌ Modal di staking non trovato');
+      return;
+    }
+    
+    // Imposta l'ID del token nel modal come attributo data
+    stakeModal.setAttribute('data-token-id', tokenId);
+    
+    // Aggiorna elementi UI nel modal
+    const stakeNftTitle = document.getElementById('stakeNftTitle');
+    const stakeNftId = document.getElementById('stakeNftId');
+    
+    if (stakeNftTitle) stakeNftTitle.textContent = `IASE Unit #${tokenId}`;
+    if (stakeNftId) stakeNftId.textContent = `Token ID: ${tokenId}`;
+    
+    // Carica l'immagine dell'NFT (se disponibile)
+    const stakeNftImage = document.getElementById('stakeNftImage');
+    if (stakeNftImage) {
+      // Tenta di recuperare i metadati per l'immagine
+      getNFTMetadata(tokenId)
+        .then(metadata => {
+          stakeNftImage.src = metadata.image || 'images/placeholder-nft.jpg';
+          
+          // Imposta anche la rarità se disponibile
+          const stakeNftRarity = document.getElementById('stakeNftRarity');
+          if (stakeNftRarity && metadata.rarity) {
+            stakeNftRarity.textContent = metadata.rarity;
+            stakeNftRarity.className = `rarity-badge ${metadata.rarity.toLowerCase() || 'standard'}`;
+          }
+        })
+        .catch(error => {
+          console.error(`❌ Errore nel caricare i metadati per il modal:`, error);
+          stakeNftImage.src = 'images/placeholder-nft.jpg';
+        });
+    }
+    
+    // Mostra il modal
+    stakeModal.style.display = 'block';
+    
+    console.log(`✅ Modal di staking aperto per NFT #${tokenId}`);
   }
 </script>
 </body>

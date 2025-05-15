@@ -116,22 +116,38 @@ function getDailyReward(rarityOrNft) {
     // Se è già stato calcolato, usa quello
     if (rarityOrNft.dailyReward) return rarityOrNft.dailyReward;
     
-    // Altrimenti verifica il valore dell'AI-Booster
+    // Prima priorità: verifica "Card Frame" (proprietà rarity)
+    if (rarityOrNft.rarity) {
+      const rarityLower = rarityOrNft.rarity.toString().toLowerCase();
+      
+      if (rarityLower.includes('elite')) {
+        return 66.67;
+      } else if (rarityLower.includes('advanced')) {
+        return 50;
+      } else if (rarityLower.includes('prototype')) {
+        return 83.33;
+      } else if (rarityLower.includes('standard')) {
+        return 33.33;
+      }
+    }
+    
+    // Seconda priorità: verifica il valore dell'AI-Booster
     const aiBooster = rarityOrNft['AI-Booster'] || rarityOrNft.aiBooster;
     if (aiBooster) {
       const boosterStr = aiBooster.toString().toUpperCase();
       if (boosterStr.includes('X2.5') || boosterStr.includes('2.5')) return 83.33;
       if (boosterStr.includes('X2.0') || boosterStr.includes('2.0')) return 66.67;
       if (boosterStr.includes('X1.5') || boosterStr.includes('1.5')) return 50;
+      if (boosterStr.includes('X1.0') || boosterStr.includes('1.0')) return 33.33;
     }
     
-    // Se non c'è AI-Booster, usa la rarità
+    // Se nessuna delle due è disponibile, passa la rarità come stringa
     rarityOrNft = rarityOrNft.rarity;
   }
   
   if (!rarityOrNft) return 33.33; // Default Standard
   
-  // Conversione case-insensitive
+  // Conversione case-insensitive per rarità passata come stringa
   const rarityLower = rarityOrNft.toString().toLowerCase();
   
   if (rarityLower.includes('elite')) {
@@ -192,6 +208,9 @@ async function loadAvailableNfts() {
       try {
         // Recupera metadati
         const metadata = await getNFTMetadata(tokenId);
+        
+        // Calcola e assegna il daily reward in base alla rarità
+        metadata.dailyReward = getDailyReward(metadata);
         
         // Crea elemento per l'NFT
         const nftElement = document.createElement('div');
@@ -390,6 +409,9 @@ async function tryFallbackNftLoading() {
     
     // Renderizza gli NFT trovati
     for (const nft of allNfts) {
+      // Calcola e assegna il daily reward in base alla rarità
+      nft.dailyReward = getDailyReward(nft);
+      
       const nftElement = document.createElement('div');
       nftElement.classList.add('nft-card');
       

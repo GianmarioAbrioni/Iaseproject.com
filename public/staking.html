@@ -697,15 +697,15 @@
   <script src="js/direct-blockchain-api.js"></script>
   <script src="js/staking-fallback.js"></script>
   
-  <!-- Script principali -->
-  <script src="js/nftReader.js" type="module"></script>
+  <!-- Script principali - versione ottimizzata -->
+  <script src="js/nftReader.js"></script>
   <!-- Adattatore per compatibilità con vecchi script -->
   <script src="js/nft-reader-adapter.js"></script>
   
-  <!-- Script di staking con modulo ES6 -->
-  <script src="js/staking.js" type="module"></script>
+  <!-- Script di staking caricato in modo tradizionale per massima compatibilità -->
+  <script src="js/staking.js"></script>
   
-  <!-- Script connector per wallet -->
+  <!-- Script connector per wallet (verificato e ottimizzato) -->
   <script src="js/staking-simple-connector.js"></script>
   
   <!-- Script non critici caricati in modo asincrono -->
@@ -798,22 +798,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- Carica lo script nftReader.js direttamente per essere disponibile a livello globale -->
-<script src="./js/nftReader.js"></script>
-
-<!-- Caricamento dinamico JavaScript con ES Modules - se fallisce, abbiamo il fallback -->
-<script type="module">
-  // Prova a importare come modulo ES6
-  try {
-    import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './js/nftReader.js';
-    // Se l'importazione riesce, rendiamo queste funzioni disponibili globalmente
-    window.getUserNFTs = getUserNFTs;
-    window.getNFTMetadata = getNFTMetadata;
-    window.loadAllIASENFTs = loadAllIASENFTs;
-  } catch (error) {
-    console.warn("ES6 module import failed, falling back to global functions:", error);
-    // Utilizzeremo le funzioni già disponibili a livello globale dallo script caricato sopra
-  }
+<!-- Rimosso caricamento duplicato di nftReader.js e approccio ES modules -->
+<script>
+  // Verifica che le funzioni siano disponibili
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("🔍 Verifica funzioni nftReader.js...");
+    if (typeof window.getUserNFTs === 'function' && 
+        typeof window.getNFTMetadata === 'function' && 
+        typeof window.loadAllIASENFTs === 'function') {
+      console.log("✅ Funzioni nftReader.js disponibili globalmente");
+    } else {
+      console.error("❌ ERRORE: Funzioni nftReader.js non disponibili");
+    }
+  });
   
   async function renderNFTs() {
     const container = document.getElementById('availableNftsContainer');

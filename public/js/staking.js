@@ -139,22 +139,32 @@ async function loadAvailableNfts() {
         const nftElement = document.createElement('div');
         nftElement.classList.add('nft-card');
         
-        // Imposta HTML con i dati dell'NFT
+        // Imposta HTML con i dati dell'NFT in base al CSS esistente
         nftElement.innerHTML = `
           <div class="nft-image">
             <img src="${metadata.image}" alt="NFT #${tokenId}" loading="lazy">
           </div>
-          <div class="nft-info">
-            <h3>NFT #${tokenId}</h3>
-            <div class="nft-details">
-              <span class="nft-rarity ${metadata.rarity?.toLowerCase() || 'standard'}">${metadata.rarity || 'Standard'}</span>
-              <span class="nft-booster">${metadata['AI-Booster'] || metadata.aiBooster || 'X1.0'}</span>
+          <div class="nft-details">
+            <h3 class="nft-title">NFT #${tokenId}</h3>
+            <div class="nft-id">Token ID: ${tokenId}</div>
+            <div class="rarity-badge ${metadata.rarity?.toLowerCase() || 'standard'}">${metadata.rarity || 'Standard'}</div>
+            
+            <div class="nft-rewards">
+              <div class="reward-rate">
+                <span class="reward-label">AI Booster:</span>
+                <span class="reward-value">${metadata['AI-Booster'] || metadata.aiBooster || 'X1.0'}</span>
+              </div>
+              <div class="reward-rate">
+                <span class="reward-label">Daily Reward:</span>
+                <span class="reward-value">33.33 IASE</span>
+              </div>
             </div>
-          </div>
-          <div class="nft-card-actions">
-            <button class="btn stake-btn" data-nft-id="${tokenId}">
-              <i class="ri-login-box-line"></i> Stake
-            </button>
+            
+            <div class="nft-card-actions">
+              <button class="btn stake-btn" data-nft-id="${tokenId}">
+                <i class="ri-login-box-line"></i> Stake
+              </button>
+            </div>
           </div>
         `;
         

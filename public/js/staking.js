@@ -3,6 +3,9 @@
  * Gestisce la UI e le funzionalità di staking degli NFT IASE Units
  */
 
+// CORREZIONE CRITICA: Aggiunta importazione ES6 delle funzioni da nftReader.js
+import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './nftReader.js';
+
 // Imposta configurazioni globali con dati reali
 window.INFURA_API_KEY = "84ed164327474b4499c085d2e4345a66";
 
@@ -781,6 +784,43 @@ document.addEventListener('DOMContentLoaded', () => {
         storedAddress;
         
       console.log('👤 Indirizzo wallet finale:', walletAddress);
+      
+      // CORREZIONE CRITICA: Utilizzo esplicito delle funzioni importate da nftReader.js
+      // invece di cercare di chiamarle nel contesto globale
+      
+      // Prova con le funzioni importate da nftReader.js
+      try {
+        console.log('🔄 Tentativo di utilizzo diretto delle funzioni importate da nftReader.js');
+        const nftData = await getUserNFTs();
+        
+        if (nftData && nftData.nftIds && nftData.nftIds.length > 0) {
+          console.log('✅ NFT caricati con successo da nftReader:', nftData.nftIds.length);
+          
+          // Recupera i metadati per ogni NFT
+          const nfts = [];
+          for (const tokenId of nftData.nftIds) {
+            try {
+              const metadata = await getNFTMetadata(tokenId);
+              if (metadata) {
+                nfts.push(metadata);
+              }
+            } catch (metadataError) {
+              console.error('❌ Errore nel recupero metadati per token', tokenId, ':', metadataError);
+            }
+          }
+          
+          if (nfts.length > 0) {
+            console.log('🎉 NFT pronti per rendering:', nfts.length);
+            renderAvailableNfts(nfts);
+            return; // Termina qui se abbiamo caricato con successo
+          }
+        } else {
+          console.log('ℹ️ Nessun NFT trovato con nftReader.js');
+        }
+      } catch (nftReaderError) {
+        console.error('❌ Errore durante l\'utilizzo delle funzioni importate:', nftReaderError);
+        console.log('⚠️ Fallback ad altri metodi di caricamento...');
+      }
 
       // Verifica che ci sia un indirizzo wallet valido
       if (!walletAddress) {

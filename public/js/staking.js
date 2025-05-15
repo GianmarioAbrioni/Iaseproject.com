@@ -410,7 +410,28 @@ async function tryFallbackNftLoading() {
     // Renderizza gli NFT trovati
     for (const nft of allNfts) {
       // Calcola e assegna il daily reward in base alla rarità
-      nft.dailyReward = getDailyReward(nft);
+      // Debug per verificare i dati dell'NFT prima del calcolo del reward
+      console.log(`🔍 DEBUG NFT #${nft.id} - Rarità: ${nft.rarity}, AI-Booster: ${nft['AI-Booster'] || nft.aiBooster}`);
+      
+      // Forza l'assegnazione esplicita in base alla rarità invece di usare object passthrough
+      if (nft.rarity) {
+        const rarityLower = nft.rarity.toString().toLowerCase();
+        
+        if (rarityLower.includes('elite')) {
+          nft.dailyReward = 66.67;
+        } else if (rarityLower.includes('advanced')) {
+          nft.dailyReward = 50;
+        } else if (rarityLower.includes('prototype')) {
+          nft.dailyReward = 83.33;
+        } else {
+          nft.dailyReward = 33.33; // Standard
+        }
+      } else {
+        // Fallback al calcolo normale
+        nft.dailyReward = getDailyReward(nft);
+      }
+      
+      console.log(`💰 NFT #${nft.id} - Daily Reward assegnato: ${nft.dailyReward} IASE`);
       
       const nftElement = document.createElement('div');
       nftElement.classList.add('nft-card');

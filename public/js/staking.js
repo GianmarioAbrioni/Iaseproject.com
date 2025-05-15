@@ -48,8 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupWalletEvents() {
   // Evento: wallet connesso
   window.addEventListener('wallet:connected', async function(event) {
-    const walletAddress = event.detail;
-    console.log(`✅ Wallet connesso: ${walletAddress}`);
+    // Correzione: event.detail è un oggetto con proprietà {address, shortAddress, chainId}
+    const walletAddress = event.detail.address;
+    console.log(`✅ Wallet connesso: ${walletAddress} (${event.detail.shortAddress}, Chain: ${event.detail.chainId})`);
     
     // Carica NFT quando il wallet si connette
     await loadAvailableNfts();

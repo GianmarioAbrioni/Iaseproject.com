@@ -1,0 +1,11 @@
+# Istruzioni per installazione dipendenze Alchemy
+# Utilizza questo comando per installare tutte le dipendenze necessarie per Alchemy
+
+# Pacchetti da installare
+alchemy-sdk@^3.5.8
+ethers@^5.7.2
+
+# Comando di installazione
+# npm install alchemy-sdk@^3.5.8 ethers@^5.7.2
+
+# Nota: alchemy-sdk è già incluso nel package.json principale

@@ -29,7 +29,22 @@ PGUSER=localuser
 PGDATABASE=localdb
 PGPASSWORD=localpass
 DATABASE_URL=postgresql://localuser:localpass@localhost:5432/localdb
+
+# Configurazione Alchemy API per Web3
+ALCHEMY_API_KEY=uAZ1tPYna9tBMfuTa616YwMcgptV_1vB
+ALCHEMY_API_URL=https://eth-mainnet.g.alchemy.com/v2/uAZ1tPYna9tBMfuTa616YwMcgptV_1vB
+ALCHEMY_ENHANCED_APIS=true
+ALCHEMY_NETWORK=1
 EOL
+
+# Verifica se Alchemy SDK è installato
+echo "🔍 Verifico installazione Alchemy SDK..."
+if npm list | grep -q "alchemy-sdk"; then
+  echo "✅ Alchemy SDK già installato"
+else
+  echo "⚠️ Alchemy SDK non trovato, installiamo..."
+  npm install alchemy-sdk
+fi
 
 echo "🚀 Configurazione pre-deploy completata!"
 exit 0

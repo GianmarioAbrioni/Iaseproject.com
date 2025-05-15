@@ -21,6 +21,11 @@ const loadAllIASENFTs = window.loadAllIASENFTs;
 // Contanti di configurazione (hardcoded per Render)
 const STAKING_API_ENDPOINT = '/api/staking';
 const IASE_NFT_CONTRACT = window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+// Configurazione Alchemy API (priorità principale)
+const ALCHEMY_API_KEY = window.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB';
+const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
+// Retrocompatibilità
+const INFURA_API_KEY = window.INFURA_API_KEY || '84ed164327474b4499c085d2e4345a66';
 
 // Elementi DOM 
 const domElements = {

@@ -3,9 +3,9 @@
  * Sistema di fallback per recuperare NFT direttamente dalla blockchain
  * quando il backend API non risponde correttamente
  * 
- * Versione 1.1.0 - 2023-05-14
- * - Completa integrazione con ethers.js (v5/v6)
- * - Multiple providers fallback (Web3 -> Infura -> Ankr -> Pubblico)
+ * Versione 2.0.0 - 2025-05-15
+ * - Completa integrazione con Alchemy API
+ * - Multiple providers fallback (Alchemy -> Web3 -> Ankr -> Pubblico)
  * - Sistema robusto per evitare errori Rate Limit
  * - Ottimizzazione cache metadati per ridurre chiamate
  * - Normalizzazione indirizzi per supporto wallet diversi
@@ -13,7 +13,8 @@
  * 
  * Configurazione HARDCODED:
  * - NFT Contract: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
- * - Infura API Key: 84ed164327474b4499c085d2e4345a66
+ * - Alchemy API Key: uAZ1tPYna9tBMfuTa616YwMcgptV_1vB
+ * - Infura API Key (backup): 84ed164327474b4499c085d2e4345a66
  */
 
 window.IASEDirectBlockchainAPI = {
@@ -21,7 +22,8 @@ window.IASEDirectBlockchainAPI = {
   config: {
     // Prendi i valori da window oppure usa i default hardcoded
     nftContractAddress: window.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F",
-    infuraApiKey: window.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66",
+    alchemyApiKey: window.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB",
+    infuraApiKey: window.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66", // Mantenuto per fallback
     fallbackRpcUrl: window.ETHEREUM_RPC_FALLBACK || "https://rpc.ankr.com/eth",
     
     // Stato interno
@@ -29,12 +31,15 @@ window.IASEDirectBlockchainAPI = {
     metadataCache: {}, // Cache per i metadati
     providerAttempts: 0, // Contatore tentativi provider
     lastProviderSuccess: null, // Ultimo provider utilizzato con successo
-    debug: window.IASE_DEBUG || false
+    debug: window.IASE_DEBUG || false,
+    useAlchemyApi: true // Abilitato di default
   },
   
   // Lista provider RPC in ordine di priorità
   rpcProviders: [
-    // Prima funzione: genera URL Infura con API key configurata
+    // Prima funzione: genera URL Alchemy con API key configurata
+    (config) => `https://eth-mainnet.g.alchemy.com/v2/${config.alchemyApiKey}`,
+    // Seconda funzione: genera URL Infura con API key configurata (fallback)
     (config) => `https://mainnet.infura.io/v3/${config.infuraApiKey}`,
     // URL di fallback in ordine di priorità
     (config) => config.fallbackRpcUrl, 
@@ -213,13 +218,60 @@ window.IASEDirectBlockchainAPI = {
     console.log(`🔄 DirectBlockchainAPI: Avvio recupero NFT per ${walletAddress}`);
     
     try {
+      // Normalizza indirizzo wallet
+      const cleanAddress = this.normalizeAddress(walletAddress);
+      
+      // Se l'uso di Alchemy API è abilitato, prova a usare direttamente l'API REST
+      if (this.config.useAlchemyApi && this.config.alchemyApiKey) {
+        try {
+          console.log("🔄 Tentativo di recupero NFT tramite Alchemy API REST...");
+          
+          // Costruisci l'URL per la chiamata Alchemy API
+          const contractAddress = contractAddressOverride || this.config.nftContractAddress;
+          const alchemyUrl = `https://eth-mainnet.g.alchemy.com/v2/${this.config.alchemyApiKey}/getNFTs?owner=${cleanAddress}&contractAddresses[]=${contractAddress}&withMetadata=true`;
+          
+          // Esegui la chiamata API con fetch
+          const response = await fetch(alchemyUrl);
+          
+          if (!response.ok) {
+            throw new Error(`API Alchemy ha risposto con ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          console.log("✅ Risposta Alchemy API:", data);
+          
+          // Estrai i token IDs dagli NFT restituiti
+          const ownedNfts = data.ownedNfts || [];
+          const nftIds = ownedNfts.map(nft => {
+            // Estrai tokenId dal tokenId dell'API (che potrebbe essere in hex)
+            const tokenId = nft.id?.tokenId;
+            if (!tokenId) return null;
+            
+            // Converti da hex a decimale se necessario
+            if (tokenId.startsWith('0x')) {
+              return parseInt(tokenId, 16).toString();
+            }
+            return tokenId;
+          }).filter(id => id !== null);
+          
+          console.log(`✅ Trovati ${nftIds.length} NFT tramite Alchemy API`);
+          
+          return {
+            address: cleanAddress,
+            balance: nftIds.length.toString(),
+            nftIds: nftIds
+          };
+        } catch (alchemyError) {
+          console.error("❌ Errore nel recupero tramite Alchemy API:", alchemyError);
+          console.log("⚠️ Fallback a metodo ethers.js tradizionale...");
+        }
+      }
+      
+      // Fallback al metodo tradizionale con ethers.js
       // Assicurati che ethers sia caricato
       if (!this.config.ethersLoaded) {
         await this.init();
       }
-      
-      // Normalizza indirizzo wallet
-      const cleanAddress = this.normalizeAddress(walletAddress);
       if (!cleanAddress) {
         throw new Error("Indirizzo wallet non valido");
       }
@@ -358,10 +410,45 @@ window.IASEDirectBlockchainAPI = {
   // Recupera metadati di un token
   async getTokenMetadata(contract, tokenId) {
     try {
-      // Ottieni URI dei metadati
+      // Usa Alchemy API prima se disponibile
+      if (this.config.useAlchemyApi && this.config.alchemyApiKey) {
+        try {
+          console.log(`🔄 Tentativo di recupero metadati per NFT #${tokenId} tramite Alchemy API...`);
+          
+          // Costruisci l'URL per la chiamata Alchemy API
+          const alchemyUrl = `https://eth-mainnet.g.alchemy.com/v2/${this.config.alchemyApiKey}/getNFTMetadata?contractAddress=${this.config.nftContractAddress}&tokenId=${tokenId}`;
+          
+          // Esegui la chiamata API
+          const response = await fetch(alchemyUrl);
+          
+          if (!response.ok) {
+            throw new Error(`API Alchemy ha risposto con ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          console.log(`✅ Metadati ricevuti per NFT #${tokenId} via Alchemy:`, data);
+          
+          // Estrai e normalizza i metadati
+          const metadata = {
+            name: data.title || `IASE Unit #${tokenId}`,
+            description: data.description || "IASE NFT Unit",
+            image: this.normalizeURI(data.media?.[0]?.gateway || data.media?.[0]?.raw || ""),
+            attributes: data.metadata?.attributes || []
+          };
+          
+          // Salva nella cache
+          this.config.metadataCache[tokenId] = metadata;
+          
+          return metadata;
+        } catch (alchemyError) {
+          console.error(`❌ Errore nel recupero metadati per NFT #${tokenId} via Alchemy:`, alchemyError);
+          console.log("⚠️ Fallback a metodo ethers.js tradizionale per metadati...");
+        }
+      }
+      
+      // Fallback al metodo tradizionale - Ottieni URI dei metadati
       const tokenURI = await contract.tokenURI(tokenId);
       console.log(`🔗 Token URI per #${tokenId}:`, tokenURI);
-      
       // Verifica se l'URI è valido
       if (!tokenURI) {
         console.warn(`⚠️ URI non valido per token #${tokenId}`);

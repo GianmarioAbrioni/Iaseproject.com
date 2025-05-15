@@ -3,14 +3,16 @@
  * Questo script funge da ponte tra il modulo ES6 nftReader.js
  * e il codice non-modulo nella pagina HTML.
  * 
- * Versione 2.1.0 - 2023-05-14
+ * Versione 2.2.0 - 2025-05-15
+ * - Integrazione con Alchemy API per massima affidabilità
  * - Sistema avanzato di caricamento ethers.js multi-fonte
  * - Gestione robusta di errori per massima affidabilità
  * - Sistema di fallback a catena (CDN primaria → CDN secondaria → bundle locale)
  * - Completamente hardcoded per funzionamento immediato
  * 
  * Configurazione HARDCODED:
- * - API key Infura: 84ed164327474b4499c085d2e4345a66
+ * - API key Alchemy: uAZ1tPYna9tBMfuTa616YwMcgptV_1vB
+ * - API key Infura (backup): 84ed164327474b4499c085d2e4345a66
  * - NFT Contract: 0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F
  * - Rewards Contract: 0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F
  * - Fallback RPC Ethereum: https://rpc.ankr.com/eth
@@ -18,7 +20,8 @@
  */
 
 // Configurazioni globali hardcoded per Render
-window.INFURA_API_KEY = window.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
+window.ALCHEMY_API_KEY = window.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB";
+window.INFURA_API_KEY = window.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66"; // Mantenuto per retrocompatibilità
 window.NFT_CONTRACT_ADDRESS = window.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
 window.REWARDS_CONTRACT_ADDRESS = window.REWARDS_CONTRACT_ADDRESS || "0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F";
 window.ETHEREUM_RPC_FALLBACK = window.ETHEREUM_RPC_FALLBACK || "https://rpc.ankr.com/eth";
@@ -264,7 +267,8 @@ window.nftReader = {
   config: {
     NFT_CONTRACT: window.NFT_CONTRACT_ADDRESS,
     REWARDS_CONTRACT: window.REWARDS_CONTRACT_ADDRESS,
-    INFURA_API_KEY: window.INFURA_API_KEY
+    ALCHEMY_API_KEY: window.ALCHEMY_API_KEY,
+    INFURA_API_KEY: window.INFURA_API_KEY // Mantenuto per retrocompatibilità
   }
 };
 

@@ -218,16 +218,52 @@ async function safeLoadAllIASENFTs() {
   console.log('🔄 safeLoadAllIASENFTs: Caricamento completo NFT IASE...');
   try {
     if (await ensureEthersLoaded()) {
-      const result = await loadAllIASENFTs();
-      console.log(`✅ Tutti gli NFT IASE caricati con successo: ${result.length} trovati`);
-      
-      // Notifica il successo con evento
-      document.dispatchEvent(new CustomEvent('nft:loadSuccess', {
-        detail: { count: result.length, nfts: result }
-      }));
-      
-      return result;
+      try {
+        console.log('🔄 Tentativo di usare loadAllIASENFTs standard');
+        const result = await loadAllIASENFTs();
+        
+        // Verifica formato del risultato (potrebbe non essere compatibile)
+        if (!result || (Array.isArray(result) && result.length === 0)) {
+          console.log('ℹ️ Nessun NFT trovato');
+          return { address: '', balance: '0', nftIds: [], nfts: [] };
+        }
+        
+        // Se loadAllIASENFTs ritorna un array di NFT (vecchio formato)
+        if (Array.isArray(result)) {
+          console.log(`✅ Tutti gli NFT IASE caricati con successo (formato array): ${result.length} trovati`);
+          
+          // Adatta il formato per compatibilità con la UI
+          return {
+            address: window.ethereum?.selectedAddress || '',
+            balance: String(result.length),
+            nftIds: result.map(nft => nft.id || nft.tokenId),
+            nfts: result
+          };
+        }
+        
+        // Se loadAllIASENFTs ritorna un oggetto strutturato (nuovo formato)
+        if (result && typeof result === 'object') {
+          const nftsCount = result.nfts?.length || 0;
+          console.log(`✅ Tutti gli NFT IASE caricati con successo (formato oggetto): ${nftsCount} trovati`);
+          
+          // Notifica il successo con evento
+          document.dispatchEvent(new CustomEvent('nft:loadSuccess', {
+            detail: { count: nftsCount, result }
+          }));
+          
+          return result;
+        }
+        
+        // Formato sconosciuto, creiamo un risultato valido
+        console.warn('⚠️ Formato risultato sconosciuto:', result);
+        return createCompatibilityResult();
+        
+      } catch (innerError) {
+        console.error('❌ Errore durante esecuzione loadAllIASENFTs:', innerError);
+        return await createCompatibilityResult();
+      }
     }
+    
     console.error('❌ Impossibile eseguire loadAllIASENFTs: ethers.js non disponibile');
     
     // Notifica il fallimento con evento
@@ -235,7 +271,7 @@ async function safeLoadAllIASENFTs() {
       detail: { reason: 'ethers_not_available', function: 'loadAllIASENFTs' }
     }));
     
-    return [];
+    return { address: '', balance: '0', nftIds: [], nfts: [] };
   } catch (error) {
     console.error('❌ Errore durante safeLoadAllIASENFTs:', error.message);
     
@@ -244,7 +280,55 @@ async function safeLoadAllIASENFTs() {
       detail: { reason: 'error', message: error.message, function: 'loadAllIASENFTs' }
     }));
     
-    return [];
+    return { address: '', balance: '0', nftIds: [], nfts: [] };
+  }
+}
+
+// Funzione che crea un risultato compatibile basato su getUserNFTs e getNFTMetadata
+async function createCompatibilityResult() {
+  console.log('🔄 Creazione risultato di compatibilità per loadAllIASENFTs');
+  
+  try {
+    // Prima ottieni gli NFT base (solo IDs)
+    const nftData = await safeGetUserNFTs();
+    console.log('✅ NFT IDs recuperati:', nftData);
+    
+    if (!nftData || !nftData.nftIds || nftData.nftIds.length === 0) {
+      console.log('ℹ️ Nessun NFT trovato nel wallet');
+      return { address: nftData?.address || '', balance: '0', nftIds: [], nfts: [] };
+    }
+    
+    // Ottieni i metadati per ogni NFT
+    const nftsWithMetadata = [];
+    for (const tokenId of nftData.nftIds) {
+      try {
+        console.log(`🔄 Recupero metadati per NFT #${tokenId}`);
+        const metadata = await safeGetNFTMetadata(tokenId);
+        
+        if (metadata) {
+          nftsWithMetadata.push({
+            id: tokenId,
+            ...metadata,
+            // Assicurati che l'immagine sia normalizzata
+            image: normalizeURI(metadata.image)
+          });
+        }
+      } catch (metadataError) {
+        console.error(`❌ Errore nel recupero metadati per NFT #${tokenId}:`, metadataError);
+      }
+    }
+    
+    console.log(`✅ Recuperati metadati per ${nftsWithMetadata.length}/${nftData.nftIds.length} NFT`);
+    
+    // Restituisci nel formato atteso da renderNFTs
+    return { 
+      ...nftData, 
+      nfts: nftsWithMetadata 
+    };
+    
+  } catch (error) {
+    console.error('❌ Errore nella creazione risultato compatibilità:', error);
+    return { address: '', balance: '0', nftIds: [], nfts: [] };
   }
 }
 

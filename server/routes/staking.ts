@@ -39,16 +39,29 @@ router.get(['/by-wallet/:address', '/get-staked-nfts'], async (req: Request, res
     }
     
     // Normalizza l'indirizzo wallet
-    address = address.trim().replace(/\s+/g, '');
+    // Converti a stringa, rimuovi spazi e converti in lowercase
+    address = address.toString().trim().toLowerCase().replace(/\s+/g, '');
+    
+    // Rimuovi eventuali '...' (ellipsis)
     if (address.includes('...')) {
       address = address.replace(/\.\.\./g, '');
     }
+    
+    // Aggiungi prefisso 0x se mancante
     if (!address.startsWith('0x')) {
       address = '0x' + address;
     }
     
-    // Normalizza in lowercase
-    address = address.toLowerCase();
+    console.log(`API - 📋 Indirizzo wallet normalizzato: "${address}"`);
+    
+    // Verifica validità formato minimo
+    if (address.length < 10) {
+      console.error(`API - ❌ Indirizzo wallet troppo corto o non valido: "${address}"`);
+      return res.status(400).json({ 
+        error: 'Invalid wallet address format', 
+        message: 'The provided wallet address is not in a valid Ethereum format'
+      });
+    }
     
     try {
       // Utilizza lo storage per ottenere gli NFT in staking per questo wallet
@@ -105,28 +118,29 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     }
     
     // Pulizia e validazione dell'indirizzo wallet
-    let validWalletAddress = walletAddress.trim().replace(/\s+/g, '');
+    // Converti a stringa, rimuovi spazi e converti in lowercase
+    let validWalletAddress = walletAddress.toString().trim().toLowerCase().replace(/\s+/g, '');
     
-    // Rimuovi ellissi se presenti
+    // Rimuovi eventuali '...' (ellipsis)
     if (validWalletAddress.includes('...')) {
       validWalletAddress = validWalletAddress.replace(/\.\.\./g, '');
     }
     
-    // Assicurati che inizi con 0x
+    // Aggiungi prefisso 0x se mancante
     if (!validWalletAddress.startsWith('0x')) {
       validWalletAddress = '0x' + validWalletAddress;
     }
     
+    console.log(`API NFTs - 📋 Indirizzo wallet normalizzato: "${validWalletAddress}"`);
+    
     // Controlla che l'indirizzo abbia una lunghezza minima valida
     if (validWalletAddress.length < 10) {
+      console.error(`API NFTs - ❌ Indirizzo wallet troppo corto o non valido: "${validWalletAddress}"`);
       return res.status(400).json({ 
         error: 'Invalid wallet address format', 
         message: 'The provided wallet address is not in a valid Ethereum format'
       });
     }
-    
-    // Normalizza l'indirizzo (converte in lowercase)
-    validWalletAddress = validWalletAddress.toLowerCase();
     
     // Configurazione per NFT IASE
     const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";

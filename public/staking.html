@@ -29,7 +29,7 @@
       display: none !important;
     }
     
-    /* Stile per loading dashboard */
+    /* Style for dashboard loading */
     .dashboard-loading {
       position: fixed;
       top: 0;
@@ -58,7 +58,7 @@
       font-size: 1.1rem;
     }
     
-    /* Miglioramenti styling */
+    /* Style improvements */
     .spinner-border.text-light {
       width: 3rem;
       height: 3rem;
@@ -82,7 +82,10 @@
   <!-- Preconnect e preload per ottimizzare le performance -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://cdn.ethers.io" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  
+  <!-- CDN Ethers diretto (garantito disponibile) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <!-- Preload CSS critici -->
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
@@ -680,11 +683,10 @@
   <script>
     // Verifica se ethers è stato caricato correttamente dalla CDN
     if (typeof ethers === 'undefined') {
-        console.warn("⚠️ ethers.js non caricato dalla CDN, utilizzo versione locale");
-        // Carica versione locale
-        document.write('<script src="js/ethers-bundle.js"><\/script>');
+        console.error("⚠️ ethers.js non caricato correttamente");
+        alert("Error: ethers.js library not loaded. Please refresh the page or check your internet connection.");
     } else {
-        console.log("✅ ethers.js caricato con successo dalla CDN");
+        console.log("✅ ethers.js v" + (ethers.version || "5.x") + " loaded successfully from CDN");
     }
   </script>
   
@@ -804,7 +806,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('availableNftsContainer');
     if (!container) return;
     
-    container.innerHTML = '<p>Caricamento NFT in corso...</p>';
+    container.innerHTML = '<p>Loading NFTs...</p>';
     
     try {
       const nftData = await loadAllIASENFTs();
@@ -813,8 +815,8 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = `
           <div class="empty-state">
             <i class="ri-nft-line"></i>
-            <h3>Nessun NFT disponibile</h3>
-            <p>Non hai nessun NFT IASE Units nel tuo wallet. Acquista IASE Units dai mercati secondari per partecipare allo staking.</p>
+            <h3>No NFTs Available</h3>
+            <p>You don't have any IASE Units NFTs in your wallet. Acquire IASE Units from secondary markets to participate in staking.</p>
           </div>`;
         return;
       }
@@ -856,29 +858,29 @@ document.addEventListener('DOMContentLoaded', function() {
         container.appendChild(nftElement);
       }
     } catch (error) {
-      console.error('Errore nel caricamento degli NFT:', error);
+      console.error('Error loading NFTs:', error);
       container.innerHTML = `
         <div class="empty-state">
           <i class="ri-error-warning-line"></i>
-          <h3>Errore nel caricamento degli NFT</h3>
-          <p>Si è verificato un errore durante il caricamento degli NFT. Riprova più tardi.</p>
+          <h3>Error Loading NFTs</h3>
+          <p>An error occurred while loading your NFTs. Please try again later.</p>
         </div>`;
     }
   }
   
   // Aggiungi listener per l'evento wallet:connected
   document.addEventListener('wallet:connected', (event) => {
-    console.log("Wallet connesso:", event.detail?.address);
-    renderNFTs(); // Fondamentale!
+    console.log("Wallet connected:", event.detail?.address);
+    renderNFTs(); // Critical!
   });
   
-  // Aggiungi listener per l'evento manual:loadNFTs
+  // Add listener for manual:loadNFTs event
   document.addEventListener('manual:loadNFTs', (event) => {
-    console.log("Caricamento NFT manuale richiesto");
+    console.log("Manual NFT loading requested");
     renderNFTs();
   });
   
-  // Se il wallet è già connesso all'apertura della pagina
+  // Check if wallet is already connected when page loads
   if (window.ethereum && window.ethereum.selectedAddress) {
     renderNFTs();
   }

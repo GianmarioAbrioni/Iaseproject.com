@@ -40,72 +40,72 @@ const ERC721_ABI = [
  */
 export async function getUserNFTs() {
   try {
-    // Verifica che il wallet sia connesso
+    // Check if wallet is connected
     if (!window.ethereum) {
-      console.error("Wallet non trovato. Assicurati che MetaMask sia installato e connesso.");
-      alert("Wallet non trovato. Assicurati che MetaMask sia installato e connesso.");
+      console.error("Wallet not found. Make sure MetaMask is installed and connected.");
+      alert("Wallet not found. Make sure MetaMask is installed and connected.");
       return null;
     }
 
-    console.log("🔍 Inizializzazione lettura NFT dal wallet...");
+    console.log("🔍 Initializing NFT reading from wallet...");
     
-    // Ottieni l'indirizzo utente dal wallet
+    // Get user address from wallet
     const userAddress = window.ethereum.selectedAddress;
     if (!userAddress) {
-      console.error("Nessun indirizzo wallet selezionato");
-      alert("Wallet non connesso o indirizzo non disponibile");
+      console.error("No wallet address selected");
+      alert("Wallet not connected or address unavailable");
       return null;
     }
     
-    console.log(`👤 Utente connesso: ${userAddress}`);
+    console.log(`👤 Connected user: ${userAddress}`);
     
-    // SOLUZIONE ROBUSTA: Usa sempre Infura come provider diretto
-    // Compatibilità con diverse versioni di ethers.js
+    // ROBUST SOLUTION: Always use Infura as direct provider
+    // Compatibility with different versions of ethers.js
     const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
     const isEthersV6 = ethers.JsonRpcProvider;
     
     let provider;
     
-    // Crea provider Infura con la nostra API key
+    // Create Infura provider with our API key
     if (isEthersV5) {
       // ethers v5
-      console.log("✅ Utilizzo Infura provider (ethers v5)");
+      console.log("✅ Using Infura provider (ethers v5)");
       const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
       provider = new ethers.providers.JsonRpcProvider(infuraUrl);
     } else if (isEthersV6) {
       // ethers v6
-      console.log("✅ Utilizzo Infura provider (ethers v6)");
+      console.log("✅ Using Infura provider (ethers v6)");
       const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
       provider = new ethers.JsonRpcProvider(infuraUrl);
     } else {
-      throw new Error("Versione di ethers.js non supportata");
+      throw new Error("Unsupported ethers.js version");
     }
     
-    console.log("⚙️ Provider Infura inizializzato correttamente");
+    console.log("⚙️ Infura provider initialized correctly");
 
-    // Crea istanza del contratto NFT usando il provider Infura
+    // Create instance of NFT contract using the Infura provider
     const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
 
-    // Leggi il balance NFT direttamente con Infura
+    // Read NFT balance directly with Infura
     const balance = await contract.balanceOf(userAddress);
-    console.log(`🏦 NFT trovati nel wallet: ${balance.toString()}`);
+    console.log(`🏦 NFTs found in wallet: ${balance.toString()}`);
 
-    // Array per memorizzare gli ID degli NFT
+    // Array to store NFT IDs
     const nftIds = [];
 
-    // Se ci sono NFT, recupera gli ID di ciascuno
+    // If there are NFTs, retrieve the ID of each one
     if (balance > 0) {
-      // Gestione BigInt in ethers v6
+      // Handle BigInt in ethers v6
       const balanceNumber = typeof balance === 'bigint' ? Number(balance) : 
                            (typeof balance.toNumber === 'function' ? balance.toNumber() : parseInt(balance.toString(), 10));
       
       for (let i = 0; i < balanceNumber; i++) {
         try {
           const tokenId = await contract.tokenOfOwnerByIndex(userAddress, i);
-          console.log(`✅ NFT #${tokenId.toString()} trovato`);
+          console.log(`✅ NFT #${tokenId.toString()} found`);
           nftIds.push(tokenId.toString());
         } catch (error) {
-          console.error(`❌ Errore nel recupero dell'NFT all'indice ${i}:`, error);
+          console.error(`❌ Error retrieving NFT at index ${i}:`, error);
         }
       }
     }
@@ -157,68 +157,68 @@ export async function getNFTMetadata(tokenId) {
       tokenIdForContract = coerced;
     }
     
-    // Logged per debug
-    console.log(`🪙 NFT ID per contratto: ${tokenIdForContract} (tipo: ${typeof tokenIdForContract})`);
+    // Logged for debug
+    console.log(`🪙 NFT ID for contract: ${tokenIdForContract} (type: ${typeof tokenIdForContract})`);
 
-    // SOLUZIONE ROBUSTA: Usa sempre Infura come provider diretto
-    // Compatibilità con diverse versioni di ethers.js
+    // ROBUST SOLUTION: Always use Infura as direct provider
+    // Compatibility with different versions of ethers.js
     const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
     const isEthersV6 = ethers.JsonRpcProvider;
     
     let provider, contract;
     
     try {
-      console.log("🔄 Inizializzazione provider Infura per metadati NFT...");
+      console.log("🔄 Initializing Infura provider for NFT metadata...");
       
-      // Usa direttamente Infura come provider (non MetaMask/Web3Provider)
+      // Use Infura directly as provider (not MetaMask/Web3Provider)
       if (isEthersV5) {
         // ethers v5
-        console.log("✅ Utilizzo Infura provider per metadati (ethers v5)");
+        console.log("✅ Using Infura provider for metadata (ethers v5)");
         const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
         provider = new ethers.providers.JsonRpcProvider(infuraUrl);
       } else if (isEthersV6) {
         // ethers v6
-        console.log("✅ Utilizzo Infura provider per metadati (ethers v6)");
+        console.log("✅ Using Infura provider for metadata (ethers v6)");
         const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
         provider = new ethers.JsonRpcProvider(infuraUrl);
       } else {
-        console.error("❌ Versione ethers.js non riconosciuta!");
-        throw new Error("Versione di ethers.js non supportata");
+        console.error("❌ Unrecognized ethers.js version!");
+        throw new Error("Unsupported ethers.js version");
       }
       
-      // Crea istanza contratto NFT con provider Infura
+      // Create NFT contract instance with Infura provider
       contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
 
-      // Ottieni l'URI dei metadati - QUI è importante il numero corretto
+      // Get metadata URI - HERE the correct number is important
       const tokenURI = await contract.tokenURI(tokenIdForContract);
-      console.log(`🔗 TokenURI per NFT #${tokenIdForContract}: ${tokenURI}`);
+      console.log(`🔗 TokenURI for NFT #${tokenIdForContract}: ${tokenURI}`);
 
-      // Recupera i metadati dalla risorsa esterna
+      // Retrieve metadata from external resource
       const response = await fetch(tokenURI);
       if (!response.ok) {
-        throw new Error(`Errore HTTP nel recupero metadati: ${response.status}`);
+        throw new Error(`HTTP error retrieving metadata: ${response.status}`);
       }
 
       const metadata = await response.json();
       
-      // IMPORTANTE: Forza SEMPRE stringa per l'ID nel risultato finale
+      // IMPORTANT: ALWAYS force string for ID in the final result
       const resultTokenId = String(tokenIdForContract);
       
       return {
-        id: resultTokenId, // SEMPRE stringa
+        id: resultTokenId, // ALWAYS string
         name: metadata.name || `IASE Unit #${resultTokenId}`,
         image: metadata.image || "images/nft-samples/placeholder.jpg",
         rarity: getRarityFromMetadata(metadata),
         traits: metadata.attributes || []
       };
     } catch (contractError) {
-      console.error(`🔥 Errore con contratto NFT per token #${tokenIdForContract}:`, contractError);
+      console.error(`🔥 Error with NFT contract for token #${tokenIdForContract}:`, contractError);
       throw contractError;
     }
   } catch (error) {
-    console.error(`❌ Errore nel recupero metadati per NFT #${tokenId}:`, error);
+    console.error(`❌ Error retrieving metadata for NFT #${tokenId}:`, error);
     
-    // Anche in caso di errore, garantisci coerenza dei tipi (ID sempre stringa)
+    // Even in case of error, ensure type consistency (ID always string)
     const safeTokenId = String(tokenId);
     
     return {
@@ -259,90 +259,90 @@ function getRarityFromMetadata(metadata) {
  */
 export async function loadAllIASENFTs() {
   try {
-    console.log("🔄 Avvio caricamento NFT IASE - versione corretta 1.0.2");
+    console.log("🔄 Starting IASE NFT loading - version 1.0.2");
     
-    // Verifica che ethers.js sia disponibile e carico al meccanismo di fallback
+    // Check if ethers.js is available and loaded for fallback mechanism
     if (typeof ethers !== 'object') {
-      console.error("❌ Errore critico: ethers.js non disponibile");
-      console.log("⚠️ Tentativo di caricamento dinamico di ethers.js...");
+      console.error("❌ Critical error: ethers.js not available");
+      console.log("⚠️ Attempting to dynamically load ethers.js...");
       
       try {
-        // Tentativo di caricamento dinamico di ethers.js
+        // Attempt to dynamically load ethers.js
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = "https://cdn.ethers.io/lib/ethers-5.6.umd.min.js";
+          script.src = "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js";
           script.async = true;
           script.onload = () => {
-            console.log("✅ ethers.js caricato dinamicamente");
+            console.log("✅ ethers.js loaded dynamically");
             resolve();
           };
           script.onerror = () => {
-            reject(new Error("Impossibile caricare ethers.js"));
+            reject(new Error("Failed to load ethers.js"));
           };
           document.head.appendChild(script);
         });
       } catch (loadError) {
-        console.error("❌ Fallito caricamento dinamico ethers.js:", loadError);
+        console.error("❌ Failed to load ethers.js dynamically:", loadError);
         throw new Error("Ethers.js library not loaded and dynamic loading failed");
       }
       
-      // Verifica che ethers.js sia disponibile dopo il caricamento
+      // Verify that ethers.js is available after loading
       if (typeof ethers !== 'object') {
         throw new Error("Ethers.js library not loaded even after dynamic loading attempt");
       }
     }
     
-    // Compatibilità con diverse versioni di ethers.js per provider Infura
+    // Compatibility with different versions of ethers.js for Infura provider
     const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
     const isEthersV6 = ethers.JsonRpcProvider;
     
-    console.log(`🔧 Rilevata versione ethers.js: ${isEthersV5 ? "v5" : isEthersV6 ? "v6" : "sconosciuta"}`);
+    console.log(`🔧 Detected ethers.js version: ${isEthersV5 ? "v5" : isEthersV6 ? "v6" : "unknown"}`);
     
-    // Verifica che il wallet sia connesso per ottenere l'indirizzo
+    // Verify that wallet is connected to get the address
     if (!window.ethereum) {
-      console.error("❌ MetaMask non disponibile");
+      console.error("❌ MetaMask not available");
       throw new Error("MetaMask not available");
     }
     
-    // Utilizzando getUserNFTs che ora usa Infura direttamente
-    console.log("🚀 Caricamento NFT tramite provider Infura...");
+    // Using getUserNFTs which now uses Infura directly
+    console.log("🚀 Loading NFTs via Infura provider...");
     const userNFTs = await getUserNFTs();
     
     if (!userNFTs || !userNFTs.nftIds || userNFTs.nftIds.length === 0) {
-      console.log("📢 Nessun NFT IASE trovato nel wallet");
+      console.log("📢 No IASE NFTs found in wallet");
       return [];
     }
 
-    console.log(`🔍 Recupero metadati per ${userNFTs.nftIds.length} NFT...`);
+    console.log(`🔍 Retrieving metadata for ${userNFTs.nftIds.length} NFTs...`);
     
-    // Per ogni NFT, recuperiamo i metadati completi con gestione robusta dei tipi
-    // Utilizziamo Promise.allSettled invece di Promise.all per evitare che un errore singolo 
-    // blocchi tutto il processo di recupero dei metadati
+    // For each NFT, retrieve complete metadata with robust type handling
+    // Using Promise.allSettled instead of Promise.all to prevent a single error 
+    // from blocking the entire metadata retrieval process
     const metadataResults = await Promise.allSettled(
       userNFTs.nftIds.map(async (tokenId) => {
         try {
-          // CORREZIONE: Conversione esplicita a stringa e poi a numero (sicuro per BigInt)
-          const cleanTokenId = String(tokenId).trim(); // Rimuovi spazi
-          console.log(`🔢 Elaborazione token ID: "${cleanTokenId}" (tipo: ${typeof cleanTokenId})`);
+          // CORRECTION: Explicit conversion to string and then to number (safe for BigInt)
+          const cleanTokenId = String(tokenId).trim(); // Remove spaces
+          console.log(`🔢 Processing token ID: "${cleanTokenId}" (type: ${typeof cleanTokenId})`);
           
-          // Forza la conversione esplicita
+          // Force explicit conversion
           const numericTokenId = parseInt(cleanTokenId, 10);
           if (isNaN(numericTokenId)) {
-            console.error(`❌ ID token non valido: "${cleanTokenId}"`);
+            console.error(`❌ Invalid token ID: "${cleanTokenId}"`);
             throw new Error(`Invalid token ID: ${cleanTokenId}`);
           }
           
           const tokenMetadata = await getNFTMetadata(numericTokenId);
-          console.log(`✅ Metadati recuperati per NFT #${numericTokenId}`);
+          console.log(`✅ Metadata retrieved for NFT #${numericTokenId}`);
           
-          // IMPORTANTE: Garantisci che l'ID nell'oggetto risultante sia SEMPRE una stringa
+          // IMPORTANT: Ensure that the ID in the resulting object is ALWAYS a string
           return {
             ...tokenMetadata,
-            id: String(numericTokenId) // Forza stringa per l'ID
+            id: String(numericTokenId) // Force string for ID
           };
         } catch (err) {
-          console.error(`❌ Errore elaborazione token ${tokenId}:`, err);
-          // Mantieni coerenza dei tipi anche in caso di errore
+          console.error(`❌ Error processing token ${tokenId}:`, err);
+          // Maintain type consistency even in case of error
           return {
             id: String(tokenId),
             name: `IASE Unit #${tokenId}`,
@@ -354,15 +354,15 @@ export async function loadAllIASENFTs() {
       })
     );
     
-    // Filtra i risultati per ottenere solo quelli riusciti
+    // Filter results to get only the successful ones
     const nftsWithMetadata = metadataResults
       .filter(result => result.status === "fulfilled")
       .map(result => result.value);
 
-    console.log(`✅ Caricati con successo ${nftsWithMetadata.length} NFT IASE con metadati`);
+    console.log(`✅ Successfully loaded ${nftsWithMetadata.length} IASE NFTs with metadata`);
     return nftsWithMetadata;
   } catch (error) {
-    console.error("❌ Errore durante il caricamento degli NFT:", error);
+    console.error("❌ Error loading NFTs:", error);
     return [];
   }
 }

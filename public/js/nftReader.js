@@ -3,12 +3,16 @@
  * Utility script per leggere direttamente gli NFT dal wallet dell'utente
  * con supporto multi-provider e gestione robusta di errori
  * 
- * Versione 1.2.0 - 2023-05-14
+ * Versione 1.3.0 - 2025-05-15
  * - Supporta ethers.js v5 e v6
  * - Gestione avanzata di provider per massima affidabilità
  * - Logging migliorato per debug
  * - Hardcoded API key e indirizzi per funzionamento immediato
+ * - Supporto sia per import ES6 che per script tag (doppia modalità)
  */
+
+// Determina se lo script viene eseguito come modulo ES6 o script normale
+const isModule = typeof exports === 'object' && typeof module !== 'undefined';
 
 // Configurazioni globali con dati reali (hardcoded per render)
 // Prendi prima da window (se impostati in HTML) altrimenti usa valori di default
@@ -18,22 +22,11 @@ const REWARDS_CONTRACT = window.REWARDS_CONTRACT_ADDRESS || '0x38C62fCFb6a6Bbce3
 const ETHEREUM_RPC_FALLBACK = window.ETHEREUM_RPC_FALLBACK || 'https://rpc.ankr.com/eth';
 
 // Log delle configurazioni (solo in modalità debug)
-if (window.IASE_DEBUG) {
-  console.log('📊 IASE NFT Reader - Configurazione:');
-  console.log(`- NFT Contract: ${IASE_NFT_CONTRACT}`);
-  console.log(`- Infura API Key: ${INFURA_API_KEY.substring(0, 4)}...${INFURA_API_KEY.substring(INFURA_API_KEY.length - 4)}`);
-  console.log(`- Rewards Contract: ${REWARDS_CONTRACT}`);
-  console.log(`- Ethereum RPC Fallback: ${ETHEREUM_RPC_FALLBACK}`);
-}
-
-// ABI completo per contratto ERC721 con supporto sia Enumerable che eventi Transfer
-const ERC721_ABI = [
-  {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"}
-];
+console.log("📊 IASE NFT Reader - Configurazione:");
+console.log(`- NFT Contract: ${IASE_NFT_CONTRACT}`);
+console.log(`- Infura API Key: ${INFURA_API_KEY.substring(0, 4)}...${INFURA_API_KEY.substring(INFURA_API_KEY.length - 4)}`);
+console.log(`- Rewards Contract: ${REWARDS_CONTRACT}`);
+console.log(`- Ethereum RPC Fallback: ${ETHEREUM_RPC_FALLBACK}`);
 
 /**
  * Legge gli NFT posseduti da un indirizzo wallet
@@ -42,150 +35,193 @@ const ERC721_ABI = [
  */
 export async function getUserNFTs() {
   try {
-    // Check if wallet is connected
+    // Make sure Ethereum provider is available
     if (!window.ethereum) {
-      console.error("Wallet not found. Make sure MetaMask is installed and connected.");
-      alert("Wallet not found. Make sure MetaMask is installed and connected.");
-      return null;
-    }
-
-    console.log("🔍 Initializing NFT reading from wallet...");
-    
-    // Get user address from wallet
-    const userAddress = window.ethereum.selectedAddress;
-    if (!userAddress) {
-      console.error("No wallet address selected");
-      alert("Wallet not connected or address unavailable");
-      return null;
+      throw new Error("No Ethereum provider found. Please install MetaMask or another wallet.");
     }
     
-    console.log(`👤 Connected user: ${userAddress}`);
+    // Request account access
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    if (!accounts || accounts.length === 0) {
+      throw new Error("No Ethereum accounts found. Please unlock your wallet.");
+    }
+    
+    const walletAddress = accounts[0];
     
     // ROBUST SOLUTION: Always use Infura as direct provider
-    // Compatibility with different versions of ethers.js
-    const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
-    const isEthersV6 = ethers.JsonRpcProvider;
+    let provider, nftContract;
     
-    let provider;
-    
-    // Create Infura provider with our API key
-    if (isEthersV5) {
-      // ethers v5
-      console.log("✅ Using Infura provider (ethers v5)");
-      const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
-      provider = new ethers.providers.JsonRpcProvider(infuraUrl);
-    } else if (isEthersV6) {
-      // ethers v6
-      console.log("✅ Using Infura provider (ethers v6)");
-      const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
-      provider = new ethers.JsonRpcProvider(infuraUrl);
-    } else {
-      throw new Error("Unsupported ethers.js version");
-    }
-    
-    console.log("⚙️ Infura provider initialized correctly");
-
-    // Create instance of NFT contract using the Infura provider
-    const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
-
-    // Read NFT balance directly with Infura
-    const balance = await contract.balanceOf(userAddress);
-    console.log(`🏦 NFTs found in wallet: ${balance.toString()}`);
-
-    // Array to store NFT IDs
-    let nftIds = [];
-
-    // If there are NFTs, retrieve the ID of each one
-    if (balance > 0) {
-      // Handle BigInt in ethers v6
-      const balanceNumber = typeof balance === 'bigint' ? Number(balance) : 
-                           (typeof balance.toNumber === 'function' ? balance.toNumber() : parseInt(balance.toString(), 10));
+    try {
+      // Create Infura provider with our API key
+      if (typeof ethers.providers === 'object') {
+        // ethers v5
+        provider = new ethers.providers.JsonRpcProvider(`https://mainnet.infura.io/v3/${INFURA_API_KEY}`);
+        console.log("✅ Using Infura provider (ethers v5)");
+      } else {
+        // ethers v6
+        provider = new ethers.JsonRpcProvider(`https://mainnet.infura.io/v3/${INFURA_API_KEY}`);
+        console.log("✅ Using Infura provider (ethers v6)");
+      }
       
-      // METODO DEFINITIVO: Scansione diretta dei tokenId con ownerOf
-      // Eliminiamo completamente i metodi precedenti (Enumerable e Transfer events) 
-      // perché non sono affidabili su alcuni contratti e provider
-      console.log("🔍 Reading NFTs using direct scanning method (balanceOf + ownerOf)...");
+      // Define ABI minimale per l'NFT contract
+      const nftAbi = [
+        "function balanceOf(address owner) view returns (uint256)",
+        "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+        "function ownerOf(uint256 tokenId) view returns (address)"
+      ];
       
-      // Normalizza l'indirizzo del wallet per confronti case-insensitive
-      const normalizedUserAddress = userAddress.toLowerCase();
+      console.log("⚙️ Infura provider initialized correctly");
       
-      // Definisci i limiti della scansione per la collezione IASE
-      const START_TOKEN_ID = 1;
-      const END_TOKEN_ID = 3000; // Limite massimo ragionevole per IASE collection
+      // Create instance of NFT contract using the Infura provider
+      nftContract = new ethers.Contract(IASE_NFT_CONTRACT, nftAbi, provider);
       
-      console.log(`🔄 Starting direct scan from tokenId ${START_TOKEN_ID} to ${END_TOKEN_ID}...`);
+      // Read NFT balance directly with Infura
+      const balance = await nftContract.balanceOf(walletAddress);
+      const balanceNumber = parseInt(balance.toString());
       
-      // Contatore per tracciare quanti NFT abbiamo trovato
-      let foundNFTs = 0;
+      console.log(`🔍 Found ${balanceNumber} NFTs for address ${walletAddress}`);
       
-      // Esegui la scansione in batch di 10 per non sovraccaricare la rete
-      const BATCH_SIZE = 10;
+      // We'll use a more reliable approach: instead of relying on tokenOfOwnerByIndex which
+      // might not be implemented in all contracts, we'll scan through token IDs
+      const nftIds = [];
       
-      // Resetta l'array degli NFT IDs
-      nftIds = [];
+      // Check ownership for tokens 1-3000 (reasonable range for our collection)
+      const ownershipPromises = [];
+      for (let i = 1; i <= 3000; i++) {
+        ownershipPromises.push(checkTokenOwnership(i));
+      }
       
-      // Funzione per verificare la proprietà di un token
+      // Process ownership checks in batches to avoid rate limiting
+      const batchSize = 100;
+      let results = [];
+      
+      for (let i = 0; i < ownershipPromises.length; i += batchSize) {
+        const batch = ownershipPromises.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch);
+        results = [...results, ...batchResults];
+        
+        // Add a small delay between batches to prevent rate limiting
+        if (i + batchSize < ownershipPromises.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      // Filter out tokens owned by the wallet
+      const ownedTokens = results.filter(token => token !== null);
+      
+      console.log(`✅ Direct scan found ${ownedTokens.length} tokens owned by this wallet`);
+      
+      return {
+        address: walletAddress,
+        balance: balanceNumber.toString(),
+        nftIds: ownedTokens
+      };
+      
       async function checkTokenOwnership(tokenId) {
         try {
-          const currentOwner = (await contract.ownerOf(tokenId)).toLowerCase();
-          
-          if (currentOwner === normalizedUserAddress) {
-            console.log(`✅ NFT #${tokenId} verified as owned by user`);
+          const owner = await nftContract.ownerOf(tokenId);
+          // Check if the owner matches our wallet (case insensitive)
+          if (owner.toLowerCase() === walletAddress.toLowerCase()) {
             return tokenId.toString();
           }
           return null;
-        } catch (ownerError) {
-          // Un errore qui generalmente significa che il token non esiste
-          // o non appartiene all'utente, quindi è corretto ritornare null
+        } catch (error) {
+          // Token doesn't exist or other error
           return null;
         }
       }
       
-      // Loop attraverso tutti i possibili token IDs in batch
-      for (let startId = START_TOKEN_ID; startId <= END_TOKEN_ID; startId += BATCH_SIZE) {
-        // Se abbiamo già trovato tutti gli NFT, interrompiamo la scansione
-        if (foundNFTs >= balanceNumber) {
-          console.log(`✅ Found all ${balanceNumber} NFTs expected from balanceOf`);
-          break;
+    } catch (error) {
+      console.error("❌ Error reading NFTs with Infura:", error);
+      
+      // Fallback to alternative approach or provider
+      console.log("⚠️ Failing back to alternative provider for NFT reading...");
+      
+      try {
+        // Create alternative provider
+        if (typeof ethers.providers === 'object') {
+          // ethers v5
+          provider = new ethers.providers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+        } else {
+          // ethers v6
+          provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
         }
         
-        // Crea array di promesse per verificare la proprietà in parallelo
-        const checkPromises = [];
+        // Retry with alternate provider
+        console.log("🔄 Using alternate provider:", ETHEREUM_RPC_FALLBACK);
         
-        for (let i = 0; i < BATCH_SIZE && (startId + i) <= END_TOKEN_ID; i++) {
-          const tokenId = startId + i;
-          checkPromises.push(checkTokenOwnership(tokenId));
+        // Define ABI minimale per l'NFT contract
+        const nftAbi = [
+          "function balanceOf(address owner) view returns (uint256)",
+          "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+          "function ownerOf(uint256 tokenId) view returns (address)"
+        ];
+        
+        // Create instance of NFT contract using the alternate provider
+        nftContract = new ethers.Contract(IASE_NFT_CONTRACT, nftAbi, provider);
+        
+        // Read NFT balance with alternate provider
+        const balance = await nftContract.balanceOf(walletAddress);
+        const balanceNumber = parseInt(balance.toString());
+        
+        console.log(`🔍 Alternate provider found ${balanceNumber} NFTs for address ${walletAddress}`);
+        
+        // Same direct token scanning approach with alternate provider
+        const nftIds = [];
+      
+        // Check ownership for tokens 1-3000 (reasonable range for our collection)
+        const ownershipPromises = [];
+        for (let i = 1; i <= 3000; i++) {
+          ownershipPromises.push(checkTokenOwnership(i));
         }
         
-        // Attendi il completamento di tutte le verifiche nel batch
-        const batchResults = await Promise.all(checkPromises);
+        // Process ownership checks in batches to avoid rate limiting
+        const batchSize = 50; // smaller batch size for alternate provider
+        let results = [];
         
-        // Filtra i risultati validi e aggiungili alla lista
-        const validTokenIds = batchResults.filter(id => id !== null);
-        nftIds.push(...validTokenIds);
+        for (let i = 0; i < ownershipPromises.length; i += batchSize) {
+          const batch = ownershipPromises.slice(i, i + batchSize);
+          const batchResults = await Promise.all(batch);
+          results = [...results, ...batchResults];
+          
+          // Add a larger delay between batches for alternate provider
+          if (i + batchSize < ownershipPromises.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
         
-        // Aggiorna contatore
-        foundNFTs += validTokenIds.length;
-      }
-      
-      console.log(`✅ Direct scan complete. Found ${nftIds.length} NFTs`);
-      
-      // Se non abbiamo trovato nessun NFT ma balanceOf indica che ce ne sono,
-      // potrebbe essere necessario ampliare l'intervallo di ricerca
-      if (nftIds.length === 0 && balanceNumber > 0) {
-        console.warn("⚠️ No NFTs found in the standard range but balanceOf indicates ownership.");
-        console.warn("⚠️ Consider expanding the token ID search range if needed.");
+        // Filter out tokens owned by the wallet
+        const ownedTokens = results.filter(token => token !== null);
+        
+        console.log(`✅ Alternate provider scan found ${ownedTokens.length} tokens owned by this wallet`);
+        
+        return {
+          address: walletAddress,
+          balance: balanceNumber.toString(),
+          nftIds: ownedTokens
+        };
+        
+        async function checkTokenOwnership(tokenId) {
+          try {
+            const owner = await nftContract.ownerOf(tokenId);
+            // Check if the owner matches our wallet (case insensitive)
+            if (owner.toLowerCase() === walletAddress.toLowerCase()) {
+              return tokenId.toString();
+            }
+            return null;
+          } catch (error) {
+            // Token doesn't exist or other error
+            return null;
+          }
+        }
+      } catch (alternateError) {
+        console.error("❌ Even alternate provider failed:", alternateError);
+        throw new Error("Failed to read NFTs after trying multiple providers");
       }
     }
-
-    return {
-      address: userAddress,
-      balance: balance.toString(),
-      nftIds
-    };
   } catch (error) {
-    console.error("❌ Error reading NFTs:", error);
-    return null;
+    console.error(`❌ Error in getUserNFTs: ${error.message}`);
+    throw error;
   }
 }
 
@@ -196,107 +232,132 @@ export async function getUserNFTs() {
  */
 export async function getNFTMetadata(tokenId) {
   try {
-    if (!window.ethereum) {
-      console.error("❌ Wallet non trovato");
-      throw new Error("MetaMask not available");
-    }
-
-    // CORREZIONE IMPORTANTE: Gestione robusta del tipo di tokenId per blockchain
-    // Prima converti sempre a stringa, poi a numero per essere sicuro
-    let tokenIdForContract;
-    
-    if (typeof tokenId === 'string') {
-      // Se è già una stringa, rimuovi spazi e normalizza
-      const cleaned = tokenId.trim();
-      const num = parseInt(cleaned, 10);
-      if (isNaN(num)) {
-        throw new Error(`TokenID non valido: "${tokenId}"`);
-      }
-      tokenIdForContract = num; // Usa il numero per la blockchain
-    } else if (typeof tokenId === 'number') {
-      // Se è già un numero, usalo direttamente
-      tokenIdForContract = tokenId;
-    } else {
-      // Se è un altro tipo, converti comunque
-      const coerced = Number(tokenId);
-      if (isNaN(coerced)) {
-        throw new Error(`TokenID non valido: "${tokenId}" (tipo: ${typeof tokenId})`);
-      }
-      tokenIdForContract = coerced;
-    }
-    
-    // Logged for debug
-    console.log(`🪙 NFT ID for contract: ${tokenIdForContract} (type: ${typeof tokenIdForContract})`);
-
     // ROBUST SOLUTION: Always use Infura as direct provider
-    // Compatibility with different versions of ethers.js
-    const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
-    const isEthersV6 = ethers.JsonRpcProvider;
-    
-    let provider, contract;
+    let provider, nftContract;
     
     try {
+      // Create provider with API key
+      if (typeof ethers.providers === 'object') {
+        // ethers v5
+        provider = new ethers.providers.JsonRpcProvider(`https://mainnet.infura.io/v3/${INFURA_API_KEY}`);
+      } else {
+        // ethers v6
+        provider = new ethers.JsonRpcProvider(`https://mainnet.infura.io/v3/${INFURA_API_KEY}`);
+      }
+      
       console.log("🔄 Initializing Infura provider for NFT metadata...");
       
-      // Use Infura directly as provider (not MetaMask/Web3Provider)
-      if (isEthersV5) {
-        // ethers v5
-        console.log("✅ Using Infura provider for metadata (ethers v5)");
-        const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
-        provider = new ethers.providers.JsonRpcProvider(infuraUrl);
-      } else if (isEthersV6) {
-        // ethers v6
-        console.log("✅ Using Infura provider for metadata (ethers v6)");
-        const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
-        provider = new ethers.JsonRpcProvider(infuraUrl);
-      } else {
-        console.error("❌ Unrecognized ethers.js version!");
-        throw new Error("Unsupported ethers.js version");
-      }
+      // Define minimal ABI for the NFT contract
+      const nftAbi = [
+        "function tokenURI(uint256 tokenId) view returns (string)",
+        "function name() view returns (string)",
+        "function symbol() view returns (string)"
+      ];
       
-      // Create NFT contract instance with Infura provider
-      contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
-
-      // Get metadata URI - HERE the correct number is important
-      const tokenURI = await contract.tokenURI(tokenIdForContract);
-      console.log(`🔗 TokenURI for NFT #${tokenIdForContract}: ${tokenURI}`);
-
-      // Retrieve metadata from external resource
-      const response = await fetch(tokenURI);
+      // Create contract instance
+      nftContract = new ethers.Contract(IASE_NFT_CONTRACT, nftAbi, provider);
+      
+      // Get token URI from the contract
+      const tokenURI = await nftContract.tokenURI(tokenId);
+      
+      // Normalize the URI (handle ipfs:// and other protocols)
+      const normalizedURI = this.normalizeURI ? this.normalizeURI(tokenURI) : tokenURI;
+      
+      // Fetch metadata from the normalized URI
+      const response = await fetch(normalizedURI);
       if (!response.ok) {
-        throw new Error(`HTTP error retrieving metadata: ${response.status}`);
+        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
       }
-
+      
       const metadata = await response.json();
+      return metadata;
       
-      // IMPORTANT: ALWAYS force string for ID in the final result
-      const resultTokenId = String(tokenIdForContract);
+    } catch (error) {
+      console.error(`❌ Error fetching metadata with Infura for token ${tokenId}:`, error);
       
-      return {
-        id: resultTokenId, // ALWAYS string
-        name: metadata.name || `IASE Unit #${resultTokenId}`,
-        image: metadata.image || "images/nft-samples/placeholder.jpg",
-        rarity: getRarityFromMetadata(metadata),
-        traits: metadata.attributes || []
-      };
-    } catch (contractError) {
-      console.error(`🔥 Error with NFT contract for token #${tokenIdForContract}:`, contractError);
-      throw contractError;
+      // Fallback to alternative provider
+      console.log("⚠️ Falling back to alternate provider for metadata...");
+      
+      try {
+        // Create alternative provider
+        if (typeof ethers.providers === 'object') {
+          // ethers v5
+          provider = new ethers.providers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+        } else {
+          // ethers v6
+          provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
+        }
+        
+        // Define minimal ABI for the NFT contract
+        const nftAbi = [
+          "function tokenURI(uint256 tokenId) view returns (string)",
+          "function name() view returns (string)",
+          "function symbol() view returns (string)"
+        ];
+        
+        // Create contract instance with alternate provider
+        nftContract = new ethers.Contract(IASE_NFT_CONTRACT, nftAbi, provider);
+        
+        // Get token URI from the contract using alternate provider
+        const tokenURI = await nftContract.tokenURI(tokenId);
+        
+        // Normalize the URI (handle ipfs:// and other protocols)
+        const normalizedURI = this.normalizeURI ? this.normalizeURI(tokenURI) : tokenURI;
+        
+        // Fetch metadata from the normalized URI
+        const response = await fetch(normalizedURI);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+        }
+        
+        const metadata = await response.json();
+        return metadata;
+        
+      } catch (alternateError) {
+        console.error(`❌ Even alternate provider failed for metadata of token ${tokenId}:`, alternateError);
+        
+        // Emergency fallback - return minimal metadata
+        return {
+          name: `IASE Unit #${tokenId}`,
+          description: "IASE NFT - Metadata unavailable",
+          image: "https://iaseproject.com/images/nft-placeholder.png",
+          attributes: [
+            { trait_type: "Rarity", value: getRarityFromMetadata({ tokenId }) }
+          ]
+        };
+      }
     }
   } catch (error) {
-    console.error(`❌ Error retrieving metadata for NFT #${tokenId}:`, error);
-    
-    // Even in case of error, ensure type consistency (ID always string)
-    const safeTokenId = String(tokenId);
-    
-    return {
-      id: safeTokenId,
-      name: `IASE Unit #${safeTokenId}`,
-      image: "images/nft-samples/placeholder.jpg",
-      rarity: "Standard",
-      traits: []
-    };
+    console.error(`❌ Critical error in getNFTMetadata for token ${tokenId}:`, error);
+    throw error;
   }
+}
+
+/**
+ * Normalizza gli URI per supportare vari protocolli come ipfs://
+ * @param {string} uri - URI originale 
+ * @returns {string} - URI normalizzato
+ */
+function normalizeURI(uri) {
+  if (!uri) return "";
+  
+  // Handle IPFS URIs
+  if (uri.startsWith('ipfs://')) {
+    return uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+  }
+  
+  // Handle HTTP(S) URIs
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    return uri;
+  }
+  
+  // Handle relative URIs
+  if (uri.startsWith('/')) {
+    return `https://iaseproject.com${uri}`;
+  }
+  
+  // Default fallback
+  return uri;
 }
 
 /**
@@ -305,19 +366,27 @@ export async function getNFTMetadata(tokenId) {
  * @returns {string} - Livello di rarità
  */
 function getRarityFromMetadata(metadata) {
-  if (!metadata.attributes || !Array.isArray(metadata.attributes)) {
-    return "Standard";
+  if (!metadata) return "Standard";
+  
+  // Check if attributes exist and find rarity
+  if (metadata.attributes && Array.isArray(metadata.attributes)) {
+    const rarityAttribute = metadata.attributes.find(
+      attr => attr.trait_type === "Rarity" || attr.trait_type === "Collection" || attr.trait_type === "Type"
+    );
+    
+    if (rarityAttribute && rarityAttribute.value) {
+      return rarityAttribute.value;
+    }
   }
-
-  // Cerca l'attributo CARD FRAME che determina la rarità
-  const frameTrait = metadata.attributes.find(attr => 
-    attr.trait_type && attr.trait_type.toUpperCase() === 'CARD FRAME'
-  );
-
-  if (frameTrait && frameTrait.value) {
-    return frameTrait.value;
+  
+  // Fallback: use token ID to guess rarity
+  if (metadata.tokenId) {
+    const id = parseInt(metadata.tokenId);
+    if (id <= 10) return "Legendary";
+    if (id <= 100) return "Ultra Rare";
+    if (id <= 500) return "Rare";
   }
-
+  
   return "Standard";
 }
 
@@ -338,99 +407,74 @@ export async function loadAllIASENFTs() {
         // Attempt to dynamically load ethers.js
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
-          script.src = "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js";
-          script.async = true;
-          script.onload = () => {
-            console.log("✅ ethers.js loaded dynamically");
-            resolve();
-          };
+          script.src = 'https://cdn.ethers.io/lib/ethers-5.6.umd.min.js';
+          script.onload = resolve;
           script.onerror = () => {
-            reject(new Error("Failed to load ethers.js"));
+            // Try alternate CDN if first one fails
+            const altScript = document.createElement('script');
+            altScript.src = 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js';
+            altScript.onload = resolve;
+            altScript.onerror = reject;
+            document.head.appendChild(altScript);
           };
           document.head.appendChild(script);
         });
-      } catch (loadError) {
-        console.error("❌ Failed to load ethers.js dynamically:", loadError);
-        throw new Error("Ethers.js library not loaded and dynamic loading failed");
-      }
-      
-      // Verify that ethers.js is available after loading
-      if (typeof ethers !== 'object') {
-        throw new Error("Ethers.js library not loaded even after dynamic loading attempt");
+        
+        console.log("✅ Successfully loaded ethers.js dynamically");
+      } catch (ethersLoadError) {
+        console.error("❌ Failed to load ethers.js dynamically:", ethersLoadError);
+        throw new Error("Could not load ethers.js. Please refresh the page or check your internet connection.");
       }
     }
     
-    // Compatibility with different versions of ethers.js for Infura provider
-    const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
-    const isEthersV6 = ethers.JsonRpcProvider;
+    const nftData = await getUserNFTs();
     
-    console.log(`🔧 Detected ethers.js version: ${isEthersV5 ? "v5" : isEthersV6 ? "v6" : "unknown"}`);
-    
-    // Verify that wallet is connected to get the address
-    if (!window.ethereum) {
-      console.error("❌ MetaMask not available");
-      throw new Error("MetaMask not available");
+    if (!nftData || !nftData.nftIds || nftData.nftIds.length === 0) {
+      console.log("ℹ️ No NFTs found in the wallet");
+      return { address: nftData?.address || '', balance: '0', nftIds: [] };
     }
     
-    // Using getUserNFTs which now uses Infura directly
-    console.log("🚀 Loading NFTs via Infura provider...");
-    const userNFTs = await getUserNFTs();
+    // Get metadata for each NFT
+    const metadataPromises = nftData.nftIds.map(async (tokenId) => {
+      try {
+        const metadata = await getNFTMetadata(tokenId);
+        return {
+          id: tokenId,
+          ...metadata,
+          // Normalize URI if needed
+          image: normalizeURI(metadata.image)
+        };
+      } catch (error) {
+        console.error(`❌ Error getting metadata for token ${tokenId}:`, error);
+        return {
+          id: tokenId,
+          name: `IASE Unit #${tokenId}`,
+          description: "Failed to load metadata",
+          image: "https://iaseproject.com/images/nft-placeholder.png"
+        };
+      }
+    });
     
-    if (!userNFTs || !userNFTs.nftIds || userNFTs.nftIds.length === 0) {
-      console.log("📢 No IASE NFTs found in wallet");
-      return [];
-    }
-
-    console.log(`🔍 Retrieving metadata for ${userNFTs.nftIds.length} NFTs...`);
+    const metadataResults = await Promise.allSettled(metadataPromises);
     
-    // For each NFT, retrieve complete metadata with robust type handling
-    // Using Promise.allSettled instead of Promise.all to prevent a single error 
-    // from blocking the entire metadata retrieval process
-    const metadataResults = await Promise.allSettled(
-      userNFTs.nftIds.map(async (tokenId) => {
-        try {
-          // CORRECTION: Explicit conversion to string and then to number (safe for BigInt)
-          const cleanTokenId = String(tokenId).trim(); // Remove spaces
-          console.log(`🔢 Processing token ID: "${cleanTokenId}" (type: ${typeof cleanTokenId})`);
-          
-          // Force explicit conversion
-          const numericTokenId = parseInt(cleanTokenId, 10);
-          if (isNaN(numericTokenId)) {
-            console.error(`❌ Invalid token ID: "${cleanTokenId}"`);
-            throw new Error(`Invalid token ID: ${cleanTokenId}`);
-          }
-          
-          const tokenMetadata = await getNFTMetadata(numericTokenId);
-          console.log(`✅ Metadata retrieved for NFT #${numericTokenId}`);
-          
-          // IMPORTANT: Ensure that the ID in the resulting object is ALWAYS a string
-          return {
-            ...tokenMetadata,
-            id: String(numericTokenId) // Force string for ID
-          };
-        } catch (err) {
-          console.error(`❌ Error processing token ${tokenId}:`, err);
-          // Maintain type consistency even in case of error
-          return {
-            id: String(tokenId),
-            name: `IASE Unit #${tokenId}`,
-            image: "images/nft-samples/placeholder.jpg",
-            rarity: "Standard",
-            traits: []
-          };
-        }
-      })
-    );
-    
-    // Filter results to get only the successful ones
     const nftsWithMetadata = metadataResults
       .filter(result => result.status === "fulfilled")
       .map(result => result.value);
-
+    
     console.log(`✅ Successfully loaded ${nftsWithMetadata.length} IASE NFTs with metadata`);
-    return nftsWithMetadata;
+    return { ...nftData, nfts: nftsWithMetadata };
   } catch (error) {
     console.error("❌ Error loading NFTs:", error);
-    return [];
+    return { address: '', balance: '0', nftIds: [] };
   }
+}
+
+// Se il file viene caricato come script normale (non come modulo ES6)
+// rendiamo le funzioni disponibili globalmente nel window object
+if (typeof window !== 'undefined') {
+  window.getUserNFTs = getUserNFTs;
+  window.getNFTMetadata = getNFTMetadata;
+  window.loadAllIASENFTs = loadAllIASENFTs;
+  window.normalizeURI = normalizeURI;
+  console.log("✅ NFT Reader functions exposed to global window");
 }

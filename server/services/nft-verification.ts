@@ -176,6 +176,7 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
     // Verifica se abbiamo già salvato i tratti di questo NFT
     const existingTraits = await storage.getNftTraitsByNftId(tokenId);
     
+    // PRIMO TENTATIVO: verifica dai tratti esistenti
     if (existingTraits && existingTraits.length > 0) {
       // Cerca il trait "CARD FRAME" che determina la rarità
       const frameTrait = existingTraits.find(trait => 
@@ -220,6 +221,11 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
         return multiplier;
       }
     }
+    
+    // Se arriviamo qui, significa che non sono stati trovati i tratti nella cache
+    console.log(`⚠️ Tratti non trovati nella cache per NFT #${tokenId}, forzo chiamata API Alchemy`);
+    
+    // FORZARE SEMPRE LA CHIAMATA API se arriviamo qui (risolve bug di nft con rarità standard)
     
     // Se l'API Alchemy è abilitata, usiamola per ottenere i metadati
     if (ETH_CONFIG.useAlchemyApi) {

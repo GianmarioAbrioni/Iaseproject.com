@@ -54,58 +54,31 @@ async function processStake(stake: any) {
   // L'NFT è ancora posseduto, calcola e assegna la ricompensa
   console.log(`[Staking Job] NFT #${nftId} ancora posseduto da ${walletAddress}, calcolo ricompensa`);
   
-  // Ottieni i tratti per determinare la rarità
-  const traits = await storage.getNftTraitsByNftId(nftId);
-  let rarityTier = "standard"; // Default
+  // MODIFICA: Bypass completo della cache locale, forziamo il calcolo della rarità
+  // tramite la funzione calculateDailyReward che internamente userà direttamente l'API
+  // Questo risolve il problema di rarità che risultano sempre "standard"
+  console.log(`[Staking Job] NFT #${nftId} - Forzo calcolo della rarità tramite API diretta`);
   
-  // Cerca trait "CARD FRAME" o "AI-Booster" nei tratti dell'NFT
-  if (traits && traits.length > 0) {
-    // Cerca prima Card Frame (priorità)
-    const frameTrait = traits.find(trait => 
-      trait.traitType.toUpperCase() === 'CARD FRAME');
-    
-    if (frameTrait) {
-      const frameValue = frameTrait.value.toLowerCase();
-      
-      // Determina la rarità in base al valore del trait
-      if (frameValue.includes("elite")) {
-        rarityTier = "elite";
-      } else if (frameValue.includes("advanced")) {
-        rarityTier = "advanced";
-      } else if (frameValue.includes("prototype")) {
-        rarityTier = "prototype";
-      }
-      
-      console.log(`[Staking Job] Rarità NFT #${nftId} determinata da Card Frame: ${rarityTier}`);
-    } 
-    // Se non c'è Card Frame, cerca AI-Booster
-    else {
-      const boosterTrait = traits.find(trait => 
-        trait.traitType.toUpperCase() === 'AI-BOOSTER');
-      
-      if (boosterTrait) {
-        const boosterValue = boosterTrait.value.toString().toUpperCase();
-        
-        // Determina la rarità in base al valore del booster
-        if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
-          rarityTier = "prototype"; // 2.5x = Prototype
-        } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
-          rarityTier = "elite"; // 2.0x = Elite
-        } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
-          rarityTier = "advanced"; // 1.5x = Advanced
-        }
-        
-        console.log(`[Staking Job] Rarità NFT #${nftId} determinata da AI-Booster: ${rarityTier}`);
-      } else {
-        console.log(`[Staking Job] Nessun trait di rarità trovato per NFT #${nftId}, usando default: ${rarityTier}`);
-      }
-    }
-  } else {
-    console.log(`[Staking Job] Nessun trait trovato per NFT #${nftId}, usando default: ${rarityTier}`);
+  // Calcola direttamente la ricompensa giornaliera di base
+  // tramite API (nft-verification.ts farà la chiamata API completa)
+  // Non salva nella variabile per evitare conflict con la riga sotto
+  const rewardAmount = await calculateDailyReward(nftId);
+  
+  // Determina la rarità in base al reward calcolato
+  let rarityTier = "standard"; // Default (33.33 IASE)
+  
+  if (rewardAmount >= 83) {
+    rarityTier = "prototype"; // 2.5x (83.33 IASE)
+  } else if (rewardAmount >= 66) {
+    rarityTier = "elite"; // 2.0x (66.67 IASE)
+  } else if (rewardAmount >= 50) {
+    rarityTier = "advanced"; // 1.5x (50 IASE)
   }
   
-  // Calcola la ricompensa giornaliera di base in base alla rarità
-  const dailyReward = calculateDailyReward(nftId, rarityTier);
+  console.log(`[Staking Job] Rarità NFT #${nftId} determinata dal reward calcolato (${rewardAmount} IASE): ${rarityTier}`);
+  
+  // Usa direttamente il valore già calcolato
+  const dailyReward = rewardAmount;
   
   // Assegna la ricompensa
   const rewardData = {

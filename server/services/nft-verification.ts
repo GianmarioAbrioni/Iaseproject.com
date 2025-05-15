@@ -166,34 +166,52 @@ export async function getNFTMetadata(tokenId: string): Promise<any> {
  * @returns La ricompensa giornaliera calcolata
  */
 export async function calculateDailyReward(tokenId: string, rarityTier?: string): Promise<number> {
-  // MODIFICA: Usa lo stesso approccio del frontend per garantire coerenza
+  // SOLUZIONE SEMPLICISSIMA CON VALORI FISSI
+  // Se la rarità non è specificata, recuperala dai metadati
   if (!rarityTier) {
     try {
-      // Recupera i metadati completi come fa il frontend
+      // Recupera i metadati completi usando lo stesso metodo del frontend
       const metadata = await getNFTMetadata(tokenId);
       
       // Usa la rarità direttamente dai metadati
       const rarity = metadata?.rarity || "Standard";
       
-      // Calcola il moltiplicatore
-      const multiplier = ETH_CONFIG.rarityMultipliers[rarity] || 1.0;
+      // Assegna direttamente il valore fisso
+      let reward = 33.33; // Default per Standard
       
-      console.log(`[Reward] NFT #${tokenId} rarità: ${rarity}, moltiplicatore: ${multiplier}x`);
-      return DAILY_REWARD * multiplier;
+      if (rarity === "Advanced") {
+        reward = 50.00;
+      } else if (rarity === "Elite") {
+        reward = 66.67;
+      } else if (rarity === "Prototype") {
+        reward = 83.33;
+      }
+      
+      console.log(`[Reward] NFT #${tokenId} rarità: ${rarity} = ${reward} IASE/giorno (valore fisso)`);
+      return reward;
     } catch (error) {
       console.error(`[Reward] Errore nel calcolo reward per NFT #${tokenId}:`, error);
+      return 33.33; // Default in caso di errore (Standard)
     }
   }
   
-  // Usa il rarityTier se specificato (fallback)
+  // Usa il rarityTier se specificato (case insensitive)
   if (rarityTier) {
-    const rarityKey = rarityTier.charAt(0).toUpperCase() + rarityTier.slice(1).toLowerCase();
-    const multiplier = ETH_CONFIG.rarityMultipliers[rarityKey as keyof typeof ETH_CONFIG.rarityMultipliers] || 1.0;
-    return DAILY_REWARD * multiplier;
+    const rarityLower = rarityTier.toLowerCase();
+    
+    if (rarityLower.includes('advanced')) {
+      return 50.00;
+    } else if (rarityLower.includes('elite')) {
+      return 66.67;
+    } else if (rarityLower.includes('prototype')) {
+      return 83.33;
+    } else {
+      return 33.33; // Standard
+    }
   }
   
   // Fallback finale
-  return DAILY_REWARD;
+  return 33.33; // Standard
 }
 
 /**

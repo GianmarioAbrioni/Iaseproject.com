@@ -68,22 +68,26 @@ async function processStake(stake: any) {
   // Usa la proprietà rarity già estratta correttamente dal metadata
   const rarity = metadata?.rarity || "Standard";
   
-  // Usa la rarità per determinare il moltiplicatore
-  const multiplier = ETH_CONFIG.rarityMultipliers[rarity] || 1.0;
+  // SOLUZIONE SEMPLICISSIMA:
+  // Assegna direttamente il valore di reward fisso in base alla rarità
+  let dailyReward = 33.33; // Default per Standard
   
-  // Calcola il reward usando lo stesso approccio del frontend
-  const rewardAmount = DAILY_REWARD * multiplier;
+  // Assegna valore fisso in base alla rarità
+  if (rarity === "Advanced") {
+    dailyReward = 50.00;
+  } else if (rarity === "Elite") {
+    dailyReward = 66.67;
+  } else if (rarity === "Prototype") {
+    dailyReward = 83.33;
+  }
   
-  console.log(`[Staking Job] Rarità NFT #${nftId}: ${rarity} (${multiplier}x) = ${rewardAmount} IASE/giorno`);
+  console.log(`[Staking Job] Rarità NFT #${nftId}: ${rarity} = ${dailyReward} IASE/giorno (valore fisso)`);
   
-  // Determina il tier in base alla rarità per compatibilità
+  // Determina il tier in base alla rarità per compatibilità (mantenuto per retrocompatibilità)
   let rarityTier = "standard";
   if (rarity === "Elite") rarityTier = "elite";
   else if (rarity === "Advanced") rarityTier = "advanced";
   else if (rarity === "Prototype") rarityTier = "prototype";
-  
-  // Usa il reward calcolato direttamente
-  const dailyReward = rewardAmount;
   
   // Assegna la ricompensa
   const rewardData = {

@@ -144,8 +144,14 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
     
     // Configurazione per NFT IASE
     const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS || "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F";
+    // Configurazione Alchemy (priorità principale)
+    const alchemyApiKey = process.env.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB";
+    const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}`;
+    const USE_ALCHEMY_API = process.env.USE_ALCHEMY_API !== "false"; // Abilita di default
+    // Configurazione Infura (fallback secondario)
     const infuraApiKey = process.env.INFURA_API_KEY || "84ed164327474b4499c085d2e4345a66";
     const ETHEREUM_RPC_URL = `https://mainnet.infura.io/v3/${infuraApiKey}`;
+    // Fallback terziario (pubblico)
     const ETHEREUM_RPC_FALLBACK = "https://rpc.ankr.com/eth";
     
     // ABI completo per contratto ERC721Enumerable (IASE NFT)
@@ -188,6 +194,132 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
       
       // Recupera NFT dell'utente
       try {
+        // Array per memorizzare gli NFT
+        const nfts: any[] = [];
+        
+        // Prima tentiamo con Alchemy API se abilitata
+        if (USE_ALCHEMY_API) {
+          try {
+            console.log("🔍 Utilizzando Alchemy API per recupero NFT ottimizzato...");
+            
+            // Costruisci l'URL per la chiamata Alchemy API
+            // Questa API recupera tutti gli NFT di un contratto specifico posseduti dal wallet in una sola chiamata
+            const alchemyNftsUrl = `${ALCHEMY_API_URL}/getNFTs?owner=${validWalletAddress}&contractAddresses[]=${NFT_CONTRACT_ADDRESS}`;
+            
+            // Invia la richiesta all'API
+            const response = await fetch(alchemyNftsUrl);
+            
+            if (!response.ok) {
+              console.error(`❌ Errore API Alchemy: ${response.status} ${response.statusText}`);
+              throw new Error(`Errore API HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`✅ Risposta Alchemy ricevuta per NFTs del wallet ${validWalletAddress}`);
+            
+            // Se non ci sono NFT, restituisci array vuoto
+            if (!data.ownedNfts || data.ownedNfts.length === 0) {
+              return res.json({
+                success: true,
+                nfts: [],
+                message: 'No NFTs found for this address via Alchemy API'
+              });
+            }
+            
+            // Elabora ciascun NFT
+            for (const nft of data.ownedNfts) {
+              // Estrai il token ID (potrebbe essere in hex)
+              if (nft.id?.tokenId) {
+                let tokenId = nft.id.tokenId;
+                // Converti da hex a decimale se necessario
+                if (tokenId.startsWith('0x')) {
+                  tokenId = parseInt(tokenId, 16).toString();
+                }
+                
+                // Prepara l'oggetto NFT
+                const nftItem: any = {
+                  id: tokenId,
+                  name: nft.title || `IASE Unit #${tokenId}`,
+                  image: "",
+                  rarity: "Unknown",
+                  traits: []
+                };
+                
+                // Estrai l'immagine
+                if (nft.media && nft.media.length > 0 && nft.media[0].gateway) {
+                  nftItem.image = nft.media[0].gateway;
+                }
+                
+                // Estrai attributi e rarità
+                let cardFrame = "Standard";
+                let aiBooster = "X1.0";
+                
+                if (nft.metadata && nft.metadata.attributes && Array.isArray(nft.metadata.attributes)) {
+                  nftItem.attributes = nft.metadata.attributes;
+                  
+                  nft.metadata.attributes.forEach((attr: any) => {
+                    if (attr.trait_type === "Card Frame") {
+                      cardFrame = attr.value;
+                    } else if (attr.trait_type === "AI-Booster") {
+                      aiBooster = attr.value;
+                    }
+                  });
+                }
+                
+                // Mappa la rarità in base al Card Frame
+                let rarity = "Common";
+                if (cardFrame === "Advanced") rarity = "Rare";
+                if (cardFrame === "Elite") rarity = "Epic";
+                if (cardFrame === "Prototype") rarity = "Legendary";
+                
+                nftItem.rarity = rarity;
+                nftItem.cardFrame = cardFrame;
+                nftItem.aiBooster = aiBooster;
+                nftItem["AI-Booster"] = aiBooster;
+                
+                // Aggiungi l'NFT all'array
+                nfts.push(nftItem);
+              }
+            }
+            
+            console.log(`✅ Recuperati ${nfts.length} NFT tramite Alchemy API`);
+            
+            // Verifica se abbiamo NFT
+            if (nfts.length === 0) {
+              return res.json({
+                success: true,
+                nfts: [],
+                message: 'No valid NFTs found for this address'
+              });
+            }
+            
+            // Controlla gli NFT già in staking per filtrarli
+            const stakedNFTs = await storage.getStakesByWallet(validWalletAddress);
+            const stakedNFTIds = new Set(
+              stakedNFTs.map((stake: any) => stake.nftId.toString())
+            );
+            
+            // Filtra gli NFT già in staking
+            const availableNFTs = nfts.filter(nft => !stakedNFTIds.has(nft.id.toString()));
+            
+            // Registra quanti NFT sono disponibili
+            console.log(`📋 NFT disponibili per staking: ${availableNFTs.length} di ${nfts.length} totali`);
+            
+            // Invia gli NFT disponibili al client
+            return res.json({
+              success: true,
+              nfts: availableNFTs,
+              total: nfts.length,
+              staked: stakedNFTs.length
+            });
+          } catch (alchemyError) {
+            console.error('Errore con Alchemy API:', alchemyError);
+            console.log('⚠️ Fallback a metodo tradizionale ethers.js');
+          }
+        }
+        
+        // Fallback al metodo tradizionale con ethers.js
+        
         // Ottieni il balance (numero di NFT posseduti)
         const balance = await nftContract.balanceOf(validWalletAddress);
         
@@ -200,16 +332,10 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
           });
         }
         
-        // Array per memorizzare gli NFT
-        const nfts: any[] = [];
-        
         // Numerizzazione del balance
         const balanceNumber = parseInt(balance.toString());
         
-        // METODO DEFINITIVO: Scansione diretta dei tokenId con ownerOf
-        // Eliminiamo completamente i metodi precedenti (Enumerable e Transfer events) 
-        // perché non sono affidabili su tutti i contratti e provider
-        
+        // Metodo tradizionale: Scansione diretta dei tokenId con ownerOf
         console.log("🔍 Utilizzando il metodo di scansione diretta (balanceOf + ownerOf)...");
         
         // Normalizza l'indirizzo del wallet per confronti case-insensitive

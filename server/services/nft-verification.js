@@ -2,14 +2,46 @@
  * IASE Project - NFT Verification Service
  * 
  * Questo servizio verifica la proprietà degli NFT tramite chiamate API
- * alla blockchain Ethereum.
+ * alla blockchain Ethereum usando Alchemy API per maggiore affidabilità.
+ * 
+ * Versione 2.0.0 - 2025-05-15
+ * - Integrazione con Alchemy API per verifiche più affidabili
+ * - Sistema di fallback a ethers.js diretto in caso di problemi con API
+ * - Ottimizzazione cache metadati per ridurre chiamate
+ * - Logging avanzato per troubleshooting
  */
 
 import { ethers } from 'ethers';
-import { CONFIG } from '../config.js';
-import { storage } from '../storage.js';
+import { CONFIG } from '../config';
+import { storage } from '../storage';
+import { NftStake, StakingReward } from '@shared/schema';
+import fetch from 'node-fetch';
 
-// Interfaccia minima per contratto ERC721 (con supporto a Transfer events)
+// Definizione interfacce per i tipi
+interface NftTrait {
+  nftId: string;
+  traitType: string;
+  value: string;
+  displayType?: string | null;
+}
+
+// Remap CONFIG per semplificare l'accesso
+const ETH_CONFIG = {
+  networkUrl: CONFIG.ETH_NETWORK_URL,
+  networkUrlFallback: CONFIG.ETH_NETWORK_URL, // Usiamo lo stesso URL come fallback
+  nftContractAddress: CONFIG.NFT_CONTRACT_ADDRESS,
+  alchemyApiKey: process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB',
+  alchemyApiUrl: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB'}`,
+  rarityMultipliers: {
+    "Standard": 1.0,
+    "Advanced": 1.5,
+    "Elite": 2.0,
+    "Prototype": 2.5
+  } as Record<string, number>,
+  useAlchemyApi: true // Flag per abilitare/disabilitare l'uso dell'API Alchemy
+};
+
+// Interfaccia minima per contratto ERC721 (estesa con enumerable estension e Transfer event)
 const ERC721_ABI = [
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function tokenURI(uint256 tokenId) view returns (string)',
@@ -23,29 +55,91 @@ const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
 const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
 
 /**
- * Verifica se un dato wallet possiede un NFT specifico
- * @param {string} walletAddress - Indirizzo del wallet da verificare
- * @param {string} tokenId - ID del token NFT da verificare
- * @returns {Promise<boolean>} True se il wallet possiede l'NFT, false altrimenti
+ * Calcola la ricompensa giornaliera per un NFT in base alla sua rarità
+ * @param tokenId - ID del token NFT
+ * @param rarityTier - Livello di rarità dell'NFT (opzionale)
+ * @returns La ricompensa giornaliera calcolata
  */
-export async function verifyNftOwnership(walletAddress, tokenId) {
+export async function calculateDailyReward(tokenId: string, rarityTier?: string): Promise<number> {
+  // Se la rarità è specificata, usiamo quella per calcolare il moltiplicatore
+  if (rarityTier) {
+    const rarityKey = rarityTier.charAt(0).toUpperCase() + rarityTier.slice(1).toLowerCase();
+    const multiplier = ETH_CONFIG.rarityMultipliers[rarityKey as keyof typeof ETH_CONFIG.rarityMultipliers] || 1.0;
+    return DAILY_REWARD * multiplier;
+  }
+  
+  // Altrimenti, recuperiamo il moltiplicatore di rarità in base ai metadati dell'NFT
+  const rarityMultiplier = await getNftRarityMultiplier(tokenId);
+  return DAILY_REWARD * rarityMultiplier;
+}
+
+/**
+ * Verifica se un dato wallet possiede un NFT specifico
+ * Usa prima Alchemy API per verifica veloce, con fallback a ethers.js
+ * @param walletAddress - Indirizzo del wallet da verificare
+ * @param tokenId - ID del token NFT da verificare
+ * @returns True se il wallet possiede l'NFT, false altrimenti
+ */
+export async function verifyNftOwnership(walletAddress: string, tokenId: string): Promise<boolean> {
   try {
     console.log(`🔍 Verifica NFT #${tokenId} per wallet ${walletAddress}`);
     
+    // Normalizza gli indirizzi (caso insensitivo)
+    const normalizedWalletAddress = walletAddress.toLowerCase();
+    
+    // Prova prima con Alchemy API se abilitato
+    if (ETH_CONFIG.useAlchemyApi) {
+      try {
+        console.log(`🔍 Verifica NFT #${tokenId} tramite Alchemy API`);
+        
+        // Costruisci l'URL per la chiamata Alchemy API
+        // Poiché vogliamo verificare un token specifico, useremo proprio il tokenId
+        const alchemyUrl = `${ETH_CONFIG.alchemyApiUrl}/getNFTMetadata?contractAddress=${ETH_CONFIG.nftContractAddress}&tokenId=${tokenId}`;
+        
+        // Invia la richiesta all'API
+        const response = await fetch(alchemyUrl);
+        
+        if (!response.ok) {
+          console.error(`❌ Errore API Alchemy: ${response.status} ${response.statusText}`);
+          throw new Error(`Errore API HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`✅ Risposta Alchemy ricevuta per NFT #${tokenId}`);
+        
+        // Verifichiamo il proprietario
+        if (data.owner) {
+          const normalizedOwner = data.owner.toLowerCase();
+          const isOwner = normalizedOwner === normalizedWalletAddress;
+          
+          console.log(`${isOwner ? '✅' : '❌'} NFT #${tokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress} (via Alchemy API)`);
+          return isOwner;
+        } else {
+          console.log(`⚠️ Risposta Alchemy senza info proprietario per NFT #${tokenId}, fallback a metodo tradizionale`);
+        }
+      } catch (alchemyError) {
+        console.error(`❌ Errore con Alchemy API:`, alchemyError);
+        console.log(`⚠️ Fallback a metodo tradizionale per NFT #${tokenId}`);
+      }
+    }
+    
+    // Fallback al metodo tradizionale con ethers.js
+    console.log(`🔄 Usando metodo tradizionale per NFT #${tokenId}`);
+    
     // Connetti al provider Ethereum con fallback
-    let provider;
+    let provider: ethers.JsonRpcProvider;
     try {
-      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrl);
-      console.log(`🌐 NFT Verification connesso a ${CONFIG.eth.networkUrl}`);
+      provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrl);
+      console.log(`🌐 NFT Verification connesso a ${ETH_CONFIG.networkUrl}`);
     } catch (providerError) {
-      console.error(`❌ Errore con provider primario: ${providerError}`);
-      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrlFallback);
-      console.log(`🌐 NFT Verification connesso al fallback ${CONFIG.eth.networkUrlFallback}`);
+      console.error(`❌ Errore con provider primario:`, providerError);
+      provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrlFallback);
+      console.log(`🌐 NFT Verification connesso al fallback ${ETH_CONFIG.networkUrlFallback}`);
     }
     
     // Crea un'istanza del contratto NFT
     const nftContract = new ethers.Contract(
-      CONFIG.eth.nftContractAddress,
+      ETH_CONFIG.nftContractAddress,
       ERC721_ABI,
       provider
     );
@@ -54,13 +148,12 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
     const currentOwner = await nftContract.ownerOf(tokenId);
     
     // Converti gli indirizzi in formato consistente (lowercase)
-    const normalizedWalletAddress = walletAddress.toLowerCase();
     const normalizedCurrentOwner = currentOwner.toLowerCase();
     
     // Verifica se il wallet è ancora proprietario
     const isOwner = normalizedCurrentOwner === normalizedWalletAddress;
     
-    console.log(`${isOwner ? '✅' : '❌'} NFT #${tokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress}`);
+    console.log(`${isOwner ? '✅' : '❌'} NFT #${tokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress} (via ethers.js)`);
     
     return isOwner;
   } catch (error) {
@@ -72,10 +165,11 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
 
 /**
  * Recupera i metadati di un NFT e identifica la sua rarità
- * @param {string} tokenId - ID del token NFT
- * @returns {Promise<number>} Moltiplicatore di rarità per l'NFT
+ * Usa Alchemy API per recupero più veloce e affidabile
+ * @param tokenId - ID del token NFT
+ * @returns Moltiplicatore di rarità per l'NFT
  */
-export async function getNftRarityMultiplier(tokenId) {
+export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
   try {
     console.log(`🔍 Recupero metadati per NFT #${tokenId}`);
     
@@ -88,55 +182,111 @@ export async function getNftRarityMultiplier(tokenId) {
         trait.traitType.toUpperCase() === 'CARD FRAME');
       
       if (frameTrait) {
-        const multiplier = CONFIG.staking.rarityMultipliers[frameTrait.value] || 1.0;
-        console.log(`📊 Rarità NFT #${tokenId}: ${frameTrait.value} (${multiplier}x)`);
+        const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
+        console.log(`📊 Rarità NFT #${tokenId} da cache: ${frameTrait.value} (${multiplier}x)`);
         return multiplier;
       }
     }
     
-    // Se non abbiamo i traits, recuperali dall'API
-    const provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrl);
-    const nftContract = new ethers.Contract(
-      CONFIG.eth.nftContractAddress,
-      ERC721_ABI,
-      provider
-    );
-    
-    // Ottieni l'URL dei metadati
-    const tokenURI = await nftContract.tokenURI(tokenId);
-    console.log(`🔗 TokenURI per NFT #${tokenId}: ${tokenURI}`);
-    
-    // Recupera i metadati
-    const response = await fetch(tokenURI);
-    if (!response.ok) {
-      throw new Error(`Errore HTTP: ${response.status}`);
+    // Se l'API Alchemy è abilitata, usiamola per ottenere i metadati
+    if (ETH_CONFIG.useAlchemyApi) {
+      try {
+        console.log(`🔍 Recupero metadati per NFT #${tokenId} tramite Alchemy API`);
+        
+        // Costruisci l'URL per la chiamata Alchemy API
+        const alchemyUrl = `${ETH_CONFIG.alchemyApiUrl}/getNFTMetadata?contractAddress=${ETH_CONFIG.nftContractAddress}&tokenId=${tokenId}`;
+        
+        // Invia la richiesta all'API
+        const response = await fetch(alchemyUrl);
+        
+        if (!response.ok) {
+          console.error(`❌ Errore API Alchemy: ${response.status} ${response.statusText}`);
+          throw new Error(`Errore API HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`✅ Risposta Alchemy ricevuta per metadati NFT #${tokenId}`);
+        
+        // Estrai gli attributi dai metadati
+        if (data.metadata && data.metadata.attributes && Array.isArray(data.metadata.attributes)) {
+          // Salva i tratti nel database
+          for (const attribute of data.metadata.attributes) {
+            if (attribute.trait_type && attribute.value) {
+              await storage.createNftTrait({
+                nftId: tokenId,
+                traitType: attribute.trait_type,
+                value: attribute.value
+              });
+            }
+          }
+          
+          // Trova il trait "CARD FRAME"
+          const frameTrait = data.metadata.attributes.find((attr: { trait_type: string; value: string }) => 
+            attr.trait_type.toUpperCase() === 'CARD FRAME');
+          
+          if (frameTrait) {
+            const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
+            console.log(`📊 Rarità NFT #${tokenId}: ${frameTrait.value} (${multiplier}x) [via Alchemy]`);
+            return multiplier;
+          }
+        } else {
+          console.log(`⚠️ Metadati Alchemy non contengono attributi, fallback a metodo tradizionale`);
+        }
+      } catch (alchemyError) {
+        console.error(`❌ Errore con Alchemy API:`, alchemyError);
+        console.log(`⚠️ Fallback a metodo tradizionale per metadati NFT #${tokenId}`);
+      }
     }
     
-    const metadata = await response.json();
-    console.log(`📄 Metadati per NFT #${tokenId} recuperati`);
+    // Fallback al metodo tradizionale con ethers.js
+    console.log(`🔄 Usando metodo tradizionale per metadati NFT #${tokenId}`);
     
-    // Salva i tratti nel database
-    if (metadata.attributes && Array.isArray(metadata.attributes)) {
-      for (const attribute of metadata.attributes) {
-        if (attribute.trait_type && attribute.value) {
-          await storage.createNftTrait({
-            nftId: tokenId,
-            traitType: attribute.trait_type,
-            value: attribute.value,
-            displayType: attribute.display_type || null
-          });
+    try {
+      // Se non abbiamo i traits, recuperali dall'API
+      const provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrl);
+      const nftContract = new ethers.Contract(
+        ETH_CONFIG.nftContractAddress,
+        ERC721_ABI,
+        provider
+      );
+      
+      // Ottieni l'URL dei metadati
+      const tokenURI = await nftContract.tokenURI(tokenId);
+      console.log(`🔗 TokenURI per NFT #${tokenId}: ${tokenURI}`);
+      
+      // Recupera i metadati
+      const response = await fetch(tokenURI);
+      if (!response.ok) {
+        throw new Error(`Errore HTTP: ${response.status}`);
+      }
+      
+      const metadata = await response.json();
+      console.log(`📄 Metadati per NFT #${tokenId} recuperati via ethers.js`);
+      
+      // Salva i tratti nel database
+      if (metadata.attributes && Array.isArray(metadata.attributes)) {
+        for (const attribute of metadata.attributes) {
+          if (attribute.trait_type && attribute.value) {
+            await storage.createNftTrait({
+              nftId: tokenId,
+              traitType: attribute.trait_type,
+              value: attribute.value
+            });
+          }
+        }
+        
+        // Trova il trait "CARD FRAME"
+        const frameTrait = metadata.attributes.find((attr: { trait_type: string; value: string }) => 
+          attr.trait_type.toUpperCase() === 'CARD FRAME');
+        
+        if (frameTrait) {
+          const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
+          console.log(`📊 Rarità NFT #${tokenId}: ${frameTrait.value} (${multiplier}x) [via ethers.js]`);
+          return multiplier;
         }
       }
-      
-      // Trova il trait "CARD FRAME"
-      const frameTrait = metadata.attributes.find(attr => 
-        attr.trait_type.toUpperCase() === 'CARD FRAME');
-      
-      if (frameTrait) {
-        const multiplier = CONFIG.staking.rarityMultipliers[frameTrait.value] || 1.0;
-        console.log(`📊 Rarità NFT #${tokenId}: ${frameTrait.value} (${multiplier}x)`);
-        return multiplier;
-      }
+    } catch (fallbackError) {
+      console.error(`❌ Errore nel fallback per metadati NFT #${tokenId}:`, fallbackError);
     }
     
     // Default: Se non troviamo info sulla rarità, restituiamo il moltiplicatore base
@@ -152,22 +302,14 @@ export async function getNftRarityMultiplier(tokenId) {
 /**
  * Verifica tutti gli NFT attualmente in staking e distribuisce ricompense
  * Funzione chiamata dal cron job giornaliero
- * @returns {Promise<void>}
+ * Ottimizzata per utilizzare Alchemy API per verifiche più veloci
  */
-export async function verifyAllStakes() {
+export async function verifyAllStakes(): Promise<void> {
   console.log("🔍 Avvio verifica di tutti gli stake NFT attivi...");
   
   try {
-    // Connessione al database
-    await storage.testConnection();
-    console.log("✅ Connessione al database stabilita");
-    
-    // Filtro per stake attivi non verificati oggi
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     // Ottieni tutti gli stake attivi
-    const activeStakes = await storage.getActiveNftStakes();
+    const activeStakes = await storage.getAllActiveStakes();
     console.log(`ℹ️ Trovati ${activeStakes.length} stake attivi da verificare`);
     
     if (activeStakes.length === 0) {
@@ -175,81 +317,179 @@ export async function verifyAllStakes() {
       return;
     }
     
-    // Inizializza connessione alla blockchain una sola volta
-    console.log(`🔌 Connessione a Ethereum: ${CONFIG.eth.networkUrl}`);
-    let provider;
-    try {
-      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrl);
-    } catch (error) {
-      console.error(`❌ Errore con provider primario: ${error.message}`);
-      provider = new ethers.JsonRpcProvider(CONFIG.eth.networkUrlFallback);
-      console.log(`🔄 Usando provider fallback: ${CONFIG.eth.networkUrlFallback}`);
-    }
-    
-    // Inizializza contratto NFT
-    const nftContract = new ethers.Contract(
-      CONFIG.eth.nftContractAddress,
-      ERC721_ABI,
-      provider
-    );
-    
     // Contatori statistiche
     let verifiedCount = 0;
     let endedCount = 0;
     let rewardsDistributed = 0;
     
-    // Verifica ogni stake
+    // Raggruppiamo gli NFT per wallet per ottimizzare le chiamate API
+    const stakesByWallet: Record<string, typeof activeStakes> = {};
+    
     for (const stake of activeStakes) {
-      console.log(`\n🔍 Verificando stake ID ${stake.id} - NFT #${stake.nftId} - Wallet: ${stake.walletAddress}`);
+      if (!stakesByWallet[stake.walletAddress]) {
+        stakesByWallet[stake.walletAddress] = [];
+      }
+      stakesByWallet[stake.walletAddress].push(stake);
+    }
+    
+    // Verifica ogni wallet con i suoi NFT
+    for (const [walletAddress, stakes] of Object.entries(stakesByWallet)) {
+      console.log(`\n🔍 Verificando ${stakes.length} stake per il wallet: ${walletAddress}`);
+      
+      // Se l'API Alchemy è abilitata, otteniamo tutti gli NFT del wallet in una sola chiamata
+      if (ETH_CONFIG.useAlchemyApi) {
+        try {
+          console.log(`🔍 Recupero tutti gli NFT per ${walletAddress} tramite Alchemy API in un'unica chiamata`);
+          
+          // Costruisci l'URL per la chiamata Alchemy API
+          const alchemyUrl = `${ETH_CONFIG.alchemyApiUrl}/getNFTs?owner=${walletAddress}&contractAddresses[]=${ETH_CONFIG.nftContractAddress}`;
+          
+          // Invia la richiesta all'API
+          const response = await fetch(alchemyUrl);
+          
+          if (!response.ok) {
+            console.error(`❌ Errore API Alchemy: ${response.status} ${response.statusText}`);
+            throw new Error(`Errore API HTTP: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log(`✅ Risposta Alchemy ricevuta per wallet ${walletAddress}`);
+          
+          // Estrai i token ID posseduti dal wallet
+          const ownedTokens = new Set();
+          
+          if (data.ownedNfts && Array.isArray(data.ownedNfts)) {
+            for (const nft of data.ownedNfts) {
+              // Estrai il token ID (potrebbe essere in hex)
+              if (nft.id?.tokenId) {
+                let tokenId = nft.id.tokenId;
+                // Converti da hex a decimale se necessario
+                if (tokenId.startsWith('0x')) {
+                  tokenId = parseInt(tokenId, 16).toString();
+                }
+                ownedTokens.add(tokenId);
+              }
+            }
+          }
+          
+          console.log(`📋 Token posseduti da ${walletAddress}: ${Array.from(ownedTokens).join(', ')}`);
+          
+          // Verifica ogni stake del wallet
+          for (const stake of stakes) {
+            if (ownedTokens.has(stake.nftId)) {
+              // NFT ancora posseduto, calcola ricompensa
+              console.log(`✅ NFT #${stake.nftId} ancora posseduto da ${walletAddress}`);
+              
+              // Calcola rarità e ricompensa
+              const rarityMultiplier = await getNftRarityMultiplier(stake.nftId);
+              
+              // Calcolo ricompensa con moltiplicatore di rarità
+              const rewardAmount = DAILY_REWARD * rarityMultiplier;
+              
+              console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
+              
+              // Crea ricompensa
+              await storage.createStakingReward({
+                stakeId: stake.id,
+                amount: rewardAmount,
+                walletAddress: stake.walletAddress,
+                claimed: false
+              });
+              
+              // Aggiorna lo stake
+              await storage.updateNftStakeVerification(stake.id);
+              
+              console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE aggiunta per NFT #${stake.nftId}`);
+              verifiedCount++;
+              rewardsDistributed += rewardAmount;
+            } else {
+              // NFT non più posseduto
+              console.log(`⚠️ NFT #${stake.nftId} non più posseduto da ${stake.walletAddress}`);
+              
+              // Termina lo stake
+              await storage.endNftStake(stake.id);
+              
+              endedCount++;
+            }
+          }
+          
+          // Passa al prossimo wallet
+          continue;
+        } catch (alchemyError) {
+          console.error(`❌ Errore con Alchemy API per wallet ${walletAddress}:`, alchemyError);
+          console.log(`⚠️ Fallback a metodo tradizionale per wallet ${walletAddress}`);
+        }
+      }
+      
+      // Fallback al metodo tradizionale con ethers.js se Alchemy fallisce
+      console.log(`🔄 Usando metodo tradizionale per wallet ${walletAddress}`);
       
       try {
-        // Verifica proprietà
-        const currentOwner = await nftContract.ownerOf(stake.nftId);
-        
-        if (currentOwner.toLowerCase() !== stake.walletAddress.toLowerCase()) {
-          console.log(`⚠️ NFT #${stake.nftId} non più posseduto da ${stake.walletAddress}`);
-          
-          // Termina lo stake
-          await storage.updateNftStake(stake.id, {
-            status: "ended",
-            endTimestamp: new Date().toISOString(),
-            endReason: "ownership_change"
-          });
-          
-          endedCount++;
-          continue;
+        // Inizializza connessione alla blockchain una sola volta
+        console.log(`🔌 Connessione a Ethereum: ${ETH_CONFIG.networkUrl}`);
+        let provider: ethers.JsonRpcProvider;
+        try {
+          provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrl);
+        } catch (error) {
+          console.error(`❌ Errore con provider primario:`, error);
+          provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrlFallback);
+          console.log(`🔄 Usando provider fallback: ${ETH_CONFIG.networkUrlFallback}`);
         }
         
-        // Calcola rarità e ricompensa
-        const rarityMultiplier = await getNftRarityMultiplier(stake.nftId);
+        // Inizializza contratto NFT
+        const nftContract = new ethers.Contract(
+          ETH_CONFIG.nftContractAddress,
+          ERC721_ABI,
+          provider
+        );
         
-        // Calcolo ricompensa con moltiplicatore di rarità
-        const rewardAmount = DAILY_REWARD * rarityMultiplier;
-        
-        console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
-        
-        // Crea ricompensa
-        await storage.createStakingReward({
-          stakeId: stake.id,
-          amount: rewardAmount,
-          timestamp: new Date().toISOString(),
-          walletAddress: stake.walletAddress,
-          claimed: false,
-          rarityMultiplier
-        });
-        
-        // Aggiorna lo stake
-        await storage.updateNftStake(stake.id, {
-          lastVerified: new Date().toISOString(),
-          daysVerified: (stake.daysVerified || 0) + 1
-        });
-        
-        console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE aggiunta per NFT #${stake.nftId}`);
-        verifiedCount++;
-        rewardsDistributed += rewardAmount;
-        
-      } catch (error) {
-        console.error(`❌ Errore durante la verifica di NFT #${stake.nftId}:`, error);
+        // Verifica ogni stake individualmente
+        for (const stake of stakes) {
+          console.log(`🔍 Verificando stake ID ${stake.id} - NFT #${stake.nftId}`);
+          
+          try {
+            // Verifica proprietà
+            const currentOwner = await nftContract.ownerOf(stake.nftId);
+            
+            if (currentOwner.toLowerCase() !== stake.walletAddress.toLowerCase()) {
+              console.log(`⚠️ NFT #${stake.nftId} non più posseduto da ${stake.walletAddress}`);
+              
+              // Termina lo stake
+              await storage.endNftStake(stake.id);
+              
+              endedCount++;
+              continue;
+            }
+            
+            // Calcola rarità e ricompensa
+            const rarityMultiplier = await getNftRarityMultiplier(stake.nftId);
+            
+            // Calcolo ricompensa con moltiplicatore di rarità
+            const rewardAmount = DAILY_REWARD * rarityMultiplier;
+            
+            console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
+            
+            // Crea ricompensa
+            await storage.createStakingReward({
+              stakeId: stake.id,
+              amount: rewardAmount,
+              walletAddress: stake.walletAddress,
+              claimed: false
+            });
+            
+            // Aggiorna lo stake
+            await storage.updateNftStakeVerification(stake.id);
+            
+            console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE aggiunta per NFT #${stake.nftId}`);
+            verifiedCount++;
+            rewardsDistributed += rewardAmount;
+            
+          } catch (error) {
+            console.error(`❌ Errore durante la verifica di NFT #${stake.nftId}:`, error);
+          }
+        }
+      } catch (fallbackError) {
+        console.error(`❌ Errore nel fallback per wallet ${walletAddress}:`, fallbackError);
       }
     }
     

@@ -92,6 +92,7 @@ function showLoader(container, message = 'Caricamento...') {
 /**
  * Carica gli NFT disponibili per il wallet connesso
  * Soluzione definitiva che risolve il problema di visualizzazione NFT
+ * Supporta sia contratti ERC721Enumerable che standard ERC721
  */
 async function loadAvailableNfts() {
   try {
@@ -109,7 +110,8 @@ async function loadAvailableNfts() {
     showLoader(container, 'Caricamento NFT disponibili...');
     
     // Carica gli NFT con getUserNFTs() da nftReader.js
-    console.log('🔄 Caricamento NFTs utilizzando nftReader.js con Infura...');
+    // Utilizzerà automaticamente il metodo ottimale per il contratto (Enumerable o Transfer events)
+    console.log('🔄 Caricamento NFTs utilizzando nftReader.js con metodo dual-mode...');
     const nftData = await getUserNFTs();
     
     // Verifica se ci sono NFT
@@ -191,7 +193,7 @@ async function loadAvailableNfts() {
       container.innerHTML = `
         <div class="error-state">
           <i class="ri-error-warning-line"></i>
-          <p>Errore nel caricamento degli NFT. <a href="#" id="retryNftLoad">Riprova</a></p>
+          <p>Errore nel caricamento degli NFT. <a href="#" id="retryNftLoad">Riprova</a> o <a href="#" id="tryFallbackLoad">Prova metodo alternativo</a></p>
         </div>`;
       
       // Aggiungi event listener al link di retry
@@ -199,6 +201,118 @@ async function loadAvailableNfts() {
       if (retryLink) {
         retryLink.addEventListener('click', function(e) {
           e.preventDefault();
+          loadAvailableNfts();
+        });
+      }
+      
+      // Aggiungi event listener per metodo di fallback
+      const fallbackLink = container.querySelector('#tryFallbackLoad');
+      if (fallbackLink) {
+        fallbackLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Tenta caricamento tramite loadAllIASENFTs completo
+          // che potrebbe utilizzare un metodo diverso rispetto al primo tentativo
+          tryFallbackNftLoading();
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Tenta un caricamento alternativo degli NFT
+ * utilizzando direttamente loadAllIASENFTs da nftReader.js
+ */
+async function tryFallbackNftLoading() {
+  try {
+    // Ottieni elemento container
+    const container = domElements.availableNftsContainer;
+    if (!container) return;
+    
+    // Mostra loader durante il caricamento
+    showLoader(container, 'Tentativo alternativo di caricamento NFT...');
+    
+    console.log('🔄 Tentativo caricamento alternativo tramite loadAllIASENFTs...');
+    
+    // Usa direttamente loadAllIASENFTs che potrebbe utilizzare un metodo diverso
+    const allNfts = await loadAllIASENFTs();
+    
+    if (!allNfts || allNfts.length === 0) {
+      console.log('⚠️ Nessun NFT trovato con metodo alternativo');
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="ri-nft-line"></i>
+          <h3>Nessun NFT disponibile. Quando acquisti NFT saranno visualizzati qui.</h3>
+        </div>`;
+      return;
+    }
+    
+    // Pulisci container e renderizza gli NFT trovati
+    console.log(`✅ NFT trovati con metodo alternativo: ${allNfts.length}`);
+    container.innerHTML = '';
+    
+    // Renderizza gli NFT trovati
+    for (const nft of allNfts) {
+      const nftElement = document.createElement('div');
+      nftElement.classList.add('nft-card');
+      
+      nftElement.innerHTML = `
+        <div class="nft-image">
+          <img src="${nft.image}" alt="NFT #${nft.id}" loading="lazy">
+        </div>
+        <div class="nft-details">
+          <h3 class="nft-title">NFT #${nft.id}</h3>
+          <div class="nft-id">Token ID: ${nft.id}</div>
+          <div class="rarity-badge ${nft.rarity?.toLowerCase() || 'standard'}">${nft.rarity || 'Standard'}</div>
+          
+          <div class="nft-rewards">
+            <div class="reward-rate">
+              <span class="reward-label">AI Booster:</span>
+              <span class="reward-value">${nft['AI-Booster'] || nft.aiBooster || 'X1.0'}</span>
+            </div>
+            <div class="reward-rate">
+              <span class="reward-label">Daily Reward:</span>
+              <span class="reward-value">33.33 IASE</span>
+            </div>
+          </div>
+          
+          <div class="nft-card-actions">
+            <button class="btn stake-btn" data-nft-id="${nft.id}">
+              <i class="ri-login-box-line"></i> Stake
+            </button>
+          </div>
+        </div>
+      `;
+      
+      // Aggiungi l'elemento al container
+      container.appendChild(nftElement);
+      
+      // Aggiungi event listener per il pulsante stake
+      const stakeBtn = nftElement.querySelector('.stake-btn');
+      if (stakeBtn) {
+        stakeBtn.addEventListener('click', function() {
+          openStakeModal(nft.id);
+        });
+      }
+    }
+  } catch (fallbackError) {
+    console.error('❌ Errore nel caricamento NFT con metodo alternativo:', fallbackError);
+    
+    // Mostra messaggio di errore finale
+    const container = domElements.availableNftsContainer;
+    if (container) {
+      container.innerHTML = `
+        <div class="error-state critical">
+          <i class="ri-error-warning-line"></i>
+          <p>Non è stato possibile caricare i tuoi NFT. Controlla la connessione e assicurati che il wallet sia connesso alla rete Ethereum.</p>
+          <button id="retryNftLoadFinal" class="btn">Riprova</button>
+        </div>`;
+      
+      // Aggiungi event listener al pulsante di retry finale
+      const retryBtn = container.querySelector('#retryNftLoadFinal');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
           loadAvailableNfts();
         });
       }

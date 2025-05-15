@@ -55,22 +55,134 @@ const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
 const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
 
 /**
+ * Ottiene i metadati completi dell'NFT come fa il frontend
+ * Questa è una funzione di compatibilità che simula il comportamento di getNFTMetadata del frontend
+ * @param tokenId - ID del token NFT
+ * @returns I metadati completi dell'NFT con rarity e altri attributi
+ */
+export async function getNFTMetadata(tokenId: string): Promise<any> {
+  try {
+    console.log(`[NFT API] Recupero metadati completi per NFT #${tokenId}`);
+    
+    // Usa l'API Alchemy per ottenere i metadati completi
+    if (ETH_CONFIG.useAlchemyApi) {
+      try {
+        const alchemyUrl = `${ETH_CONFIG.alchemyApiUrl}/getNFTMetadata?contractAddress=${ETH_CONFIG.nftContractAddress}&tokenId=${tokenId}`;
+        const response = await fetch(alchemyUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Errore API HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[NFT API] Dati Alchemy ricevuti per NFT #${tokenId}`);
+        
+        // Estrai gli attributi e trova la rarità esattamente come fa il frontend
+        if (data.metadata && data.metadata.attributes) {
+          const metadata: any = {
+            tokenId: tokenId,
+            tokenURI: data.tokenUri?.raw || '',
+            attributes: data.metadata.attributes
+          };
+          
+          // Estrai Card Frame o AI-Booster per determinare la rarità
+          const frameTrait = data.metadata.attributes.find((attr: any) => 
+            attr.trait_type?.toUpperCase() === 'CARD FRAME');
+          
+          const boosterTrait = data.metadata.attributes.find((attr: any) => 
+            attr.trait_type?.toUpperCase() === 'AI-BOOSTER');
+          
+          // Determina la rarità esattamente come nel frontend
+          if (frameTrait) {
+            const frameValue = frameTrait.value.toLowerCase();
+            if (frameValue.includes("elite")) {
+              metadata.rarity = "Elite";
+            } else if (frameValue.includes("advanced")) {
+              metadata.rarity = "Advanced";
+            } else if (frameValue.includes("prototype")) {
+              metadata.rarity = "Prototype";
+            } else {
+              metadata.rarity = "Standard";
+            }
+          } else if (boosterTrait) {
+            const boosterValue = boosterTrait.value.toString().toUpperCase();
+            if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+              metadata.rarity = "Prototype"; // 2.5x = Prototype
+            } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+              metadata.rarity = "Elite"; // 2.0x = Elite
+            } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+              metadata.rarity = "Advanced"; // 1.5x = Advanced
+            } else {
+              metadata.rarity = "Standard";
+            }
+          } else {
+            metadata.rarity = "Standard";
+          }
+          
+          // Salva questa informazione nei tratti anche nel database
+          if (metadata.rarity) {
+            await storage.createNftTrait({
+              nftId: tokenId,
+              traitType: 'RARITY',
+              value: metadata.rarity
+            });
+          }
+          
+          console.log(`[NFT API] Rarità determinata per NFT #${tokenId}: ${metadata.rarity}`);
+          return metadata;
+        }
+      } catch (error) {
+        console.error(`[NFT API] Errore nel recupero metadati Alchemy per NFT #${tokenId}:`, error);
+      }
+    }
+    
+    // Fallback con metodo tradizionale
+    // Implementa il fallback se necessario
+    
+    // Se tutto fallisce, restituisci oggetto minimo
+    return { tokenId, rarity: "Standard" };
+  } catch (error) {
+    console.error(`[NFT API] Errore nel recupero metadati per NFT #${tokenId}:`, error);
+    // In caso di errore, restituisci dati minimi
+    return { tokenId, rarity: "Standard" };
+  }
+}
+
+/**
  * Calcola la ricompensa giornaliera per un NFT in base alla sua rarità
  * @param tokenId - ID del token NFT
  * @param rarityTier - Livello di rarità dell'NFT (opzionale)
  * @returns La ricompensa giornaliera calcolata
  */
 export async function calculateDailyReward(tokenId: string, rarityTier?: string): Promise<number> {
-  // Se la rarità è specificata, usiamo quella per calcolare il moltiplicatore
+  // MODIFICA: Usa lo stesso approccio del frontend per garantire coerenza
+  if (!rarityTier) {
+    try {
+      // Recupera i metadati completi come fa il frontend
+      const metadata = await getNFTMetadata(tokenId);
+      
+      // Usa la rarità direttamente dai metadati
+      const rarity = metadata?.rarity || "Standard";
+      
+      // Calcola il moltiplicatore
+      const multiplier = ETH_CONFIG.rarityMultipliers[rarity] || 1.0;
+      
+      console.log(`[Reward] NFT #${tokenId} rarità: ${rarity}, moltiplicatore: ${multiplier}x`);
+      return DAILY_REWARD * multiplier;
+    } catch (error) {
+      console.error(`[Reward] Errore nel calcolo reward per NFT #${tokenId}:`, error);
+    }
+  }
+  
+  // Usa il rarityTier se specificato (fallback)
   if (rarityTier) {
     const rarityKey = rarityTier.charAt(0).toUpperCase() + rarityTier.slice(1).toLowerCase();
     const multiplier = ETH_CONFIG.rarityMultipliers[rarityKey as keyof typeof ETH_CONFIG.rarityMultipliers] || 1.0;
     return DAILY_REWARD * multiplier;
   }
   
-  // Altrimenti, recuperiamo il moltiplicatore di rarità in base ai metadati dell'NFT
-  const rarityMultiplier = await getNftRarityMultiplier(tokenId);
-  return DAILY_REWARD * rarityMultiplier;
+  // Fallback finale
+  return DAILY_REWARD;
 }
 
 /**

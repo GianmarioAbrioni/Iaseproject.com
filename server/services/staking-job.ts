@@ -1,5 +1,10 @@
 import { storage } from "../storage";
-import { verifyNftOwnership, calculateDailyReward } from "./nft-verification";
+import { verifyNftOwnership, calculateDailyReward, getNFTMetadata } from "./nft-verification";
+import { ETH_CONFIG } from "../config";
+
+// Costanti per le ricompense di staking
+const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
+const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
 
 /**
  * Servizio di verifica giornaliera per gli NFT in staking
@@ -54,30 +59,31 @@ async function processStake(stake: any) {
   // L'NFT è ancora posseduto, calcola e assegna la ricompensa
   console.log(`[Staking Job] NFT #${nftId} ancora posseduto da ${walletAddress}, calcolo ricompensa`);
   
-  // MODIFICA: Bypass completo della cache locale, forziamo il calcolo della rarità
-  // tramite la funzione calculateDailyReward che internamente userà direttamente l'API
-  // Questo risolve il problema di rarità che risultano sempre "standard"
-  console.log(`[Staking Job] NFT #${nftId} - Forzo calcolo della rarità tramite API diretta`);
+  // MODIFICA: Usa lo stesso approccio del frontend per garantire coerenza
+  console.log(`[Staking Job] NFT #${nftId} - Recupero metadati completi tramite API Alchemy`);
   
-  // Calcola direttamente la ricompensa giornaliera di base
-  // tramite API (nft-verification.ts farà la chiamata API completa)
-  // Non salva nella variabile per evitare conflict con la riga sotto
-  const rewardAmount = await calculateDailyReward(nftId);
+  // Recupera i metadati completi come fa il frontend (getNFTMetadata)
+  const metadata = await getNFTMetadata(nftId);
+  console.log(`[Staking Job] Metadati recuperati per NFT #${nftId}:`, metadata?.rarity || 'non disponibile');
   
-  // Determina la rarità in base al reward calcolato
-  let rarityTier = "standard"; // Default (33.33 IASE)
+  // Usa la proprietà rarity già estratta correttamente dal metadata
+  const rarity = metadata?.rarity || "Standard";
   
-  if (rewardAmount >= 83) {
-    rarityTier = "prototype"; // 2.5x (83.33 IASE)
-  } else if (rewardAmount >= 66) {
-    rarityTier = "elite"; // 2.0x (66.67 IASE)
-  } else if (rewardAmount >= 50) {
-    rarityTier = "advanced"; // 1.5x (50 IASE)
-  }
+  // Usa la rarità per determinare il moltiplicatore
+  const multiplier = ETH_CONFIG.rarityMultipliers[rarity] || 1.0;
   
-  console.log(`[Staking Job] Rarità NFT #${nftId} determinata dal reward calcolato (${rewardAmount} IASE): ${rarityTier}`);
+  // Calcola il reward usando lo stesso approccio del frontend
+  const rewardAmount = DAILY_REWARD * multiplier;
   
-  // Usa direttamente il valore già calcolato
+  console.log(`[Staking Job] Rarità NFT #${nftId}: ${rarity} (${multiplier}x) = ${rewardAmount} IASE/giorno`);
+  
+  // Determina il tier in base alla rarità per compatibilità
+  let rarityTier = "standard";
+  if (rarity === "Elite") rarityTier = "elite";
+  else if (rarity === "Advanced") rarityTier = "advanced";
+  else if (rarity === "Prototype") rarityTier = "prototype";
+  
+  // Usa il reward calcolato direttamente
   const dailyReward = rewardAmount;
   
   // Assegna la ricompensa

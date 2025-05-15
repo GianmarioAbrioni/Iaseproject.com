@@ -49,36 +49,44 @@ export async function getUserNFTs() {
 
     console.log("🔍 Inizializzazione lettura NFT dal wallet...");
     
+    // Ottieni l'indirizzo utente dal wallet
+    const userAddress = window.ethereum.selectedAddress;
+    if (!userAddress) {
+      console.error("Nessun indirizzo wallet selezionato");
+      alert("Wallet non connesso o indirizzo non disponibile");
+      return null;
+    }
+    
+    console.log(`👤 Utente connesso: ${userAddress}`);
+    
+    // SOLUZIONE ROBUSTA: Usa sempre Infura come provider diretto
     // Compatibilità con diverse versioni di ethers.js
-    const isEthersV5 = ethers.providers && ethers.providers.Web3Provider;
-    const isEthersV6 = ethers.BrowserProvider;
+    const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
+    const isEthersV6 = ethers.JsonRpcProvider;
     
-    let provider, signer, userAddress;
+    let provider;
     
-    // Richiedi l'accesso al wallet con compatibilità per ethers v5 e v6
+    // Crea provider Infura con la nostra API key
     if (isEthersV5) {
       // ethers v5
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      signer = provider.getSigner();
-      userAddress = await signer.getAddress();
+      console.log("✅ Utilizzo Infura provider (ethers v5)");
+      const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
+      provider = new ethers.providers.JsonRpcProvider(infuraUrl);
     } else if (isEthersV6) {
       // ethers v6
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-      userAddress = await signer.getAddress();
+      console.log("✅ Utilizzo Infura provider (ethers v6)");
+      const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
+      provider = new ethers.JsonRpcProvider(infuraUrl);
     } else {
       throw new Error("Versione di ethers.js non supportata");
     }
     
-    // Nota: Qui non usiamo il fallback a Infura perché per getUserNFTs
-    // serve obbligatoriamente un wallet connesso per leggere gli NFT
+    console.log("⚙️ Provider Infura inizializzato correttamente");
 
-    console.log(`👤 Utente connesso: ${userAddress}`);
+    // Crea istanza del contratto NFT usando il provider Infura
+    const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
 
-    // Crea istanza del contratto NFT
-    const contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, signer);
-
-    // Leggi il balance NFT
+    // Leggi il balance NFT direttamente con Infura
     const balance = await contract.balanceOf(userAddress);
     console.log(`🏦 NFT trovati nel wallet: ${balance.toString()}`);
 
@@ -152,66 +160,34 @@ export async function getNFTMetadata(tokenId) {
     // Logged per debug
     console.log(`🪙 NFT ID per contratto: ${tokenIdForContract} (tipo: ${typeof tokenIdForContract})`);
 
+    // SOLUZIONE ROBUSTA: Usa sempre Infura come provider diretto
     // Compatibilità con diverse versioni di ethers.js
-    const isEthersV5 = ethers.providers && ethers.providers.Web3Provider;
-    const isEthersV6 = ethers.BrowserProvider;
+    const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
+    const isEthersV6 = ethers.JsonRpcProvider;
+    
+    let provider, contract;
     
     try {
-      // Crea provider ed istanza contratto con compatibilità per ethers v5 e v6
-      let provider, contract;
+      console.log("🔄 Inizializzazione provider Infura per metadati NFT...");
       
+      // Usa direttamente Infura come provider (non MetaMask/Web3Provider)
       if (isEthersV5) {
-        try {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          console.log("✅ Connesso a Web3Provider (v5)");
-        } catch (error) {
-          console.warn("⚠️ Web3Provider fallito, tentativo con Infura...", error.message);
-          try {
-            // Usa API key Infura reale come primo fallback
-            const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
-            provider = new ethers.providers.JsonRpcProvider(infuraUrl);
-            console.log("✅ Connesso a Infura Provider (v5)");
-          } catch (infuraError) {
-            console.warn("⚠️ Infura fallito, tentativo con provider alternativo...", infuraError.message);
-            try {
-              // Prova con Ankr come secondo fallback
-              provider = new ethers.providers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
-              console.log("✅ Connesso a Provider alternativo (v5)");
-            } catch (ankrError) {
-              console.error("❌ Tutti i provider falliti (v5)", ankrError.message);
-              throw new Error("Impossibile connettersi a nessun provider Ethereum");
-            }
-          }
-        }
-        contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
+        // ethers v5
+        console.log("✅ Utilizzo Infura provider per metadati (ethers v5)");
+        const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
+        provider = new ethers.providers.JsonRpcProvider(infuraUrl);
       } else if (isEthersV6) {
-        try {
-          provider = new ethers.BrowserProvider(window.ethereum);
-          console.log("✅ Connesso a BrowserProvider (v6)");
-        } catch (error) {
-          console.warn("⚠️ BrowserProvider fallito, tentativo con Infura...", error.message);
-          try {
-            // Usa API key Infura reale come primo fallback
-            const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
-            provider = new ethers.JsonRpcProvider(infuraUrl);
-            console.log("✅ Connesso a Infura Provider (v6)");
-          } catch (infuraError) {
-            console.warn("⚠️ Infura fallito, tentativo con provider alternativo...", infuraError.message);
-            try {
-              // Prova con Ankr come secondo fallback
-              provider = new ethers.JsonRpcProvider(ETHEREUM_RPC_FALLBACK);
-              console.log("✅ Connesso a Provider alternativo (v6)");
-            } catch (ankrError) {
-              console.error("❌ Tutti i provider falliti (v6)", ankrError.message);
-              throw new Error("Impossibile connettersi a nessun provider Ethereum");
-            }
-          }
-        }
-        contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
+        // ethers v6
+        console.log("✅ Utilizzo Infura provider per metadati (ethers v6)");
+        const infuraUrl = `https://mainnet.infura.io/v3/${INFURA_API_KEY}`;
+        provider = new ethers.JsonRpcProvider(infuraUrl);
       } else {
         console.error("❌ Versione ethers.js non riconosciuta!");
         throw new Error("Versione di ethers.js non supportata");
       }
+      
+      // Crea istanza contratto NFT con provider Infura
+      contract = new ethers.Contract(IASE_NFT_CONTRACT, ERC721_ABI, provider);
 
       // Ottieni l'URI dei metadati - QUI è importante il numero corretto
       const tokenURI = await contract.tokenURI(tokenIdForContract);
@@ -316,19 +292,20 @@ export async function loadAllIASENFTs() {
       }
     }
     
-    // Compatibilità con diverse versioni di ethers.js
-    const isEthersV5 = ethers.providers && ethers.providers.Web3Provider;
-    const isEthersV6 = ethers.BrowserProvider;
+    // Compatibilità con diverse versioni di ethers.js per provider Infura
+    const isEthersV5 = ethers.providers && ethers.providers.JsonRpcProvider;
+    const isEthersV6 = ethers.JsonRpcProvider;
     
     console.log(`🔧 Rilevata versione ethers.js: ${isEthersV5 ? "v5" : isEthersV6 ? "v6" : "sconosciuta"}`);
     
-    // Verifica che il wallet sia connesso
+    // Verifica che il wallet sia connesso per ottenere l'indirizzo
     if (!window.ethereum) {
       console.error("❌ MetaMask non disponibile");
       throw new Error("MetaMask not available");
     }
     
-    // Prima otteniamo tutti gli ID degli NFT
+    // Utilizzando getUserNFTs che ora usa Infura direttamente
+    console.log("🚀 Caricamento NFT tramite provider Infura...");
     const userNFTs = await getUserNFTs();
     
     if (!userNFTs || !userNFTs.nftIds || userNFTs.nftIds.length === 0) {

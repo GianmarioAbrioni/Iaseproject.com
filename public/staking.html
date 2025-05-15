@@ -795,5 +795,93 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ATTENZIONE: Tutta la logica wallet ETH ora è nel file staking-simple-connector.js ---
 });
 </script>
+
+<!-- Caricamento dinamico JavaScript con ES Modules -->
+<script type="module">
+  import { getUserNFTs, getNFTMetadata, loadAllIASENFTs } from './js/nftReader.js';
+  
+  async function renderNFTs() {
+    const container = document.getElementById('availableNftsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<p>Caricamento NFT in corso...</p>';
+    
+    try {
+      const nftData = await loadAllIASENFTs();
+      
+      if (!nftData || !nftData.nftIds || nftData.nftIds.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-nft-line"></i>
+            <h3>Nessun NFT disponibile</h3>
+            <p>Non hai nessun NFT IASE Units nel tuo wallet. Acquista IASE Units dai mercati secondari per partecipare allo staking.</p>
+          </div>`;
+        return;
+      }
+      
+      container.innerHTML = ''; // Pulisci il container
+      
+      for (const nft of nftData) {
+        const nftElement = document.createElement('div');
+        nftElement.classList.add('nft-card');
+        
+        nftElement.innerHTML = `
+          <div class="nft-image">
+            <img src="${nft.metadata.image}" alt="NFT #${nft.tokenId}" loading="lazy">
+          </div>
+          <div class="nft-details">
+            <h3 class="nft-title">NFT #${nft.tokenId}</h3>
+            <div class="nft-id">Token ID: ${nft.tokenId}</div>
+            <div class="rarity-badge ${nft.metadata.rarity?.toLowerCase() || 'standard'}">${nft.metadata.rarity || 'Standard'}</div>
+            
+            <div class="nft-rewards">
+              <div class="reward-rate">
+                <span class="reward-label">AI Booster:</span>
+                <span class="reward-value">${nft.metadata['AI-Booster'] || nft.metadata.aiBooster || 'X1.0'}</span>
+              </div>
+              <div class="reward-rate">
+                <span class="reward-label">Daily Reward:</span>
+                <span class="reward-value">33.33 IASE</span>
+              </div>
+            </div>
+            
+            <div class="nft-card-actions">
+              <button class="btn stake-btn" data-nft-id="${nft.tokenId}">
+                <i class="ri-login-box-line"></i> Stake
+              </button>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(nftElement);
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento degli NFT:', error);
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="ri-error-warning-line"></i>
+          <h3>Errore nel caricamento degli NFT</h3>
+          <p>Si è verificato un errore durante il caricamento degli NFT. Riprova più tardi.</p>
+        </div>`;
+    }
+  }
+  
+  // Aggiungi listener per l'evento wallet:connected
+  document.addEventListener('wallet:connected', (event) => {
+    console.log("Wallet connesso:", event.detail?.address);
+    renderNFTs(); // Fondamentale!
+  });
+  
+  // Aggiungi listener per l'evento manual:loadNFTs
+  document.addEventListener('manual:loadNFTs', (event) => {
+    console.log("Caricamento NFT manuale richiesto");
+    renderNFTs();
+  });
+  
+  // Se il wallet è già connesso all'apertura della pagina
+  if (window.ethereum && window.ethereum.selectedAddress) {
+    renderNFTs();
+  }
+</script>
 </body>
 </html>

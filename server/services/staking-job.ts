@@ -1,6 +1,5 @@
 import { storage } from "../storage";
-import { verifyNftOwnership, calculateDailyReward, getNFTMetadata } from "./nft-verification";
-import { ETH_CONFIG } from "../config";
+import { verifyNftOwnership, calculateDailyReward, getNFTMetadata, ETH_CONFIG } from "./nft-verification";
 
 // Costanti per le ricompense di staking
 const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili

@@ -26,19 +26,19 @@ interface NftTrait {
 }
 
 // Remap CONFIG per semplificare l'accesso
-const ETH_CONFIG = {
+export const ETH_CONFIG = {
   networkUrl: CONFIG.ETH_NETWORK_URL,
   networkUrlFallback: CONFIG.ETH_NETWORK_URL, // Usiamo lo stesso URL come fallback
   nftContractAddress: CONFIG.NFT_CONTRACT_ADDRESS,
   alchemyApiKey: process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB',
-  alchemyApiUrl: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB'}`,
+  alchemyApiUrl: `https://eth-mainnet.g.alchemy.com/nft/v2/${process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB'}`,
+  useAlchemyApi: true,
   rarityMultipliers: {
     "Standard": 1.0,
     "Advanced": 1.5,
     "Elite": 2.0,
     "Prototype": 2.5
-  } as Record<string, number>,
-  useAlchemyApi: true // Flag per abilitare/disabilitare l'uso dell'API Alchemy
+  } as Record<string, number>
 };
 
 // Interfaccia minima per contratto ERC721 (estesa con enumerable estension e Transfer event)
@@ -85,48 +85,59 @@ export async function getNFTMetadata(tokenId: string): Promise<any> {
             attributes: data.metadata.attributes
           };
           
-          // Estrai Card Frame o AI-Booster per determinare la rarità
+          // CORREZIONE: Usa SOLO CARD FRAME come fonte primaria per la rarità
+          // Eliminiamo ogni riferimento a 'rarity' come trait_type
           const frameTrait = data.metadata.attributes.find((attr: any) => 
             attr.trait_type?.toUpperCase() === 'CARD FRAME');
           
-          const boosterTrait = data.metadata.attributes.find((attr: any) => 
-            attr.trait_type?.toUpperCase() === 'AI-BOOSTER');
+          // Utilizza solo CARD FRAME per determinare la rarità
+          let rarityName = "Standard"; // Default
           
-          // Determina la rarità esattamente come nel frontend
           if (frameTrait) {
             const frameValue = frameTrait.value.toLowerCase();
+            
+            // Controllo esplicito dei valori possibili di CARD FRAME
             if (frameValue.includes("elite")) {
-              metadata.rarity = "Elite";
+              rarityName = "Elite";
             } else if (frameValue.includes("advanced")) {
-              metadata.rarity = "Advanced";
+              rarityName = "Advanced";
             } else if (frameValue.includes("prototype")) {
-              metadata.rarity = "Prototype";
-            } else {
-              metadata.rarity = "Standard";
+              rarityName = "Prototype";
             }
-          } else if (boosterTrait) {
-            const boosterValue = boosterTrait.value.toString().toUpperCase();
-            if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
-              metadata.rarity = "Prototype"; // 2.5x = Prototype
-            } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
-              metadata.rarity = "Elite"; // 2.0x = Elite
-            } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
-              metadata.rarity = "Advanced"; // 1.5x = Advanced
-            } else {
-              metadata.rarity = "Standard";
-            }
+            
+            console.log(`[NFT API] Rarità determinata da CARD FRAME per NFT #${tokenId}: "${frameTrait.value}" -> ${rarityName}`);
           } else {
-            metadata.rarity = "Standard";
+            // Fallback a AI-BOOSTER solo se non c'è CARD FRAME
+            const boosterTrait = data.metadata.attributes.find((attr: any) => 
+              attr.trait_type?.toUpperCase() === 'AI-BOOSTER');
+              
+            if (boosterTrait) {
+              const boosterValue = boosterTrait.value.toString().toUpperCase();
+              
+              // Mappatura diretta di AI-BOOSTER a livelli di rarità
+              if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+                rarityName = "Prototype"; // 2.5x = Prototype
+              } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+                rarityName = "Elite"; // 2.0x = Elite
+              } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+                rarityName = "Advanced"; // 1.5x = Advanced
+              }
+              
+              console.log(`[NFT API] Rarità determinata da AI-BOOSTER per NFT #${tokenId}: "${boosterTrait.value}" -> ${rarityName}`);
+            } else {
+              console.log(`[NFT API] Nessun trait CARD FRAME o AI-BOOSTER trovato per NFT #${tokenId}, usando default Standard`);
+            }
           }
           
-          // Salva questa informazione nei tratti anche nel database
-          if (metadata.rarity) {
-            await storage.createNftTrait({
-              nftId: tokenId,
-              traitType: 'RARITY',
-              value: metadata.rarity
-            });
-          }
+          // Assegna la rarità calcolata ai metadati
+          metadata.rarity = rarityName;
+          
+          // Non salviamo più nulla con traitType 'RARITY', che non esiste nei metadati originali
+          // Salviamo solo i traits originali se necessario, ma non aggiungiamo 'RARITY'
+          console.log(`[NFT API] Rarità finale NFT #${tokenId}: ${rarityName}`);
+          
+          // Salva i traits originali se necessario
+          // NOTA: Rimuoviamo completamente il salvataggio di 'RARITY' come trait
           
           console.log(`[NFT API] Rarità determinata per NFT #${tokenId}: ${metadata.rarity}`);
           return metadata;
@@ -285,59 +296,14 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
   try {
     console.log(`🔍 Recupero metadati per NFT #${tokenId}`);
     
-    // Verifica se abbiamo già salvato i tratti di questo NFT
-    const existingTraits = await storage.getNftTraitsByNftId(tokenId);
+    // MODIFICA: Bypass completo della cache, solo chiamata diretta API
+    // Rimuoviamo completamente la logica di ricerca dei tratti in cache
+    // Questo garantisce che usiamo sempre i dati più aggiornati e la logica corretta
     
-    // PRIMO TENTATIVO: verifica dai tratti esistenti
-    if (existingTraits && existingTraits.length > 0) {
-      // Cerca il trait "CARD FRAME" che determina la rarità
-      const frameTrait = existingTraits.find(trait => 
-        trait.traitType.toUpperCase() === 'CARD FRAME');
-      
-      // Cerca anche l'attributo AI-Booster
-      const boosterTrait = existingTraits.find(trait => 
-        trait.traitType.toUpperCase() === 'AI-BOOSTER');
-      
-      // Prima priorità: Card Frame
-      if (frameTrait) {
-        // Converti frame value in nome rarità
-        let rarityName = "Standard";
-        if (frameTrait.value.includes("Elite") || frameTrait.value.includes("elite")) {
-          rarityName = "Elite";
-        } else if (frameTrait.value.includes("Advanced") || frameTrait.value.includes("advanced")) {
-          rarityName = "Advanced";
-        } else if (frameTrait.value.includes("Prototype") || frameTrait.value.includes("prototype")) {
-          rarityName = "Prototype";
-        }
-        
-        const multiplier = ETH_CONFIG.rarityMultipliers[rarityName] || 1.0;
-        console.log(`📊 Rarità NFT #${tokenId} da cache (Card Frame): ${frameTrait.value} (${rarityName}, ${multiplier}x)`);
-        return multiplier;
-      }
-      
-      // Seconda priorità: AI-Booster
-      if (boosterTrait) {
-        let boosterValue = boosterTrait.value.toString().toUpperCase();
-        let multiplier = 1.0;
-        
-        // Determina il moltiplicatore in base al valore di AI-Booster
-        if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
-          multiplier = 2.5;
-        } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
-          multiplier = 2.0;
-        } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
-          multiplier = 1.5;
-        }
-        
-        console.log(`📊 Rarità NFT #${tokenId} da cache (AI-Booster): ${boosterTrait.value} (${multiplier}x)`);
-        return multiplier;
-      }
-    }
+    console.log(`⚠️ Forzo chiamata API Alchemy diretta per NFT #${tokenId}`);
     
-    // Se arriviamo qui, significa che non sono stati trovati i tratti nella cache
-    console.log(`⚠️ Tratti non trovati nella cache per NFT #${tokenId}, forzo chiamata API Alchemy`);
-    
-    // FORZARE SEMPRE LA CHIAMATA API se arriviamo qui (risolve bug di nft con rarità standard)
+    // Utilizziamo l'approccio uniforme: recuperiamo i metadati completi
+    // e ricaviamo la rarità dal CARD FRAME esattamente come nel frontend
     
     // Se l'API Alchemy è abilitata, usiamola per ottenere i metadati
     if (ETH_CONFIG.useAlchemyApi) {

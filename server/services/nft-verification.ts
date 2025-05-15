@@ -181,9 +181,42 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
       const frameTrait = existingTraits.find(trait => 
         trait.traitType.toUpperCase() === 'CARD FRAME');
       
+      // Cerca anche l'attributo AI-Booster
+      const boosterTrait = existingTraits.find(trait => 
+        trait.traitType.toUpperCase() === 'AI-BOOSTER');
+      
+      // Prima priorità: Card Frame
       if (frameTrait) {
-        const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
-        console.log(`📊 Rarità NFT #${tokenId} da cache: ${frameTrait.value} (${multiplier}x)`);
+        // Converti frame value in nome rarità
+        let rarityName = "Standard";
+        if (frameTrait.value.includes("Elite") || frameTrait.value.includes("elite")) {
+          rarityName = "Elite";
+        } else if (frameTrait.value.includes("Advanced") || frameTrait.value.includes("advanced")) {
+          rarityName = "Advanced";
+        } else if (frameTrait.value.includes("Prototype") || frameTrait.value.includes("prototype")) {
+          rarityName = "Prototype";
+        }
+        
+        const multiplier = ETH_CONFIG.rarityMultipliers[rarityName] || 1.0;
+        console.log(`📊 Rarità NFT #${tokenId} da cache (Card Frame): ${frameTrait.value} (${rarityName}, ${multiplier}x)`);
+        return multiplier;
+      }
+      
+      // Seconda priorità: AI-Booster
+      if (boosterTrait) {
+        let boosterValue = boosterTrait.value.toString().toUpperCase();
+        let multiplier = 1.0;
+        
+        // Determina il moltiplicatore in base al valore di AI-Booster
+        if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+          multiplier = 2.5;
+        } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+          multiplier = 2.0;
+        } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+          multiplier = 1.5;
+        }
+        
+        console.log(`📊 Rarità NFT #${tokenId} da cache (AI-Booster): ${boosterTrait.value} (${multiplier}x)`);
         return multiplier;
       }
     }
@@ -220,13 +253,45 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
             }
           }
           
-          // Trova il trait "CARD FRAME"
+          // Trova il trait "CARD FRAME" o "AI-Booster"
           const frameTrait = data.metadata.attributes.find((attr: { trait_type: string; value: string }) => 
             attr.trait_type.toUpperCase() === 'CARD FRAME');
           
+          const boosterTrait = data.metadata.attributes.find((attr: { trait_type: string; value: string }) => 
+            attr.trait_type.toUpperCase() === 'AI-BOOSTER');
+          
+          // Prima priorità: Card Frame
           if (frameTrait) {
-            const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
-            console.log(`📊 Rarità NFT #${tokenId}: ${frameTrait.value} (${multiplier}x) [via Alchemy]`);
+            // Converti frame value in nome rarità
+            let rarityName = "Standard";
+            if (frameTrait.value.includes("Elite") || frameTrait.value.includes("elite")) {
+              rarityName = "Elite";
+            } else if (frameTrait.value.includes("Advanced") || frameTrait.value.includes("advanced")) {
+              rarityName = "Advanced";
+            } else if (frameTrait.value.includes("Prototype") || frameTrait.value.includes("prototype")) {
+              rarityName = "Prototype";
+            }
+            
+            const multiplier = ETH_CONFIG.rarityMultipliers[rarityName] || 1.0;
+            console.log(`📊 Rarità NFT #${tokenId} da Card Frame: ${frameTrait.value} (${rarityName}, ${multiplier}x) [via Alchemy]`);
+            return multiplier;
+          }
+          
+          // Seconda priorità: AI-Booster
+          if (boosterTrait) {
+            let boosterValue = boosterTrait.value.toString().toUpperCase();
+            let multiplier = 1.0;
+            
+            // Determina il moltiplicatore in base al valore di AI-Booster
+            if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+              multiplier = 2.5;
+            } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+              multiplier = 2.0;
+            } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+              multiplier = 1.5;
+            }
+            
+            console.log(`📊 Rarità NFT #${tokenId} da AI-Booster: ${boosterTrait.value} (${multiplier}x) [via Alchemy]`);
             return multiplier;
           }
         } else {
@@ -275,13 +340,45 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
           }
         }
         
-        // Trova il trait "CARD FRAME"
+        // Trova il trait "CARD FRAME" o "AI-Booster"
         const frameTrait = metadata.attributes.find((attr: { trait_type: string; value: string }) => 
           attr.trait_type.toUpperCase() === 'CARD FRAME');
         
+        const boosterTrait = metadata.attributes.find((attr: { trait_type: string; value: string }) => 
+          attr.trait_type.toUpperCase() === 'AI-BOOSTER');
+        
+        // Prima priorità: Card Frame
         if (frameTrait) {
-          const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
-          console.log(`📊 Rarità NFT #${tokenId}: ${frameTrait.value} (${multiplier}x) [via ethers.js]`);
+          // Converti frame value in nome rarità
+          let rarityName = "Standard";
+          if (frameTrait.value.includes("Elite") || frameTrait.value.includes("elite")) {
+            rarityName = "Elite";
+          } else if (frameTrait.value.includes("Advanced") || frameTrait.value.includes("advanced")) {
+            rarityName = "Advanced";
+          } else if (frameTrait.value.includes("Prototype") || frameTrait.value.includes("prototype")) {
+            rarityName = "Prototype";
+          }
+          
+          const multiplier = ETH_CONFIG.rarityMultipliers[rarityName] || 1.0;
+          console.log(`📊 Rarità NFT #${tokenId} da Card Frame: ${frameTrait.value} (${rarityName}, ${multiplier}x) [via ethers.js]`);
+          return multiplier;
+        }
+        
+        // Seconda priorità: AI-Booster
+        if (boosterTrait) {
+          let boosterValue = boosterTrait.value.toString().toUpperCase();
+          let multiplier = 1.0;
+          
+          // Determina il moltiplicatore in base al valore di AI-Booster
+          if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+            multiplier = 2.5;
+          } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+            multiplier = 2.0;
+          } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+            multiplier = 1.5;
+          }
+          
+          console.log(`📊 Rarità NFT #${tokenId} da AI-Booster: ${boosterTrait.value} (${multiplier}x) [via ethers.js]`);
           return multiplier;
         }
       }

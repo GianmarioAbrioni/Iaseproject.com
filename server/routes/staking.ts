@@ -241,7 +241,11 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                   id: tokenId,
                   name: nft.title || `IASE Unit #${tokenId}`,
                   image: "",
-                  rarity: "Unknown",
+                  rarity: "Common",
+                  raritySource: "Default",
+                  cardFrame: "Standard",
+                  aiBooster: "X1.0",
+                  "AI-Booster": "X1.0",
                   traits: []
                 };
                 
@@ -266,13 +270,37 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                   });
                 }
                 
-                // Mappa la rarità in base al Card Frame
+                // Determina la rarità in base al Card Frame o AI-Booster
                 let rarity = "Common";
-                if (cardFrame === "Advanced") rarity = "Rare";
-                if (cardFrame === "Elite") rarity = "Epic";
-                if (cardFrame === "Prototype") rarity = "Legendary";
+                let raritySource = "Card Frame";
+                
+                // Prima priorità: Card Frame
+                if (cardFrame) {
+                  const frameValue = cardFrame.toLowerCase();
+                  if (frameValue.includes("advanced")) {
+                    rarity = "Rare";
+                  } else if (frameValue.includes("elite")) {
+                    rarity = "Epic";
+                  } else if (frameValue.includes("prototype")) {
+                    rarity = "Legendary";
+                  }
+                } 
+                // Se non c'è Card Frame o è standard, controlla AI-Booster come fallback
+                else if (aiBooster) {
+                  const boosterValue = aiBooster.toString().toUpperCase();
+                  raritySource = "AI-Booster";
+                  
+                  if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+                    rarity = "Legendary"; // 2.5x = Legendary/Prototype
+                  } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+                    rarity = "Epic"; // 2.0x = Epic/Elite
+                  } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+                    rarity = "Rare"; // 1.5x = Rare/Advanced
+                  }
+                }
                 
                 nftItem.rarity = rarity;
+                nftItem.raritySource = raritySource;
                 nftItem.cardFrame = cardFrame;
                 nftItem.aiBooster = aiBooster;
                 nftItem["AI-Booster"] = aiBooster;
@@ -390,11 +418,34 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 });
               }
               
-              // Mappa la rarità in base al Card Frame
+              // Determina la rarità in base al Card Frame o AI-Booster
               let rarity = "Common";
-              if (cardFrame === "Advanced") rarity = "Rare";
-              if (cardFrame === "Elite") rarity = "Epic";
-              if (cardFrame === "Prototype") rarity = "Legendary";
+              let raritySource = "Card Frame";
+              
+              // Prima priorità: Card Frame
+              if (cardFrame) {
+                const frameValue = cardFrame.toLowerCase();
+                if (frameValue.includes("advanced")) {
+                  rarity = "Rare";
+                } else if (frameValue.includes("elite")) {
+                  rarity = "Epic";
+                } else if (frameValue.includes("prototype")) {
+                  rarity = "Legendary";
+                }
+              } 
+              // Se non c'è Card Frame o è standard, controlla AI-Booster come fallback
+              else if (aiBooster) {
+                const boosterValue = aiBooster.toString().toUpperCase();
+                raritySource = "AI-Booster";
+                
+                if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+                  rarity = "Legendary"; // 2.5x = Legendary/Prototype
+                } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+                  rarity = "Epic"; // 2.0x = Epic/Elite
+                } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+                  rarity = "Rare"; // 1.5x = Rare/Advanced
+                }
+              }
               
               // Ritorna oggetto NFT con tutti i dati necessari
               return {
@@ -402,6 +453,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 name: metadata.name || `IASE Unit #${tokenId}`,
                 image: imageUrl || "",
                 rarity,
+                raritySource,
                 cardFrame,
                 aiBooster,
                 "AI-Booster": aiBooster,
@@ -414,7 +466,11 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 id: tokenId.toString(),
                 name: `IASE Unit #${tokenId}`,
                 image: "",
-                rarity: "Unknown",
+                rarity: "Common",
+                raritySource: "Default",
+                cardFrame: "Standard",
+                aiBooster: "X1.0",
+                "AI-Booster": "X1.0",
                 traits: []
               };
             }
@@ -424,7 +480,11 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
               id: tokenId.toString(),
               name: `IASE Unit #${tokenId}`,
               image: "",
-              rarity: "Unknown",
+              rarity: "Common",
+              raritySource: "Default",
+              cardFrame: "Standard",
+              aiBooster: "X1.0",
+              "AI-Booster": "X1.0",
               traits: []
             };
           }
@@ -481,7 +541,11 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 id: tokenId,
                 name: `IASE Unit #${tokenId}`,
                 image: "",
-                rarity: "Unknown",
+                rarity: "Common",
+                raritySource: "Default",
+                cardFrame: "Standard",
+                aiBooster: "X1.0",
+                "AI-Booster": "X1.0",
                 traits: []
               });
               foundNFTs++;

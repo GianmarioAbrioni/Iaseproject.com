@@ -658,22 +658,49 @@
   <script src="js/space-background.js"></script>
   <script src="js/parallax.js"></script>
   
-  <!-- Configurazione dati reali -->
+  <!-- Configurazione dati reali - HARDCODED PER RENDER -->
   <script>
     // API key di Infura hardcoded per funzionamento immediato
     window.INFURA_API_KEY = "84ed164327474b4499c085d2e4345a66";
     window.NFT_CONTRACT_ADDRESS = "0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F"; 
     window.REWARDS_CONTRACT_ADDRESS = "0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F";
+    // Fallback Endpoints RPC
+    window.ETHEREUM_RPC_FALLBACK = "https://rpc.ankr.com/eth";
+    window.BSC_RPC_FALLBACK = "https://bsc-dataseed.binance.org";
+    
+    // Flag per debug e diagnostica
+    window.IASE_DEBUG = true;
+    window.ENABLE_FALLBACK_SYSTEM = true;
+  </script>
+  
+  <!-- ethers.js direttamente da CDN per garantire caricamento -->
+  <script src="https://cdn.ethers.io/lib/ethers-5.6.umd.min.js"></script>
+  
+  <!-- Backup locale di ethers.js in caso di problemi con CDN -->
+  <script>
+    // Verifica se ethers è stato caricato correttamente dalla CDN
+    if (typeof ethers === 'undefined') {
+        console.warn("⚠️ ethers.js non caricato dalla CDN, utilizzo versione locale");
+        // Carica versione locale
+        document.write('<script src="js/ethers-bundle.js"><\/script>');
+    } else {
+        console.log("✅ ethers.js caricato con successo dalla CDN");
+    }
   </script>
   
   <!-- Script necessari per la funzionalità wallet -->
-  <script src="js/ethers-bundle.js"></script>
   <script src="js/staking-simple-connector.js"></script>
   
-  <!-- Script non critici caricati in modo asincrono -->
-  <script type="module" src="js/nft-reader-adapter.js"></script>
-  <script src="js/claim-service.js"></script>
+  <!-- System di fallback per caricamento NFT diretto -->
+  <script src="js/direct-blockchain-api.js"></script>
+  <script src="js/staking-fallback.js"></script>
+  
+  <!-- Script principali -->
+  <script src="js/nft-reader-adapter.js"></script>
   <script src="js/staking.js"></script>
+  
+  <!-- Script non critici caricati in modo asincrono -->
+  <script src="js/claim-service.js" defer></script>
   <script src="js/roadmap.js" defer></script>
   <script src="script.js" defer></script>
   <script src="js/init-chatbot.js" defer></script>

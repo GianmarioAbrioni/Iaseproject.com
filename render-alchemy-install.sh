@@ -1,52 +1,69 @@
 #!/bin/bash
 
-# Script di installazione e configurazione Alchemy per Render
-echo "🔧 IASE Project - Installazione Alchemy su Render"
+# Script per installare correttamente Alchemy SDK e ethers.js durante il deploy su Render
+# Versione 1.0.0 - 2025-05-15
 
-# Verifica e crea le variabili d'ambiente
-echo "📋 Configurazione variabili d'ambiente Alchemy..."
+echo "🔧 IASE - Installazione dipendenze Web3 per Render"
+echo "=================================================="
 
-# Impostazione variabile temporanea (verranno sovrascritte dalle env di Render)
-export ALCHEMY_API_KEY=${ALCHEMY_API_KEY:-"uAZ1tPYna9tBMfuTa616YwMcgptV_1vB"}
-export ALCHEMY_API_URL=${ALCHEMY_API_URL:-"https://eth-mainnet.g.alchemy.com/v2/uAZ1tPYna9tBMfuTa616YwMcgptV_1vB"}
-export ALCHEMY_ENHANCED_APIS=${ALCHEMY_ENHANCED_APIS:-"true"}
-export ALCHEMY_NETWORK=${ALCHEMY_NETWORK:-"1"}
-
-# Verifica stato variabili
-echo "🔍 Verifica configurazione Alchemy:"
-echo "ALCHEMY_API_KEY: ${ALCHEMY_API_KEY:0:5}...${ALCHEMY_API_KEY:(-5)}"
-echo "ALCHEMY_API_URL: ${ALCHEMY_API_URL%%/v2*}/v2/API_KEY_HIDDEN"
-echo "ALCHEMY_ENHANCED_APIS: $ALCHEMY_ENHANCED_APIS"
-echo "ALCHEMY_NETWORK: $ALCHEMY_NETWORK"
-
-# Installazione dipendenze
-echo "📦 Verifica dipendenze necessarie..."
-if npm list alchemy-sdk &>/dev/null; then
-  echo "✅ alchemy-sdk già installato"
-else
-  echo "⚠️ Installazione alchemy-sdk..."
-  npm install alchemy-sdk
+# Verifica che npm sia disponibile
+if ! command -v npm &> /dev/null; then
+    echo "❌ ERRORE: npm non è disponibile"
+    exit 1
 fi
 
-if npm list ethers &>/dev/null; then
-  echo "✅ ethers.js già installato"
+# Verifica la cartella corrente
+echo "📂 Directory corrente: $(pwd)"
+echo "📁 Contenuto directory:"
+ls -la
+
+# Installa ethers.js globalmente per assicurarsi che sia disponibile ovunque
+echo "🔄 Installazione ethers.js (versione 5.7.2 per massima compatibilità)..."
+npm install --save ethers@5.7.2
+
+# Installa Alchemy SDK
+echo "🔄 Installazione Alchemy SDK..."
+npm install --save alchemy-sdk
+
+# Crea una directory js se non esiste
+mkdir -p public/js
+mkdir -p client/public/js
+
+# Crea un bundle ethers.js per il caricamento diretto nel browser
+echo "🔄 Creazione bundle ethers.js per il browser..."
+npx browserify -r ethers -o public/js/ethers-bundle.js
+cp public/js/ethers-bundle.js client/public/js/ethers-bundle.js 2>/dev/null || :
+
+# Crea un file di configurazione Alchemy
+echo "🔄 Creazione file di configurazione Alchemy..."
+cat > public/js/alchemy-config.js << EOL
+/**
+ * Configurazione Alchemy per IASE
+ * Generato automaticamente durante il deploy
+ */
+window.ALCHEMY_API_KEY = window.ALCHEMY_API_KEY || "uAZ1tPYna9tBMfuTa616YwMcgptV_1vB";
+window.ALCHEMY_NETWORK = "eth-mainnet";
+window.ALCHEMY_CONFIG = {
+  apiKey: window.ALCHEMY_API_KEY,
+  network: window.ALCHEMY_NETWORK
+};
+EOL
+
+cp public/js/alchemy-config.js client/public/js/alchemy-config.js 2>/dev/null || :
+
+# Verifica se la configurazione è stata creata correttamente
+if [ -f "public/js/alchemy-config.js" ]; then
+  echo "✅ File di configurazione Alchemy creato con successo"
 else
-  echo "⚠️ Installazione ethers.js..."
-  npm install ethers@^5.7.2
+  echo "❌ ERRORE: Impossibile creare file di configurazione Alchemy"
 fi
 
-# Test di connessione Alchemy
-echo "🧪 Test connessione Alchemy API..."
-TEST_RESULT=$(curl -s -X POST \
-  -H "Content-Type: application/json" \
-  --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}" \
-  "$ALCHEMY_API_URL")
-
-if [[ "$TEST_RESULT" == *"result"* ]]; then
-  echo "✅ Connessione Alchemy riuscita"
+# Verifica se il bundle ethers.js è stato creato correttamente
+if [ -f "public/js/ethers-bundle.js" ]; then
+  echo "✅ Bundle ethers.js creato con successo"
 else
-  echo "⚠️ Problema di connessione Alchemy, verifica la API key"
-  echo "⚠️ Usando provider fallback"
+  echo "❌ ERRORE: Impossibile creare bundle ethers.js"
 fi
 
-echo "🚀 Installazione Alchemy completata!"
+echo "✅ Installazione Web3 completata"
+echo "=================================================="

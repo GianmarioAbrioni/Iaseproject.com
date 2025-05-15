@@ -9,10 +9,13 @@ import { ethers } from 'ethers';
 import { CONFIG } from '../config.js';
 import { storage } from '../storage.js';
 
-// Interfaccia minima per contratto ERC721
+// Interfaccia minima per contratto ERC721 (con supporto a Transfer events)
 const ERC721_ABI = [
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function tokenURI(uint256 tokenId) view returns (string)',
+  'function balanceOf(address owner) view returns (uint256)',
+  'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
+  'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
 ];
 
 // Costanti per le ricompense di staking

@@ -104,6 +104,8 @@ router.get(['/by-wallet/:address', '/get-staked-nfts'], async (req: Request, res
  * Questa API è utilizzata dal frontend per mostrare gli NFT disponibili
  */
 router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response) => {
+  // Definisco useTransferEvents a livello di funzione per evitare redefinition errors
+  let useTransferEvents = false;
   try {
     // Imposta header Content-Type
     res.setHeader('Content-Type', 'application/json');
@@ -191,6 +193,8 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         // Ottieni il balance (numero di NFT posseduti)
         const balance = await nftContract.balanceOf(validWalletAddress);
         
+        // Utilizziamo il flag useTransferEvents dichiarato all'inizio della funzione
+        
         // Se non ci sono NFT, restituisci array vuoto
         if (balance.toString() === '0') {
           return res.json({
@@ -203,11 +207,23 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
         // Array per memorizzare gli NFT
         const nfts = [];
         
-        // Recupera tutti i tokenId posseduti dall'utente
-        for (let i = 0; i < parseInt(balance.toString()); i++) {
-          try {
-            // Ottieni il tokenId all'indice i
-            const tokenId = await nftContract.tokenOfOwnerByIndex(validWalletAddress, i);
+        // Numerizzazione del balance
+        const balanceNumber = parseInt(balance.toString());
+        
+        // Continua con il flag useTransferEvents dichiarato in precedenza
+        
+        // METODO 1: Prova prima con tokenOfOwnerByIndex (ERC721Enumerable)
+        try {
+          // Tenta di leggere il primo NFT per verificare se il contratto è Enumerable
+          await nftContract.tokenOfOwnerByIndex(validWalletAddress, 0);
+          
+          console.log("✅ NFT contract supports ERC721Enumerable interface");
+          
+          // Se siamo qui, possiamo usare tokenOfOwnerByIndex per tutti i token
+          for (let i = 0; i < balanceNumber; i++) {
+            try {
+              // Ottieni il tokenId all'indice i
+              const tokenId = await nftContract.tokenOfOwnerByIndex(validWalletAddress, i);
             
             try {
               // Ottieni l'URI del token
@@ -288,6 +304,146 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
             }
           } catch (tokenError) {
             console.error(`Errore nel recupero del token all'indice ${i}: ${tokenError}`);
+          }
+        }
+        
+      } catch (enumError) { // Chiude il try/catch del metodo Enumerable
+          // Se tokenOfOwnerByIndex fallisce, il contratto non è Enumerable
+          console.log("⚠️ Contract does not support ERC721Enumerable interface");
+          console.log("🔄 Switching to Transfer events method...");
+          useTransferEvents = true; // Flag già dichiarato sopra
+        }
+        
+        // METODO 2: Se il metodo Enumerable fallisce, usa gli eventi Transfer
+        if (useTransferEvents || nfts.length === 0) {
+          console.log("🔍 Reading NFTs via Transfer events...");
+          
+          // Normalizza l'indirizzo per confronti case-insensitive
+          const normalizedUserAddress = validWalletAddress.toLowerCase();
+          
+          // Configura filtro per Transfer events
+          const filter = nftContract.filters.Transfer(null, validWalletAddress, null);
+          
+          try {
+            // Query tutti gli eventi Transfer all'indirizzo dell'utente
+            const transferEvents = await nftContract.queryFilter(filter);
+            console.log(`📊 Found ${transferEvents.length} Transfer events to user address`);
+            
+            // Mappa per tenere traccia dei token ricevuti
+            const receivedTokens: {[key: string]: boolean} = {};
+            
+            // Elabora gli eventi Transfer
+            for (const event of transferEvents) {
+              // Compatibilità con diversi formati di eventi
+              const eventArgs = (event as any).args;
+              if (!eventArgs) continue; // Salta eventi senza args
+              
+              const to = eventArgs.to.toLowerCase();
+              const tokenId = eventArgs.tokenId.toString();
+              
+              if (to === normalizedUserAddress) {
+                receivedTokens[tokenId] = true;
+              }
+            }
+            
+            // Verifica quali token sono ancora posseduti dall'utente
+            for (const tokenId of Object.keys(receivedTokens)) {
+              try {
+                // Verifica se l'utente è ancora il proprietario di questo token
+                const currentOwner = (await nftContract.ownerOf(tokenId)).toLowerCase();
+                
+                if (currentOwner === normalizedUserAddress) {
+                  console.log(`✅ NFT #${tokenId} verified as owned by user`);
+                  
+                  try {
+                    // Ottieni l'URI del token
+                    const tokenURI = await nftContract.tokenURI(tokenId);
+                    
+                    // Normalizza l'URI e recupera i metadata
+                    let normalizedURI = tokenURI;
+                    if (normalizedURI.startsWith('ipfs://')) {
+                      normalizedURI = normalizedURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                    }
+                    
+                    // Fetch dei metadata
+                    const metadataResponse = await fetch(normalizedURI);
+                    if (metadataResponse.ok) {
+                      const metadata = await metadataResponse.json();
+                      
+                      // Normalizza l'immagine se è IPFS
+                      let imageUrl = metadata.image;
+                      if (imageUrl && imageUrl.startsWith('ipfs://')) {
+                        imageUrl = imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                      }
+                      
+                      // Estrai attributi e rarità
+                      let cardFrame = "Standard";
+                      let aiBooster = "X1.0";
+                      
+                      if (metadata.attributes && Array.isArray(metadata.attributes)) {
+                        metadata.attributes.forEach((attr: any) => {
+                          if (attr.trait_type === "Card Frame") {
+                            cardFrame = attr.value;
+                          } else if (attr.trait_type === "AI-Booster") {
+                            aiBooster = attr.value;
+                          }
+                        });
+                      }
+                      
+                      // Mappa la rarità in base al Card Frame
+                      let rarity = "Common";
+                      if (cardFrame === "Advanced") rarity = "Rare";
+                      if (cardFrame === "Elite") rarity = "Epic";
+                      if (cardFrame === "Prototype") rarity = "Legendary";
+                      
+                      // Crea oggetto NFT con tutti i dati necessari
+                      nfts.push({
+                        id: tokenId.toString(),
+                        name: metadata.name || `IASE Unit #${tokenId}`,
+                        image: imageUrl || "",
+                        rarity,
+                        cardFrame,
+                        aiBooster,
+                        "AI-Booster": aiBooster,
+                        traits: [],
+                        attributes: metadata.attributes || []
+                      });
+                    } else {
+                      // Fallback per metadata non disponibili
+                      nfts.push({
+                        id: tokenId.toString(),
+                        name: `IASE Unit #${tokenId}`,
+                        image: "",
+                        rarity: "Unknown",
+                        traits: []
+                      });
+                    }
+                  } catch (metadataError) {
+                    console.error(`Errore nel recupero dei metadata per il token ${tokenId}: ${metadataError}`);
+                    
+                    nfts.push({
+                      id: tokenId.toString(),
+                      name: `IASE Unit #${tokenId}`,
+                      image: "",
+                      rarity: "Unknown",
+                      traits: []
+                    });
+                  }
+                  
+                  // Ottimizzazione: se abbiamo trovato tutti i token attesi, fermiamo la ricerca
+                  if (nfts.length >= balanceNumber) {
+                    console.log(`✅ Found all ${balanceNumber} tokens expected from balanceOf`);
+                    break;
+                  }
+                }
+              } catch (ownerError) {
+                console.error(`❌ Error checking ownership of NFT #${tokenId}:`, ownerError);
+              }
+            }
+            
+            console.log(`✅ Successfully found ${nfts.length} NFTs via Transfer events`);
+          } catch (transferError) {
+            console.error("❌ Error reading NFTs via Transfer events:", transferError);
           }
         }
         

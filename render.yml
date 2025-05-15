@@ -3,7 +3,7 @@ services:
   - type: web
     name: iase-project-web
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: bash render-pre-deploy.sh && bash render-alchemy-install.sh && npm install && npm run build
     startCommand: node dist/index.js
     envVars:
       # Configurazione ambiente - PRODUZIONE
@@ -54,7 +54,19 @@ services:
       - key: JWT_SECRET
         value: iase-project-jwt-secret-key-render-deployment
         
-      # Configurazione blockchain - Ethereum
+      # Configurazione blockchain - Alchemy (primario)
+      - key: ALCHEMY_API_KEY
+        value: uAZ1tPYna9tBMfuTa616YwMcgptV_1vB
+      - key: ALCHEMY_API_URL
+        value: https://eth-mainnet.g.alchemy.com/v2/uAZ1tPYna9tBMfuTa616YwMcgptV_1vB
+      - key: USE_ALCHEMY_API
+        value: "true"
+      - key: ALCHEMY_ENHANCED_APIS
+        value: "true"
+      - key: ALCHEMY_NETWORK
+        value: "1"
+      
+      # Retrocompatibilità - Ethereum (fallback)
       - key: INFURA_API_KEY
         value: 84ed164327474b4499c085d2e4345a66
       - key: ETH_NETWORK_URL

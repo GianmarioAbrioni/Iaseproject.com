@@ -5,30 +5,30 @@ import { setupAuth } from "./auth";
 import { USE_MEMORY_DB } from "./config";
 import { verifyAllStakes } from "./services/nft-verification";
 
-// Verifica se siamo in modalità verifica NFT
+// Check if we're in NFT verification mode
 const isVerificationMode = process.argv.includes('--mode=verification');
 
-// Funzione principale per avviare il server web
+// Main function to start web server
 async function startWebServer() {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   
-  // Log modalità database
-  console.log(`🔧 Ambiente: ${process.env.NODE_ENV}`);
-  console.log(`🔄 Modalità database: ${USE_MEMORY_DB ? 'IN-MEMORY' : 'POSTGRESQL'}`);
+  // Log database mode
+  console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🔄 Database mode: ${USE_MEMORY_DB ? 'IN-MEMORY' : 'POSTGRESQL'}`);
   
-  // Setup autenticazione
+  // Setup authentication
   setupAuth(app);
   
-  // Aggiungi un endpoint di health check avanzato per Render e monitoraggio
+  // Add an advanced health check endpoint for Render and monitoring
   app.get('/health', async (req, res) => {
     let dbStatus = 'unknown';
     
-    // In produzione, verifichiamo anche lo stato del database
+    // In production, we also check the database status
     if (!USE_MEMORY_DB && process.env.NODE_ENV === 'production') {
       try {
-        // Verifichiamo la connessione al database
+        // Verify database connection
         const { storage } = await import('./storage');
         const dbConnection = await storage.testConnection();
         dbStatus = dbConnection ? 'connected' : 'disconnected';
@@ -112,29 +112,29 @@ async function startWebServer() {
   return server;
 }
 
-// Funzione per eseguire il job di verifica degli NFT
+// Function to run the NFT verification job
 async function runVerificationJob() {
-  console.log("🔄 IASE Project - Avvio job di verifica NFT");
+  console.log("🔄 IASE Project - Starting NFT verification job");
   
   try {
-    console.log("✅ Avvio verifica degli stake NFT...");
+    console.log("✅ Starting verification of NFT stakes...");
     await verifyAllStakes();
     
-    console.log("✅ Verifica completata con successo");
+    console.log("✅ Verification completed successfully");
     process.exit(0);
   } catch (error) {
-    console.error("❌ Errore durante la verifica:", error);
+    console.error("❌ Error during verification:", error);
     process.exit(1);
   }
 }
 
-// Avvio dell'applicazione in base alla modalità
+// Start the application based on the mode
 (async () => {
   if (isVerificationMode) {
-    console.log("🚀 Avvio in modalità verifica NFT");
+    console.log("🚀 Starting in NFT verification mode");
     await runVerificationJob();
   } else {
-    console.log("🚀 Avvio server web standard");
+    console.log("🚀 Starting standard web server");
     await startWebServer();
   }
 })();

@@ -1131,9 +1131,41 @@ document.addEventListener('DOMContentLoaded', function() {
         const stakingDays = Math.floor((now - stakingStartDate) / (1000 * 60 * 60 * 24));
         const stakingHours = Math.floor((now - stakingStartDate) / (1000 * 60 * 60)) % 24;
         
-        // Try to find the corresponding NFT in all NFTs to get image
+        // Try to find the corresponding NFT in all NFTs to get image and metadata
         const matchingNft = allNfts.find(nft => nft.id.toString() === stakedNft.tokenId.toString());
         let nftImage = stakedNft.image; // Use image from staked NFT data
+        
+        // Get the correct rarity from matching NFT
+        let rarityName = 'Standard';
+        let rarityClass = 'standard';
+        
+        if (matchingNft && matchingNft.rarity) {
+          rarityName = matchingNft.rarity;
+          rarityClass = matchingNft.rarity.toLowerCase();
+        } else if (stakedNft.rarity) {
+          rarityName = stakedNft.rarity;
+          rarityClass = stakedNft.rarity.toLowerCase();
+        }
+        
+        // Process rarity to ensure correct capitalization for display and right class
+        if (rarityClass.includes('elite')) {
+          rarityName = 'ELITE';
+          rarityClass = 'elite';
+        } else if (rarityClass.includes('advanced')) {
+          rarityName = 'ADVANCED';
+          rarityClass = 'advanced';
+        } else if (rarityClass.includes('prototype')) {
+          rarityName = 'PROTOTYPE';
+          rarityClass = 'prototype';
+        }
+        
+        // Get AI booster value
+        let aiBooster = 'X1.0';
+        if (matchingNft && matchingNft['AI-Booster']) {
+          aiBooster = matchingNft['AI-Booster'];
+        } else if (stakedNft.metadata && stakedNft.metadata['AI-Booster']) {
+          aiBooster = stakedNft.metadata['AI-Booster'];
+        }
         
         // Use image from matching NFT if available, or alternative sources
         if (matchingNft && matchingNft.image) {
@@ -1152,7 +1184,8 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="nft-details">
             <h3 class="nft-title">NFT #${stakedNft.tokenId}</h3>
             <div class="nft-id">Token ID: ${stakedNft.tokenId}</div>
-            <div class="rarity-badge ${stakedNft.rarity?.toLowerCase() || 'standard'}">${stakedNft.rarity || 'Standard'}</div>
+            <div class="rarity-badge ${rarityClass}">${rarityName}</div>
+            <div class="nft-ai-booster ${rarityClass}">AI-BOOSTER ${aiBooster}</div>
             
             <div class="staking-info">
               <div class="staking-duration">

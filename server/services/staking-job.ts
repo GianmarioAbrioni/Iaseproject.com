@@ -1,7 +1,13 @@
 import { storage } from "../storage";
 import { verifyNftOwnership, calculateDailyReward, getNFTMetadata, ETH_CONFIG } from "./nft-verification";
 
-// Costanti per le ricompense di staking
+// Costanti per le ricompense di staking (valori fissi in base alla rarità)
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+
+// Per retrocompatibilità con il codice esistente
 const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
 const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
 
@@ -70,15 +76,15 @@ async function processStake(stake: any) {
   
   // SOLUZIONE SEMPLICISSIMA:
   // Assegna direttamente il valore di reward fisso in base alla rarità
-  let dailyReward = 33.33; // Default per Standard
+  let dailyReward = BASE_DAILY_REWARD; // Default per Standard
   
-  // Assegna valore fisso in base alla rarità
+  // Assegna valore fisso in base alla rarità usando le costanti
   if (rarity === "Advanced") {
-    dailyReward = 50.00;
+    dailyReward = ADVANCED_DAILY_REWARD;
   } else if (rarity === "Elite") {
-    dailyReward = 66.67;
+    dailyReward = ELITE_DAILY_REWARD;
   } else if (rarity === "Prototype") {
-    dailyReward = 83.33;
+    dailyReward = PROTOTYPE_DAILY_REWARD;
   }
   
   console.log(`[Staking Job] Rarità NFT #${nftId}: ${rarity} = ${dailyReward} IASE/giorno (valore fisso)`);

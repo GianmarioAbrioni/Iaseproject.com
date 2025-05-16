@@ -4,34 +4,22 @@
  * Questo servizio verifica la proprietà degli NFT tramite chiamate API
  * alla blockchain Ethereum usando Alchemy API per maggiore affidabilità.
  * 
- * Versione 2.0.0 - 2025-05-15
- * - Integrazione con Alchemy API per verifiche più affidabili
- * - Sistema di fallback a ethers.js diretto in caso di problemi con API
- * - Ottimizzazione cache metadati per ridurre chiamate
- * - Logging avanzato per troubleshooting
+ * Versione 2.1.0 - 2025-05-16
+ * - Semplificazione calcolo reward con valori fissi per rarità
+ * - Chiamate API ottimizzate e robusto sistema di fallback
+ * - Maggiore affidabilità nella determinazione della rarità
  */
 
-import { ethers } from 'ethers';
-import { CONFIG } from '../config';
 import { storage } from '../storage';
-import { NftStake, StakingReward } from '@shared/schema';
+import { NftTrait } from '@shared/schema';
+import { ethers } from 'ethers';
 import fetch from 'node-fetch';
-
-// Definizione interfacce per i tipi
-interface NftTrait {
-  nftId: string;
-  traitType: string;
-  value: string;
-  displayType?: string | null;
-}
 
 // Remap CONFIG per semplificare l'accesso
 export const ETH_CONFIG = {
-  networkUrl: CONFIG.ETH_NETWORK_URL,
-  networkUrlFallback: CONFIG.ETH_NETWORK_URL, // Usiamo lo stesso URL come fallback
-  nftContractAddress: CONFIG.NFT_CONTRACT_ADDRESS,
-  alchemyApiKey: process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB',
-  alchemyApiUrl: `https://eth-mainnet.g.alchemy.com/nft/v2/${process.env.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB'}`,
+  nftContractAddress: '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F',
+  rpcUrl: 'https://rpc.ankr.com/eth',
+  alchemyApiUrl: 'https://eth-mainnet.g.alchemy.com/nft/v2/uAZ1tPYna9tBMfuTa616YwMcgptV_1vB',
   useAlchemyApi: true,
   rarityMultipliers: {
     "Standard": 1.0,
@@ -50,7 +38,13 @@ const ERC721_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
 ];
 
-// Costanti per le ricompense di staking
+// Costanti per le ricompense di staking (valori fissi in base alla rarità)
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+
+// Per retrocompatibilità con il codice esistente
 const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
 const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
 
@@ -177,21 +171,21 @@ export async function calculateDailyReward(tokenId: string, rarityTier?: string)
       const rarity = metadata?.rarity || "Standard";
       
       // Assegna direttamente il valore fisso
-      let reward = 33.33; // Default per Standard
+      let reward = BASE_DAILY_REWARD; // Default per Standard
       
       if (rarity === "Advanced") {
-        reward = 50.00;
+        reward = ADVANCED_DAILY_REWARD;
       } else if (rarity === "Elite") {
-        reward = 66.67;
+        reward = ELITE_DAILY_REWARD;
       } else if (rarity === "Prototype") {
-        reward = 83.33;
+        reward = PROTOTYPE_DAILY_REWARD;
       }
       
       console.log(`[Reward] NFT #${tokenId} rarità: ${rarity} = ${reward} IASE/giorno (valore fisso)`);
       return reward;
     } catch (error) {
       console.error(`[Reward] Errore nel calcolo reward per NFT #${tokenId}:`, error);
-      return 33.33; // Default in caso di errore (Standard)
+      return BASE_DAILY_REWARD; // Default in caso di errore (Standard)
     }
   }
   
@@ -200,18 +194,18 @@ export async function calculateDailyReward(tokenId: string, rarityTier?: string)
     const rarityLower = rarityTier.toLowerCase();
     
     if (rarityLower.includes('advanced')) {
-      return 50.00;
+      return ADVANCED_DAILY_REWARD;
     } else if (rarityLower.includes('elite')) {
-      return 66.67;
+      return ELITE_DAILY_REWARD;
     } else if (rarityLower.includes('prototype')) {
-      return 83.33;
+      return PROTOTYPE_DAILY_REWARD;
     } else {
-      return 33.33; // Standard
+      return BASE_DAILY_REWARD; // Standard
     }
   }
   
   // Fallback finale
-  return 33.33; // Standard
+  return BASE_DAILY_REWARD; // Standard
 }
 
 /**
@@ -270,12 +264,12 @@ export async function verifyNftOwnership(walletAddress: string, tokenId: string)
     // Connetti al provider Ethereum con fallback
     let provider: ethers.JsonRpcProvider;
     try {
-      provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrl);
-      console.log(`🌐 NFT Verification connesso a ${ETH_CONFIG.networkUrl}`);
+      provider = new ethers.JsonRpcProvider(ETH_CONFIG.rpcUrl);
+      console.log(`🌐 NFT Verification connesso a ${ETH_CONFIG.rpcUrl}`);
     } catch (providerError) {
       console.error(`❌ Errore con provider primario:`, providerError);
-      provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrlFallback);
-      console.log(`🌐 NFT Verification connesso al fallback ${ETH_CONFIG.networkUrlFallback}`);
+      provider = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+      console.log(`🌐 NFT Verification connesso al fallback pubblico`);
     }
     
     // Crea un'istanza del contratto NFT
@@ -410,7 +404,7 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
     
     try {
       // Se non abbiamo i traits, recuperali dall'API
-      const provider = new ethers.JsonRpcProvider(ETH_CONFIG.networkUrl);
+      const provider = new ethers.JsonRpcProvider(ETH_CONFIG.rpcUrl);
       const nftContract = new ethers.Contract(
         ETH_CONFIG.nftContractAddress,
         ERC721_ABI,

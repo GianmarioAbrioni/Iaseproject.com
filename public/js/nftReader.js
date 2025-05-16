@@ -24,6 +24,18 @@ const ALCHEMY_API_KEY = window.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_
 const REWARDS_CONTRACT = window.REWARDS_CONTRACT_ADDRESS || '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
 const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/nft/v2/${ALCHEMY_API_KEY}`;
 
+// Costanti per le ricompense di staking (valori fissi in base alla rarità)
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+
+// Per retrocompatibilità
+const MONTHLY_REWARD_STANDARD = 1000; // 1000 IASE tokens al mese (Standard)
+const MONTHLY_REWARD_ADVANCED = 1500; // 1500 IASE tokens al mese (Advanced)
+const MONTHLY_REWARD_ELITE = 2000; // 2000 IASE tokens al mese (Elite)
+const MONTHLY_REWARD_PROTOTYPE = 2500; // 2500 IASE tokens al mese (Prototype)
+
 // Log delle configurazioni (solo in modalità debug)
 console.log("📊 IASE NFT Reader - Configurazione:");
 console.log(`- NFT Contract: ${IASE_NFT_CONTRACT}`);
@@ -279,18 +291,18 @@ function ensureQualityMetadata(metadata) {
   
   // Aggiungi i valori di reward in base alla rarità
   if (metadata.rarity === "Elite") {
-    metadata.dailyReward = 66.67;
-    metadata.monthlyReward = 2000;
+    metadata.dailyReward = ELITE_DAILY_REWARD;
+    metadata.monthlyReward = MONTHLY_REWARD_ELITE;
   } else if (metadata.rarity === "Advanced") {
-    metadata.dailyReward = 50;
-    metadata.monthlyReward = 1500;
+    metadata.dailyReward = ADVANCED_DAILY_REWARD;
+    metadata.monthlyReward = MONTHLY_REWARD_ADVANCED;
   } else if (metadata.rarity === "Prototype") {
-    metadata.dailyReward = 83.33;
-    metadata.monthlyReward = 2500;
+    metadata.dailyReward = PROTOTYPE_DAILY_REWARD;
+    metadata.monthlyReward = MONTHLY_REWARD_PROTOTYPE;
   } else {
     // Standard
-    metadata.dailyReward = 33.33;
-    metadata.monthlyReward = 1000;
+    metadata.dailyReward = BASE_DAILY_REWARD;
+    metadata.monthlyReward = MONTHLY_REWARD_STANDARD;
   }
 }
 
@@ -676,18 +688,18 @@ function getRarityFromMetadata(metadata) {
     
     // 4. Imposta i reward giornalieri e mensili in base alla rarità
     if (rarity === "Elite") {
-      dailyReward = 66.67;
-      monthlyReward = 2000;
+      dailyReward = ELITE_DAILY_REWARD;
+      monthlyReward = MONTHLY_REWARD_ELITE;
     } else if (rarity === "Advanced") {
-      dailyReward = 50;  // Corretto da 60 a 50
-      monthlyReward = 1500;
+      dailyReward = ADVANCED_DAILY_REWARD;
+      monthlyReward = MONTHLY_REWARD_ADVANCED;
     } else if (rarity === "Prototype") {
-      dailyReward = 83.33;
-      monthlyReward = 2500;
+      dailyReward = PROTOTYPE_DAILY_REWARD;
+      monthlyReward = MONTHLY_REWARD_PROTOTYPE;
     } else {
       // Standard
-      dailyReward = 33.33;
-      monthlyReward = 1000;
+      dailyReward = BASE_DAILY_REWARD;
+      monthlyReward = MONTHLY_REWARD_STANDARD;
     }
     
     console.log(`🏆 Determinazione finale: ${rarity}, AI-Booster: ${aiBooster}, Reward: ${dailyReward} IASE/giorno`);

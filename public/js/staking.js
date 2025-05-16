@@ -27,6 +27,18 @@ const ALCHEMY_API_URL = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}
 // Retrocompatibilità
 const INFURA_API_KEY = window.INFURA_API_KEY || '84ed164327474b4499c085d2e4345a66';
 
+// Costanti per le ricompense di staking (valori fissi in base alla rarità)
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+
+// Per retrocompatibilità
+const MONTHLY_REWARD_STANDARD = 1000; // 1000 IASE tokens al mese (Standard)
+const MONTHLY_REWARD_ADVANCED = 1500; // 1500 IASE tokens al mese (Advanced)
+const MONTHLY_REWARD_ELITE = 2000; // 2000 IASE tokens al mese (Elite)
+const MONTHLY_REWARD_PROTOTYPE = 2500; // 2500 IASE tokens al mese (Prototype)
+
 // Elementi DOM 
 const domElements = {
   availableNftsContainer: document.getElementById('availableNftsContainer'),
@@ -105,8 +117,8 @@ function showLoader(container, message = 'Caricamento...') {
 }
 
 /**
- * Calcola il reward giornaliero basato sulla rarità dell'NFT
- * Versione avanzata che verifica sia la rarità che l'AI-Booster
+ * Restituisce il reward giornaliero fisso basato sulla rarità dell'NFT
+ * Versione semplificata che assegna valore fisso in base alla rarità
  * @param {string|Object} rarityOrNft - Rarità dell'NFT (Standard, Advanced, Elite, Prototype) o oggetto NFT
  * @returns {number} - Reward giornaliero in IASE tokens
  */
@@ -116,48 +128,40 @@ function getDailyReward(rarityOrNft) {
     // Se è già stato calcolato, usa quello
     if (rarityOrNft.dailyReward) return rarityOrNft.dailyReward;
     
-    // Prima priorità: verifica "Card Frame" (proprietà rarity)
+    // Usa la rarità per determinare il reward
     if (rarityOrNft.rarity) {
       const rarityLower = rarityOrNft.rarity.toString().toLowerCase();
       
+      // Assegna reward fisso in base alla rarità
       if (rarityLower.includes('elite')) {
-        return 66.67;
+        return ELITE_DAILY_REWARD;
       } else if (rarityLower.includes('advanced')) {
-        return 50;
+        return ADVANCED_DAILY_REWARD;
       } else if (rarityLower.includes('prototype')) {
-        return 83.33;
-      } else if (rarityLower.includes('standard')) {
-        return 33.33;
+        return PROTOTYPE_DAILY_REWARD;
+      } else {
+        return BASE_DAILY_REWARD; // Standard
       }
     }
     
-    // Seconda priorità: verifica il valore dell'AI-Booster
-    const aiBooster = rarityOrNft['AI-Booster'] || rarityOrNft.aiBooster;
-    if (aiBooster) {
-      const boosterStr = aiBooster.toString().toUpperCase();
-      if (boosterStr.includes('X2.5') || boosterStr.includes('2.5')) return 83.33;
-      if (boosterStr.includes('X2.0') || boosterStr.includes('2.0')) return 66.67;
-      if (boosterStr.includes('X1.5') || boosterStr.includes('1.5')) return 50;
-      if (boosterStr.includes('X1.0') || boosterStr.includes('1.0')) return 33.33;
-    }
-    
-    // Se nessuna delle due è disponibile, passa la rarità come stringa
-    rarityOrNft = rarityOrNft.rarity;
+    // Default per Standard
+    return BASE_DAILY_REWARD;
   }
   
-  if (!rarityOrNft) return 33.33; // Default Standard
+  if (!rarityOrNft) return BASE_DAILY_REWARD; // Default Standard
   
   // Conversione case-insensitive per rarità passata come stringa
   const rarityLower = rarityOrNft.toString().toLowerCase();
   
+  // Assegna reward fisso in base alla rarità
   if (rarityLower.includes('elite')) {
-    return 66.67;
+    return ELITE_DAILY_REWARD;
   } else if (rarityLower.includes('advanced')) {
-    return 50;
+    return ADVANCED_DAILY_REWARD;
   } else if (rarityLower.includes('prototype')) {
-    return 83.33;
+    return PROTOTYPE_DAILY_REWARD;
   } else {
-    return 33.33; // Standard
+    return BASE_DAILY_REWARD; // Standard
   }
 }
 
@@ -310,9 +314,9 @@ async function loadAvailableNfts() {
                 <span class="reward-value">${metadata['AI-Booster'] || metadata.aiBooster || 'X1.0'}</span>
               </div>
               <div class="reward-rate daily-reward ${metadata.rarity?.toLowerCase() || 'standard'}-reward" 
-                   title="Reward calcolato in base alla rarità: ${metadata.rarity || 'Standard'} = ${metadata.dailyReward || getDailyReward(metadata.rarity)} IASE/giorno">
+                   title="Reward fisso in base alla rarità: ${metadata.rarity || 'Standard'} = ${metadata.dailyReward} IASE/giorno">
                 <span class="reward-label">Daily Reward:</span>
-                <span class="reward-value">${metadata.dailyReward || getDailyReward(metadata.rarity)} IASE</span>
+                <span class="reward-value">${metadata.dailyReward} IASE</span>
               </div>
             </div>
             
@@ -418,17 +422,17 @@ async function tryFallbackNftLoading() {
         const rarityLower = nft.rarity.toString().toLowerCase();
         
         if (rarityLower.includes('elite')) {
-          nft.dailyReward = 66.67;
+          nft.dailyReward = ELITE_DAILY_REWARD;
         } else if (rarityLower.includes('advanced')) {
-          nft.dailyReward = 50;
+          nft.dailyReward = ADVANCED_DAILY_REWARD;
         } else if (rarityLower.includes('prototype')) {
-          nft.dailyReward = 83.33;
+          nft.dailyReward = PROTOTYPE_DAILY_REWARD;
         } else {
-          nft.dailyReward = 33.33; // Standard
+          nft.dailyReward = BASE_DAILY_REWARD; // Standard
         }
       } else {
-        // Fallback al calcolo normale
-        nft.dailyReward = getDailyReward(nft);
+        // Default per Standard
+        nft.dailyReward = BASE_DAILY_REWARD;
       }
       
       console.log(`💰 NFT #${nft.id} - Daily Reward assegnato: ${nft.dailyReward} IASE`);

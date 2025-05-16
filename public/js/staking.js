@@ -114,6 +114,18 @@ function showLoader(container, message = 'Caricamento...') {
 }
 
 /**
+ * Funzione ottimizzata per ottenere il reward giornaliero in base alla rarità
+ * @param {string} rarity - Rarità dell'NFT (Standard, Advanced, Elite, Prototype)
+ * @returns {number} - Reward giornaliero in IASE tokens
+ */
+function getFixedDailyReward(rarity) {
+  if (rarity === 'Advanced') return ADVANCED_DAILY_REWARD;
+  if (rarity === 'Elite') return ELITE_DAILY_REWARD;
+  if (rarity === 'Prototype') return PROTOTYPE_DAILY_REWARD;
+  return BASE_DAILY_REWARD; // Standard
+}
+
+/**
  * Restituisce il reward giornaliero fisso basato sulla rarità dell'NFT
  * Versione semplificata che assegna valore fisso in base alla rarità
  * @param {string|Object} rarityOrNft - Rarità dell'NFT (Standard, Advanced, Elite, Prototype) o oggetto NFT
@@ -313,7 +325,7 @@ async function loadAvailableNfts() {
               <div class="reward-rate daily-reward ${metadata.rarity?.toLowerCase() || 'standard'}-reward" 
                    title="Reward fisso in base alla rarità: ${metadata.rarity || 'Standard'} = ${metadata.dailyReward} IASE/giorno">
                 <span class="reward-label">Daily Reward:</span>
-                <span class="reward-value">${metadata.dailyReward} IASE</span>
+                <span class="reward-value">${getFixedDailyReward(metadata.rarity)} IASE</span>
               </div>
             </div>
             
@@ -533,7 +545,7 @@ async function tryFallbackNftLoading() {
             <div class="reward-rate daily-reward ${rarityClass}-reward" 
                  title="Reward calcolato in base alla rarità: ${nft.rarity || 'Standard'} = ${nft.dailyReward || getDailyReward(nft.rarity)} IASE/giorno">
               <span class="reward-label">Daily Reward:</span>
-              <span class="reward-value">${nft.dailyReward || getDailyReward(nft.rarity)} IASE</span>
+              <span class="reward-value">${getFixedDailyReward(nft.rarity)} IASE</span>
             </div>
           </div>
           

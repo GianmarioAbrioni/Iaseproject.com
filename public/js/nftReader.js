@@ -30,11 +30,8 @@ const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
 const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
 const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
-// Per retrocompatibilità
-const MONTHLY_REWARD_STANDARD = 1000; // 1000 IASE tokens al mese (Standard)
-const MONTHLY_REWARD_ADVANCED = 1500; // 1500 IASE tokens al mese (Advanced)
-const MONTHLY_REWARD_ELITE = 2000; // 2000 IASE tokens al mese (Elite)
-const MONTHLY_REWARD_PROTOTYPE = 2500; // 2500 IASE tokens al mese (Prototype)
+// Non utilizziamo più i vecchi valori mensili
+// Ora utilizziamo solo i valori giornalieri fissi definiti sopra
 
 // Log delle configurazioni (solo in modalità debug)
 console.log("📊 IASE NFT Reader - Configurazione:");
@@ -292,17 +289,13 @@ function ensureQualityMetadata(metadata) {
   // Aggiungi i valori di reward in base alla rarità
   if (metadata.rarity === "Elite") {
     metadata.dailyReward = ELITE_DAILY_REWARD;
-    metadata.monthlyReward = MONTHLY_REWARD_ELITE;
   } else if (metadata.rarity === "Advanced") {
     metadata.dailyReward = ADVANCED_DAILY_REWARD;
-    metadata.monthlyReward = MONTHLY_REWARD_ADVANCED;
   } else if (metadata.rarity === "Prototype") {
     metadata.dailyReward = PROTOTYPE_DAILY_REWARD;
-    metadata.monthlyReward = MONTHLY_REWARD_PROTOTYPE;
   } else {
     // Standard
     metadata.dailyReward = BASE_DAILY_REWARD;
-    metadata.monthlyReward = MONTHLY_REWARD_STANDARD;
   }
 }
 
@@ -496,13 +489,13 @@ async function loadAllIASENFTs() {
  * @returns {Object} - Oggetto con rarità, moltiplicatore e reward
  */
 function getRarityFromMetadata(metadata) {
-  if (!metadata) return { rarity: "Standard", aiBooster: "X1.0", dailyReward: 33.33 };
+  if (!metadata) return { rarity: "Standard", aiBooster: "X1.0", dailyReward: BASE_DAILY_REWARD };
   
   // Valori predefiniti
   let rarity = "Standard";
   let aiBooster = "X1.0";
-  let dailyReward = 33.33;
-  let monthlyReward = 1000;
+  // Usiamo solo reward giornalieri fissi
+  let dailyReward = BASE_DAILY_REWARD;
   
   try {
     console.log("🔍 Analisi avanzata metadati per NFT #" + (metadata.tokenId || "N/A"));
@@ -689,17 +682,13 @@ function getRarityFromMetadata(metadata) {
     // 4. Imposta i reward giornalieri e mensili in base alla rarità
     if (rarity === "Elite") {
       dailyReward = ELITE_DAILY_REWARD;
-      monthlyReward = MONTHLY_REWARD_ELITE;
     } else if (rarity === "Advanced") {
       dailyReward = ADVANCED_DAILY_REWARD;
-      monthlyReward = MONTHLY_REWARD_ADVANCED;
     } else if (rarity === "Prototype") {
       dailyReward = PROTOTYPE_DAILY_REWARD;
-      monthlyReward = MONTHLY_REWARD_PROTOTYPE;
     } else {
       // Standard
       dailyReward = BASE_DAILY_REWARD;
-      monthlyReward = MONTHLY_REWARD_STANDARD;
     }
     
     console.log(`🏆 Determinazione finale: ${rarity}, AI-Booster: ${aiBooster}, Reward: ${dailyReward} IASE/giorno`);
@@ -707,16 +696,14 @@ function getRarityFromMetadata(metadata) {
     return { 
       rarity, 
       aiBooster, 
-      dailyReward, 
-      monthlyReward 
+      dailyReward
     };
   } catch (error) {
     console.error("❌ Errore nell'analisi della rarità:", error);
     return { 
       rarity: "Standard", 
       aiBooster: "X1.0", 
-      dailyReward: 33.33, 
-      monthlyReward: 1000 
+      dailyReward: BASE_DAILY_REWARD 
     };
   }
 }

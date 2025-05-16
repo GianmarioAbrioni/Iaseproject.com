@@ -33,11 +33,8 @@ const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
 const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
 const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
-// Per retrocompatibilità
-const MONTHLY_REWARD_STANDARD = 1000; // 1000 IASE tokens al mese (Standard)
-const MONTHLY_REWARD_ADVANCED = 1500; // 1500 IASE tokens al mese (Advanced)
-const MONTHLY_REWARD_ELITE = 2000; // 2000 IASE tokens al mese (Elite)
-const MONTHLY_REWARD_PROTOTYPE = 2500; // 2500 IASE tokens al mese (Prototype)
+// Rimossi vecchi riferimenti ai reward mensili
+// Ora usiamo solo i valori giornalieri fissi definiti sopra
 
 // Elementi DOM 
 const domElements = {

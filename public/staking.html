@@ -1081,11 +1081,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      // Fetch staked NFTs directly from the API
-      const apiBase = window.location.origin.endsWith('/api') 
-        ? window.location.origin 
-        : `${window.location.origin}/api`;
-      
+      // Usa lo stesso metodo di staking.js per l'API
+      const apiBase = `${window.location.origin}/api`;
       const url = `${apiBase}/by-wallet/${walletAddress}`;
       console.log(`🌐 Fetching staked NFTs from API: ${url}`);
       
@@ -1268,11 +1265,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (dailyRewardsElement) dailyRewardsElement.textContent = "...";
       if (totalRewardsElement) totalRewardsElement.textContent = "...";
       
-      // Fetch staked NFTs directly from the API
-      const apiBase = window.location.origin.endsWith('/api') 
-        ? window.location.origin 
-        : `${window.location.origin}/api`;
-      
+      // Usa lo stesso metodo di staking.js per l'API
+      const apiBase = `${window.location.origin}/api`;
       const url = `${apiBase}/by-wallet/${walletAddress}`;
       console.log(`🌐 Fetching staked NFTs from API: ${url}`);
       

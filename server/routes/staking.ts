@@ -668,4 +668,65 @@ router.get('/rewards/:address', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * API per mettere in staking un NFT
+ * Questo endpoint gestisce la creazione di un nuovo record di staking
+ */
+router.post('/stake', async (req: Request, res: Response) => {
+  try {
+    const stakeData = req.body;
+    
+    // Validazione dei dati
+    if (!stakeData.walletAddress || !stakeData.nftId) {
+      return res.status(400).json({ 
+        error: 'Dati incompleti', 
+        message: 'Wallet address e NFT ID sono richiesti'
+      });
+    }
+    
+    // Normalizza l'indirizzo wallet
+    let walletAddress = stakeData.walletAddress.trim().toLowerCase();
+    if (!walletAddress.startsWith('0x')) {
+      walletAddress = '0x' + walletAddress;
+    }
+    
+    // Determina il valore del reward in base alla rarità
+    let dailyReward = BASE_DAILY_REWARD; // Default per Standard/Common
+    const rarityName = stakeData.rarityName || 'Standard';
+    
+    if (rarityName.toLowerCase().includes('elite')) {
+      dailyReward = ELITE_DAILY_REWARD;
+    } else if (rarityName.toLowerCase().includes('advanced')) {
+      dailyReward = ADVANCED_DAILY_REWARD;
+    } else if (rarityName.toLowerCase().includes('prototype')) {
+      dailyReward = PROTOTYPE_DAILY_REWARD;
+    }
+    
+    // Crea il nuovo stake
+    const newStake = {
+      nftId: stakeData.nftId.toString(),
+      walletAddress: walletAddress,
+      rarityTier: rarityName.toLowerCase(),
+      rarityMultiplier: dailyReward / BASE_DAILY_REWARD,
+      startTime: new Date(),
+      active: true
+    };
+    
+    // Salva lo stake nel database
+    const stake = await storage.createNftStake(newStake);
+    
+    console.log(`✅ Nuovo stake creato per NFT #${stakeData.nftId} da ${walletAddress}`);
+    
+    // Restituisci i dati dello stake
+    res.status(201).json({
+      success: true,
+      stake,
+      dailyReward
+    });
+  } catch (error) {
+    console.error('Error creating NFT stake:', error);
+    res.status(500).json({ error: 'Errore nella creazione dello stake' });
+  }
+});
+
 export default router;

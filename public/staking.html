@@ -58,6 +58,39 @@
       font-size: 1.1rem;
     }
     
+    /* Stili migliorati per pulsanti stake */
+    .stake-btn {
+      background-color: #2563eb !important;
+      color: white !important;
+      border: none !important;
+      padding: 10px 18px !important;
+      border-radius: 8px !important;
+      font-weight: bold !important;
+      font-size: 1.1rem !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4) !important;
+      width: 100% !important;
+      text-align: center !important;
+      margin-top: 10px !important;
+    }
+    
+    .stake-btn:hover {
+      background-color: #1d4ed8 !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 6px 15px rgba(37, 99, 235, 0.5) !important;
+    }
+    
+    /* Animazione pulse per attirare l'attenzione */
+    @keyframes pulse-button {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    
+    .stake-btn {
+      animation: pulse-button 2s infinite;
+    }
+    
     /* Style improvements */
     .spinner-border.text-light {
       width: 3rem;
@@ -1023,6 +1056,24 @@ document.addEventListener('DOMContentLoaded', function() {
           if (stakeNftRarity && metadata.rarity) {
             stakeNftRarity.textContent = metadata.rarity;
             stakeNftRarity.className = `rarity-badge ${metadata.rarity.toLowerCase() || 'standard'}`;
+            
+            // Imposta il valore del reward giornaliero in base alla rarità
+            const dailyRewardElement = document.getElementById('stakeNftDailyReward');
+            if (dailyRewardElement) {
+              // Usa le costanti fisse in base alla rarità
+              const rarityLower = metadata.rarity.toLowerCase();
+              let rewardValue = 33.33; // Default per Standard
+              
+              if (rarityLower.includes('elite')) {
+                rewardValue = 66.67; // Elite
+              } else if (rarityLower.includes('advanced')) {
+                rewardValue = 50.00; // Advanced
+              } else if (rarityLower.includes('prototype')) {
+                rewardValue = 83.33; // Prototype
+              }
+              
+              dailyRewardElement.textContent = `${rewardValue} IASE`;
+            }
           }
         })
         .catch(error => {

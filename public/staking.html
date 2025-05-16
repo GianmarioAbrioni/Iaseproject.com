@@ -948,8 +948,20 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Filter available NFTs excluding those already in staking
       let availableNfts = result.nfts || [];
-      if (stakedIds.length > 0) {
-        availableNfts = availableNfts.filter(nft => !stakedIds.includes(nft.id.toString()));
+      
+      // Make sure we're working with strings for comparison
+      const stakedIdsAsStrings = stakedIds.map(id => id.toString());
+      console.log("Staked IDs as strings for filtering:", stakedIdsAsStrings);
+      
+      if (stakedIdsAsStrings.length > 0) {
+        availableNfts = availableNfts.filter(nft => {
+          const nftIdAsString = nft.id.toString();
+          const isStaked = stakedIdsAsStrings.includes(nftIdAsString);
+          if (isStaked) {
+            console.log(`NFT #${nftIdAsString} is already staked, excluding from available list`);
+          }
+          return !isStaked;
+        });
         console.log(`Filtered out ${result.nfts.length - availableNfts.length} staked NFTs`);
       }
       
@@ -1098,9 +1110,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const stakingDays = Math.floor((now - stakingStartDate) / (1000 * 60 * 60 * 24));
         const stakingHours = Math.floor((now - stakingStartDate) / (1000 * 60 * 60)) % 24;
         
+        // Fix image path if needed - ensure we have a valid image
+        const nftImage = stakedNft.image || `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stakedNft.tokenId}.png`;
+        
         nftElement.innerHTML = `
           <div class="nft-image">
-            <img src="${stakedNft.image}" alt="NFT #${stakedNft.tokenId}" loading="lazy">
+            <img src="${nftImage}" alt="NFT #${stakedNft.tokenId}" loading="lazy" onerror="this.src='../assets/placeholder-nft.jpg'">
             <div class="staked-badge">STAKED</div>
           </div>
           <div class="nft-details">
@@ -1124,11 +1139,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="nft-card-actions">
-              <button class="btn unstake-btn" data-token-id="${stakedNft.tokenId}" data-stake-id="${stakedNft.id}">
+              <button class="btn unstake-btn primary-btn" data-token-id="${stakedNft.tokenId}" data-stake-id="${stakedNft.id}">
                 <i class="ri-logout-box-line"></i> Unstake
-              </button>
-              <button class="btn claim-btn" data-token-id="${stakedNft.tokenId}" data-stake-id="${stakedNft.id}">
-                <i class="ri-money-dollar-circle-line"></i> Claim
               </button>
             </div>
           </div>
@@ -1143,16 +1155,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const tokenId = this.getAttribute('data-token-id');
             const stakeId = this.getAttribute('data-stake-id');
             openUnstakeModal(tokenId, stakeId);
-          });
-        }
-        
-        // Add event listeners for claim button
-        const claimBtn = nftElement.querySelector('.claim-btn');
-        if (claimBtn) {
-          claimBtn.addEventListener('click', function() {
-            const tokenId = this.getAttribute('data-token-id');
-            const stakeId = this.getAttribute('data-stake-id');
-            claimNFTRewards(tokenId, stakeId);
           });
         }
       }
@@ -1385,17 +1387,24 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Errore chiamata API remota:", apiError);
         console.log("Gestione staking locale attivata");
         
-        // Gestisci staking in locale (mock per demo)
+        // Gestisci staking in locale
         // Salva i dati in localStorage per renderli persistenti tra le sessioni
         const localStakes = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
+        
+        // Ottieni anche l'immagine dell'NFT da salvare
+        const allNfts = await loadAllIASENFTs();
+        const nftData = allNfts.nfts.find(nft => nft.id.toString() === tokenId.toString());
+        const nftImage = nftData?.image || `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png`;
+        
         const newStake = {
           id: Date.now().toString(), // ID unico basato sul timestamp
           tokenId: stakeData.tokenId,
           address: stakeData.address.toLowerCase(),
-          rarityLevel: stakeData.rarityLevel,
+          rarity: stakeData.rarityLevel,
           dailyReward: stakeData.dailyReward,
           stakeDate: stakeData.stakeDate,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          image: nftImage
         };
         
         localStakes.push(newStake);

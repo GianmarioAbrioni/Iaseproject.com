@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('❌ Nessun provider Ethereum trovato nel browser');
       
       // Mostra messaggio all'utente
-      const errorMessage = 'MetaMask o altro wallet Ethereum non trovato. Per utilizzare la funzionalità di staking, installa un wallet compatibile come MetaMask.';
+      const errorMessage = 'MetaMask or other Ethereum wallet not found. To use the staking feature, please install a compatible wallet like MetaMask.';
       alert(errorMessage);
       
       // Dispatcha evento di errore per notificare altri componenti

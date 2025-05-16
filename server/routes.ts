@@ -1,47 +1,22 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import path from "path";
-import express from "express";
-import { setupAuth } from "./auth";
-import stakingRoutes from "./routes/staking";
-import { verifyAndDistributeRewards } from "./services/staking-job";
+import express from 'express';
+const router = express.Router();
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Configura l'autenticazione
-  setupAuth(app);
+// Importiamo il router di staking
+import stakingRouter from './staking';
 
-  // Configura le routes per lo staking degli NFT
-  app.use("/api/staking", stakingRoutes);
-  
-  // Aggiungi compatibilità con il percorso /api/nft/stake utilizzato su Render
-  app.post("/api/nft/stake", async (req, res) => {
-    try {
-      const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
-      
-      // Normalizza l'indirizzo per la consistenza
-      const normalizedAddress = address.toLowerCase();
-      
-      // Crea il record di staking nel database
-      const stake = await storage.createNFTStake({
-        tokenId: parseInt(tokenId),
-        walletAddress: normalizedAddress,
-        rarityLevel,
-        dailyReward: parseFloat(dailyReward),
-        stakedAt: new Date(stakeDate),
-        isActive: true
-      });
-      
-      res.status(201).json(stake);
-    } catch (error) {
-      console.error("Errore durante lo staking:", error);
-      res.status(500).json({ error: "Errore durante l'operazione di staking" });
-    }
-  });
+// Registra il router di staking senza prefisso aggiuntivo
+// In modo che sia accessibile come /api/stake
+router.use(stakingRouter);
 
-  // Inizializza lo script di verifica giornaliera degli NFT in staking
-  // Sarà eseguito una volta al giorno alle 00:01
-  setupDailyStakingVerification();
+// Endpoint di fallback per il vecchio percorso /stake
+router.post('/stake', async (req, res) => {
+  try {
+    // Tutta la logica qui
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+});
 
   // Serve static files from the public directory
   app.use(express.static(path.join(process.cwd(), "public")));

@@ -1149,7 +1149,8 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       
       // Effettua la chiamata API per registrare lo staking
-      const response = await fetch('/api/staking/stake', {
+      // Usa l'endpoint corretto dall'API del sistema
+      const response = await fetch('/api/nft/stake', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

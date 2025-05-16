@@ -116,6 +116,14 @@ function clearNftsUI() {
         <p>Connect your wallet to view your NFTs.</p>
       </div>`;
   }
+  
+  if (domElements.stakedNftsContainer) {
+    domElements.stakedNftsContainer.innerHTML = `
+      <div class="empty-state">
+        <i class="ri-information-line"></i>
+        <p>Connect your wallet to view your staked NFTs.</p>
+      </div>`;
+  }
 }
 
 /**
@@ -204,6 +212,24 @@ async function loadAvailableNfts() {
     // Mostra loader durante il caricamento
     showLoader(container, 'Loading available NFTs...');
     
+    // Prima otteniamo gli NFT già in staking per evitare di mostrarli come disponibili
+    console.log('🔍 Verifica NFT già in staking per evitare duplicati...');
+    let stakedNftIds = [];
+    try {
+      // Preleva gli ID degli NFT già in staking
+      const stakedContainer = domElements.stakedNftsContainer;
+      if (stakedContainer) {
+        const stakedCards = stakedContainer.querySelectorAll('.nft-card');
+        stakedNftIds = Array.from(stakedCards).map(card => {
+          const idBtn = card.querySelector('.unstake-btn');
+          return idBtn ? idBtn.getAttribute('data-nft-id') : null;
+        }).filter(id => id !== null);
+      }
+      console.log(`✅ Trovati ${stakedNftIds.length} NFT già in staking: ${stakedNftIds.join(', ')}`);
+    } catch (error) {
+      console.error('❌ Errore durante il controllo degli NFT in staking:', error);
+    }
+    
     // Carica gli NFT con getUserNFTs() da nftReader.js
     // Utilizzerà il metodo di scansione diretta con balanceOf + ownerOf
     console.log('🔄 Caricamento NFTs utilizzando nftReader.js con metodo di scansione diretta...');
@@ -223,11 +249,26 @@ async function loadAvailableNfts() {
     // Renderizza gli NFT trovati
     console.log(`✅ NFT trovati nel wallet: ${nftData.balance}, IDs: ${nftData.nftIds.join(', ')}`);
     
+    // Filtriamo gli NFT già in staking
+    const availableNftIds = nftData.nftIds.filter(id => !stakedNftIds.includes(id));
+    console.log(`🔄 NFT disponibili dopo filtro: ${availableNftIds.length}, IDs: ${availableNftIds.join(', ')}`);
+    
     // Pulisci nuovamente il container per rimuovere il loader
     container.innerHTML = '';
     
-    // Per ogni NFT, recupera i metadati e crea l'elemento visuale
-    for (const tokenId of nftData.nftIds) {
+    // Se non ci sono NFT disponibili dopo il filtro
+    if (availableNftIds.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="ri-nft-line"></i>
+          <h3>All your NFTs are currently staked</h3>
+          <p>You don't have any unstaked NFTs available. You can unstake from the "Staked NFTs" tab.</p>
+        </div>`;
+      return;
+    }
+    
+    // Per ogni NFT disponibile, recupera i metadati e crea l'elemento visuale
+    for (const tokenId of availableNftIds) {
       try {
         // Recupera metadati
         const metadata = await getNFTMetadata(tokenId);

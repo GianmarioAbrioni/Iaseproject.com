@@ -1056,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   /**
    * Renders the staked NFTs in the staked tab
+   * Fetch data directly from the API instead of using localStorage
    */
   async function renderStakedNFTs() {
     const container = document.getElementById('stakedNftsContainer');
@@ -1064,14 +1065,10 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    console.log("🔄 Loading staked NFTs...");
+    console.log("🔄 Loading staked NFTs directly from API...");
     container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading staked NFTs...</p></div>';
     
     try {
-      // Get staked NFTs from localStorage
-      const stakedNfts = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
-      console.log("Staked NFTs from localStorage:", stakedNfts);
-      
       // Get wallet address
       const walletAddress = window.ethereum?.selectedAddress;
       if (!walletAddress) {
@@ -1084,10 +1081,28 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      // Filter staked NFTs for current wallet
-      const myStakedNfts = stakedNfts.filter(nft => 
-        nft.address && nft.address.toLowerCase() === walletAddress.toLowerCase()
-      );
+      // Fetch staked NFTs directly from the API
+      const apiBase = window.location.origin.endsWith('/api') 
+        ? window.location.origin 
+        : `${window.location.origin}/api`;
+      
+      const url = `${apiBase}/by-wallet/${walletAddress}`;
+      console.log(`🌐 Fetching staked NFTs from API: ${url}`);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`❌ API error: ${response.status} ${response.statusText}`);
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-error-warning-line"></i>
+            <h3>Error Loading Staked NFTs</h3>
+            <p>Could not fetch your staked NFTs from the server. Please try again later.</p>
+          </div>`;
+        return;
+      }
+      
+      const data = await response.json();
+      const myStakedNfts = data.stakes || [];
       
       if (!myStakedNfts.length) {
         console.log("No staked NFTs found for this wallet");
@@ -1236,21 +1251,41 @@ document.addEventListener('DOMContentLoaded', function() {
   
   /**
    * Updates the dashboard statistics (total staked, rewards, etc)
+   * Directly fetches data from the API instead of using localStorage
    */
-  function updateDashboardStats() {
+  async function updateDashboardStats() {
     try {
       // Get wallet address
       const walletAddress = window.ethereum?.selectedAddress;
       if (!walletAddress) return;
       
-      // Get staked NFTs
-      const stakedNfts = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
-      const myStakedNfts = stakedNfts.filter(nft => 
-        nft.address && nft.address.toLowerCase() === walletAddress.toLowerCase()
-      );
+      // Show loading indicators
+      const totalStakedElement = document.getElementById('totalStakedNfts');
+      const dailyRewardsElement = document.getElementById('dailyRewards');
+      const totalRewardsElement = document.getElementById('totalRewards');
+      
+      if (totalStakedElement) totalStakedElement.textContent = "...";
+      if (dailyRewardsElement) dailyRewardsElement.textContent = "...";
+      if (totalRewardsElement) totalRewardsElement.textContent = "...";
+      
+      // Fetch staked NFTs directly from the API
+      const apiBase = window.location.origin.endsWith('/api') 
+        ? window.location.origin 
+        : `${window.location.origin}/api`;
+      
+      const url = `${apiBase}/by-wallet/${walletAddress}`;
+      console.log(`🌐 Fetching staked NFTs from API: ${url}`);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`❌ API error: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      const data = await response.json();
+      const myStakedNfts = data.stakes || [];
       
       // Update staked count
-      const totalStakedElement = document.getElementById('totalStakedNfts');
       if (totalStakedElement) {
         totalStakedElement.textContent = myStakedNfts.length;
       }
@@ -1258,30 +1293,43 @@ document.addEventListener('DOMContentLoaded', function() {
       // Calculate daily rewards
       let dailyRewardTotal = 0;
       myStakedNfts.forEach(nft => {
-        dailyRewardTotal += parseFloat(nft.dailyReward || 0);
+        let rewardRate = 33.33; // Default Standard
+        const rarity = nft.rarity || 'Standard';
+        
+        if (rarity.includes('Elite')) {
+          rewardRate = 66.67;
+        } else if (rarity.includes('Advanced')) {
+          rewardRate = 50.00;
+        } else if (rarity.includes('Prototype')) {
+          rewardRate = 83.33;
+        }
+        
+        dailyRewardTotal += rewardRate;
       });
       
       // Update daily rewards
-      const dailyRewardsElement = document.getElementById('dailyRewards');
       if (dailyRewardsElement) {
         dailyRewardsElement.textContent = `${dailyRewardTotal.toFixed(2)} IASE`;
       }
       
       // Try to get the total accumulated rewards
-      getRewards(walletAddress).then(rewards => {
+      try {
+        const rewards = await getRewards(walletAddress);
         let totalRewards = 0;
         rewards.forEach(reward => {
           totalRewards += reward.totalReward || 0;
         });
         
         // Update total rewards
-        const totalRewardsElement = document.getElementById('totalRewards');
         if (totalRewardsElement) {
           totalRewardsElement.textContent = `${totalRewards.toFixed(2)} IASE`;
         }
-      }).catch(error => {
+      } catch (error) {
         console.error("Error calculating total rewards:", error);
-      });
+        if (totalRewardsElement) {
+          totalRewardsElement.textContent = "0.00 IASE";
+        }
+      }
     } catch (error) {
       console.error("Error updating dashboard stats:", error);
     }

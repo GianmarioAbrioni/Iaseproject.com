@@ -163,8 +163,11 @@ async function loadStakedNfts() {
     // Analizza la risposta JSON
     const data = await response.json();
     
+    // Estrai gli NFT in staking dalla struttura di risposta
+    const stakedNfts = data.stakes || [];
+    
     // Se non ci sono NFT in staking, mostra un messaggio
-    if (!data || !data.length) {
+    if (!stakedNfts || !stakedNfts.length) {
       console.log('⚠️ No staked NFTs found');
       container.innerHTML = `
         <div class="empty-state">
@@ -176,37 +179,35 @@ async function loadStakedNfts() {
     }
     
     // Pulisci container e renderizza gli NFT trovati
-    console.log(`✅ Staked NFTs found: ${data.length}`);
+    console.log(`✅ Staked NFTs found: ${stakedNfts.length}`);
     container.innerHTML = '';
     
     // Renderizza gli NFT in staking
-    for (const nft of data) {
+    for (const nft of stakedNfts) {
       try {
-        // Recupera metadati completi se necessario
-        let metadata = nft.metadata || await getNFTMetadata(nft.tokenId);
+        // Estrai i dati dall'NFT in staking
+        const tokenId = nft.nft_id ? nft.nft_id.split('_')[1] : '';
+        const rarityTier = nft.rarity_tier || 'Standard';
+        const dailyRewardRate = nft.daily_reward_rate || 33.33;
         
-        // Assicurati che il metadata abbia tutte le proprietà necessarie
-        metadata = {
-          ...metadata,
-          image: metadata.image || 'https://iaseproject.com/assets/img/placeholder-nft.png',
-          rarity: metadata.rarity || nft.rarity || 'Standard',
-          'AI-Booster': metadata['AI-Booster'] || metadata.aiBooster || nft.aiBooster || 'X1.0'
+        // Prepara i metadati dell'NFT usando i dati dal database
+        let metadata = {
+          id: tokenId,
+          image: `https://iaseproject.com/assets/img/nft/${tokenId}.png`,
+          rarity: rarityTier,
+          'AI-Booster': 'X1.0',
+          dailyReward: dailyRewardRate
         };
         
-        // Calcola il reward giornaliero basato sulla rarità
-        let dailyReward = BASE_DAILY_REWARD; // Default: Standard
+        // Usa il reward direttamente dal database
+        let dailyReward = metadata.dailyReward;
         
-        if (metadata.rarity) {
-          const rarityLower = metadata.rarity.toString().toLowerCase();
-          
-          if (rarityLower.includes('elite')) {
-            dailyReward = ELITE_DAILY_REWARD;
-          } else if (rarityLower.includes('advanced')) {
-            dailyReward = ADVANCED_DAILY_REWARD;
-          } else if (rarityLower.includes('prototype')) {
-            dailyReward = PROTOTYPE_DAILY_REWARD;
-          }
-        }
+        // Stampa i dati dell'NFT per debug
+        console.log("NFT in staking:", {
+          tokenId: metadata.id,
+          rarity: metadata.rarity,
+          dailyReward: dailyReward
+        });
         
         // Crea elemento NFT card
         const nftCard = document.createElement('div');
@@ -305,7 +306,7 @@ async function loadStakedNfts() {
         // Aggiungi la card al container
         container.appendChild(nftCard);
       } catch (error) {
-        console.error(`❌ Error rendering staked NFT #${nft.tokenId}:`, error);
+        console.error(`❌ Error rendering staked NFT #${metadata.id}:`, error);
       }
     }
     

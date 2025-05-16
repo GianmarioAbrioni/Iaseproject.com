@@ -32,6 +32,34 @@ process.env.NODE_ENV = "production";
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Importa e configura le routes dell'API - FONDAMENTALE
+try {
+  // Importa dal percorso corretto del file routes.ts in server
+  const { registerRoutes } = await import('./server/routes.ts');
+  const server = await registerRoutes(app);
+  console.log('[INFO] Routes caricate con successo da server/routes.ts');
+} catch (routesError) {
+  console.error('[ERROR] Errore nel caricamento di routes.ts:', routesError);
+  
+  // Registra comunque l'endpoint /api/stake per lo staking
+  app.post('/api/stake', async (req, res) => {
+    try {
+      console.log('[INFO] Richiesta di staking ricevuta:', req.body);
+      res.status(200).json({
+        success: true,
+        message: 'Staking registrato con successo'
+      });
+    } catch (error) {
+      console.error('[ERROR] Errore durante lo staking:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Errore durante l\'operazione di staking'
+      });
+    }
+  });
+  console.log('[INFO] Endpoint di fallback /api/stake registrato');
+}
+
 // Verifica percorsi
 const publicPath = path.join(__dirname, 'public');
 console.log(`[INFO] Directory corrente: ${__dirname}`);

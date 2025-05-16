@@ -7,6 +7,12 @@ import { ethers } from 'ethers';
 import { CONFIG } from '../config';
 import { pool } from '../db'; // Importiamo il pool di connessione per query native
 
+// Costanti globali per i valori fissi dei reward
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+
 const router = Router();
 
 /**
@@ -306,14 +312,19 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 nftItem["AI-Booster"] = aiBooster;
                 
                 // Aggiungi daily reward fisso in base alla rarità
+                const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+                const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+                const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+                const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+                
                 if (rarity === "Legendary" || rarity === "Prototype") {
-                  nftItem.dailyReward = 83.33; // Prototype
+                  nftItem.dailyReward = PROTOTYPE_DAILY_REWARD; // Prototype
                 } else if (rarity === "Epic" || rarity === "Elite") {
-                  nftItem.dailyReward = 66.67; // Elite
+                  nftItem.dailyReward = ELITE_DAILY_REWARD; // Elite
                 } else if (rarity === "Rare" || rarity === "Advanced") {
-                  nftItem.dailyReward = 50.00; // Advanced
+                  nftItem.dailyReward = ADVANCED_DAILY_REWARD; // Advanced
                 } else {
-                  nftItem.dailyReward = 33.33; // Standard/Common
+                  nftItem.dailyReward = BASE_DAILY_REWARD; // Standard/Common
                 }
                 
                 // Aggiungi l'NFT all'array
@@ -459,13 +470,18 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
               }
               
               // Calcola il reward fisso in base alla rarità
-              let dailyReward = 33.33; // Standard/Common (default)
+              const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+              const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+              const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+              const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+              
+              let dailyReward = BASE_DAILY_REWARD; // Standard/Common (default)
               if (rarity === "Legendary" || rarity === "Prototype") {
-                dailyReward = 83.33; // Prototype
+                dailyReward = PROTOTYPE_DAILY_REWARD; // Prototype
               } else if (rarity === "Epic" || rarity === "Elite") {
-                dailyReward = 66.67; // Elite
+                dailyReward = ELITE_DAILY_REWARD; // Elite
               } else if (rarity === "Rare" || rarity === "Advanced") {
-                dailyReward = 50.00; // Advanced
+                dailyReward = ADVANCED_DAILY_REWARD; // Advanced
               }
 
               // Ritorna oggetto NFT con tutti i dati necessari
@@ -493,7 +509,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
                 cardFrame: "Standard",
                 aiBooster: "X1.0",
                 "AI-Booster": "X1.0",
-                dailyReward: 33.33, // Default reward per Common/Standard
+                dailyReward: BASE_DAILY_REWARD, // Default reward per Common/Standard
                 traits: []
               };
             }
@@ -508,7 +524,7 @@ router.get(['/nfts', '/get-available-nfts'], async (req: Request, res: Response)
               cardFrame: "Standard",
               aiBooster: "X1.0",
               "AI-Booster": "X1.0",
-              dailyReward: 33.33, // Default reward per Common/Standard
+              dailyReward: BASE_DAILY_REWARD, // Default reward per Common/Standard
               traits: []
             };
           }

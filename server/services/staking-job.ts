@@ -7,10 +7,6 @@ const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
 const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
 const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
-// Per retrocompatibilità con il codice esistente
-const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
-const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
-
 /**
  * Servizio di verifica giornaliera per gli NFT in staking
  * Verifica che ogni NFT in staking sia ancora posseduto dal rispettivo wallet

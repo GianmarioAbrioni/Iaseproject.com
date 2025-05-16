@@ -38,8 +38,8 @@ const getUserNFTs = window.getUserNFTs;
 const getNFTMetadata = window.getNFTMetadata;
 const loadAllIASENFTs = window.loadAllIASENFTs;
 
-// Contanti di configurazione (hardcoded per Render)
-const STAKING_API_ENDPOINT = '/api/staking';
+// Costanti di configurazione (hardcoded per Render)
+const STAKING_API_ENDPOINT = 'https://iaseproject-com.onrender.com/api';
 const IASE_NFT_CONTRACT = window.NFT_CONTRACT_ADDRESS || '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
 // Configurazione Alchemy API (priorità principale)
 const ALCHEMY_API_KEY = window.ALCHEMY_API_KEY || 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB';

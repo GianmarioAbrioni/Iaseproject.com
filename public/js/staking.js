@@ -127,7 +127,7 @@ async function loadStakedNfts() {
     showLoader(container, 'Loading staked NFTs...');
     
     // Ottieni l'indirizzo del wallet connesso da varie fonti possibili
-    const walletAddress = window.ethereum?.selectedAddress || window.currentWalletAddress;
+    const walletAddress = window.ethereum?.selectedAddress || window.userWalletAddress || window.currentWalletAddress;
     if (!walletAddress) {
       console.error('❌ No wallet address available');
       container.innerHTML = `
@@ -139,184 +139,44 @@ async function loadStakedNfts() {
     }
     
     console.log(`🔄 Caricamento NFT in staking per wallet: ${walletAddress}`);
+    console.log(`📝 Indirizzo wallet pulito per API: ${walletAddress}`);
     
-    // Chiama l'API per ottenere gli NFT in staking
-    // Assicurati di usare l'endpoint corretto, supportando sia il formato con /api che senza
-    const apiBase = STAKING_API_ENDPOINT.endsWith('/api') ? STAKING_API_ENDPOINT : `${STAKING_API_ENDPOINT}/api`;
-    const url = `${apiBase}/by-wallet/${walletAddress}`;
-    console.log(`🌐 Calling API: ${url}`);
-    
-    const response = await fetch(url);
-    
-    // Se la risposta non è ok, mostra un messaggio
-    if (!response.ok) {
-      console.error(`❌ API error: ${response.status} ${response.statusText}`);
+    try {
+      // Prima proviamo con GET
+      const url = `/api/by-wallet/${walletAddress}`;
+      console.log(`🌐 Calling API: ${url}`);
+      const response = await fetch(url);
+      
+      // Se la risposta non è ok, proviamo con POST
+      if (!response.ok) {
+        console.log('⚠️ GET request failed, trying POST to /api/get-staked-nfts');
+        const postResponse = await fetch('/api/get-staked-nfts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress })
+        });
+        
+        if (!postResponse.ok) {
+          throw new Error(`API error: ${postResponse.status} ${postResponse.statusText}`);
+        }
+        
+        return processStakedNfts(await postResponse.json(), container);
+      }
+      
+      // Elabora la risposta GET
+      return processStakedNfts(await response.json(), container);
+      
+    } catch (error) {
+      console.error('❌ API fetch error:', error);
       container.innerHTML = `
         <div class="empty-state">
           <i class="ri-error-warning-line"></i>
           <h3>Error loading staked NFTs</h3>
-          <p>Please try again later or contact support.</p>
+          <p>Could not connect to the server. Please try again later.</p>
         </div>`;
-      return;
     }
-    
-    // Analizza la risposta JSON
-    const data = await response.json();
-    
-    // Estrai gli NFT in staking dalla struttura di risposta
-    const stakedNfts = data.stakes || [];
-    
-    // Se non ci sono NFT in staking, mostra un messaggio
-    if (!stakedNfts || !stakedNfts.length) {
-      console.log('⚠️ No staked NFTs found');
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="ri-nft-line"></i>
-          <h3>No Staked NFTs Found</h3>
-          <p>You don't have any staked NFTs yet. Stake your IASE Units to start earning rewards.</p>
-        </div>`;
-      return;
-    }
-    
-    // Pulisci container e renderizza gli NFT trovati
-    console.log(`✅ Staked NFTs found: ${stakedNfts.length}`);
-    container.innerHTML = '';
-    
-    // Renderizza gli NFT in staking
-    for (const nft of stakedNfts) {
-      try {
-        // Estrai i dati dall'NFT in staking
-        const tokenId = nft.nft_id ? nft.nft_id.split('_')[1] : '';
-        const rarityTier = nft.rarity_tier || 'Standard';
-        const dailyRewardRate = nft.daily_reward_rate || 33.33;
-        
-        // Prepara i metadati dell'NFT usando i dati dal database
-        let metadata = {
-          id: tokenId,
-          image: `https://iaseproject.com/assets/img/nft/${tokenId}.png`,
-          rarity: rarityTier,
-          'AI-Booster': 'X1.0',
-          dailyReward: dailyRewardRate
-        };
-        
-        // Usa il reward direttamente dal database
-        let dailyReward = metadata.dailyReward;
-        
-        // Stampa i dati dell'NFT per debug
-        console.log("NFT in staking:", {
-          tokenId: metadata.id,
-          rarity: metadata.rarity,
-          dailyReward: dailyReward
-        });
-        
-        // Crea elemento NFT card
-        const nftCard = document.createElement('div');
-        nftCard.className = 'nft-card staked';
-        nftCard.innerHTML = `
-          <style>
-            .staked .nft-image::after {
-              content: "STAKED";
-              position: absolute;
-              top: 10px;
-              right: 10px;
-              background: rgba(46, 204, 113, 0.8);
-              color: white;
-              padding: 3px 8px;
-              border-radius: 4px;
-              font-size: 12px;
-              font-weight: bold;
-            }
-            .rarity-badge {
-              display: inline-block;
-              padding: 3px 8px;
-              border-radius: 4px;
-              font-size: 12px;
-              font-weight: bold;
-              margin-top: 5px;
-              text-align: center;
-            }
-            .rarity-standard {
-              border: 2px solid #3498db;
-              box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
-            }
-            .rarity-advanced {
-              border: 2px solid #9b59b6;
-              box-shadow: 0 0 12px rgba(155, 89, 182, 0.5);
-            }
-            .rarity-elite {
-              border: 2px solid #f39c12;
-              box-shadow: 0 0 15px rgba(243, 156, 18, 0.6);
-            }
-            .rarity-prototype {
-              border: 2px solid #e74c3c;
-              box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
-              animation: glow 3s infinite alternate;
-            }
-            
-            /* Stili per i daily reward */
-            .daily-reward {
-              margin-top: 8px;
-              padding: 5px;
-              border-radius: 5px;
-              font-weight: bold;
-            }
-            .standard-reward {
-              background-color: rgba(52, 152, 219, 0.2);
-            }
-            .advanced-reward {
-              background-color: rgba(155, 89, 182, 0.2);
-            }
-            .elite-reward {
-              background-color: rgba(243, 156, 18, 0.2);
-            }
-            .prototype-reward {
-              background-color: rgba(231, 76, 60, 0.2);
-              animation: pulse-bg 3s infinite alternate;
-            }
-          </style>
-          <div class="nft-image">
-            <img src="${metadata.image}" alt="NFT #${nft.tokenId}" loading="lazy">
-          </div>
-          <div class="nft-details">
-            <h3 class="nft-title">NFT #${nft.tokenId}</h3>
-            <div class="nft-id">Token ID: ${nft.tokenId}</div>
-            <div class="rarity-badge ${metadata.rarity?.toLowerCase() || 'standard'}">${metadata.rarity || 'Standard'}</div>
-            
-            <div class="nft-rewards">
-              <div class="reward-rate">
-                <span class="reward-label">AI Booster:</span>
-                <span class="reward-value">${metadata['AI-Booster'] || metadata.aiBooster || 'X1.0'}</span>
-              </div>
-              <div class="reward-rate daily-reward ${metadata.rarity?.toLowerCase() || 'standard'}-reward">
-                <span class="reward-label">Daily Reward:</span>
-                <span class="reward-value">${dailyReward.toFixed(2)} IASE</span>
-              </div>
-            </div>
-            
-            <button class="unstake-btn" data-nft-id="${nft.tokenId}">Unstake</button>
-          </div>
-        `;
-        
-        // Aggiungi listener per il bottone di unstake
-        const unstakeBtn = nftCard.querySelector('.unstake-btn');
-        if (unstakeBtn) {
-          unstakeBtn.addEventListener('click', (e) => unstakeNFT(e));
-        }
-        
-        // Aggiungi la card al container
-        container.appendChild(nftCard);
-      } catch (error) {
-        console.error(`❌ Error rendering staked NFT #${metadata.id}:`, error);
-      }
-    }
-    
-    // Aggiorna il contatore NFT (se la funzione esiste)
-    if (typeof updateNFTCounter === 'function') {
-      updateNFTCounter();
-    }
-    
   } catch (error) {
-    console.error('❌ Error loading staked NFTs:', error);
+    console.error('❌ Error in loadStakedNfts:', error);
     
     // In caso di errore, mostra un messaggio
     if (domElements.stakedNftsContainer) {
@@ -327,6 +187,171 @@ async function loadStakedNfts() {
           <p>Please try again later. (${error.message})</p>
         </div>`;
     }
+  }
+}
+
+/**
+ * Elabora i dati degli NFT in staking ricevuti dall'API
+ * @param {Object} data - Dati ricevuti dall'API
+ * @param {HTMLElement} container - Container dove mostrare gli NFT
+ */
+function processStakedNfts(data, container) {
+  console.log('📊 Processing staked NFTs data:', data);
+  
+  // Estrai gli NFT in staking dalla struttura di risposta
+  const stakedNfts = data.stakes || [];
+  
+  // Se non ci sono NFT in staking, mostra un messaggio
+  if (!stakedNfts || !stakedNfts.length) {
+    console.log('⚠️ No staked NFTs found');
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="ri-nft-line"></i>
+        <h3>No Staked NFTs Found</h3>
+        <p>You don't have any staked NFTs yet. Stake your IASE Units to start earning rewards.</p>
+      </div>`;
+    return;
+  }
+  
+  // Pulisci container e renderizza gli NFT trovati
+  console.log(`✅ Staked NFTs found: ${stakedNfts.length}`);
+  container.innerHTML = '';
+  
+  // Renderizza gli NFT in staking
+  for (const nft of stakedNfts) {
+    try {
+      // Debug per vedere il formato esatto dei dati ricevuti
+      console.log('Dati NFT ricevuti:', nft);
+      
+      // Estrai i dati dall'NFT in staking
+      let tokenId = '';
+      if (nft.nft_id) {
+        const parts = nft.nft_id.split('_');
+        tokenId = parts.length > 1 ? parts[1] : nft.nft_id;
+      }
+      const rarityTier = nft.rarity_tier || 'Standard';
+      const dailyRewardRate = nft.daily_reward_rate || 33.33;
+      
+      // Prepara i metadati dell'NFT usando i dati dal database
+      let metadata = {
+        id: tokenId,
+        image: `https://iaseproject.com/assets/img/nft/${tokenId}.png`,
+        rarity: rarityTier,
+        'AI-Booster': 'X1.0',
+        dailyReward: dailyRewardRate
+      };
+      
+      // Stampa i dati dell'NFT per debug
+      console.log("NFT in staking:", {
+        tokenId: metadata.id,
+        rarity: metadata.rarity,
+        dailyReward: metadata.dailyReward
+      });
+      
+      // Crea elemento NFT card
+      const nftCard = document.createElement('div');
+      nftCard.className = 'nft-card staked';
+      nftCard.innerHTML = `
+        <style>
+          .staked .nft-image::after {
+            content: "STAKED";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(46, 204, 113, 0.8);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+          }
+          .rarity-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+            text-align: center;
+          }
+          .rarity-standard {
+            border: 2px solid #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+          }
+          .rarity-advanced {
+            border: 2px solid #9b59b6;
+            box-shadow: 0 0 12px rgba(155, 89, 182, 0.5);
+          }
+          .rarity-elite {
+            border: 2px solid #f39c12;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.6);
+          }
+          .rarity-prototype {
+            border: 2px solid #e74c3c;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
+            animation: glow 3s infinite alternate;
+          }
+          
+          /* Stili per i daily reward */
+          .daily-reward {
+            margin-top: 8px;
+            padding: 5px;
+            border-radius: 5px;
+            font-weight: bold;
+          }
+          .standard-reward {
+            background-color: rgba(52, 152, 219, 0.2);
+          }
+          .advanced-reward {
+            background-color: rgba(155, 89, 182, 0.2);
+          }
+          .elite-reward {
+            background-color: rgba(243, 156, 18, 0.2);
+          }
+          .prototype-reward {
+            background-color: rgba(231, 76, 60, 0.2);
+            animation: pulse-bg 3s infinite alternate;
+          }
+        </style>
+        <div class="nft-image">
+          <img src="${metadata.image}" alt="NFT #${metadata.id}" loading="lazy">
+        </div>
+        <div class="nft-details">
+          <h3 class="nft-title">NFT #${metadata.id}</h3>
+          <div class="nft-id">Token ID: ${metadata.id}</div>
+          <div class="rarity-badge ${metadata.rarity?.toLowerCase() || 'standard'}">${metadata.rarity || 'Standard'}</div>
+          
+          <div class="nft-rewards">
+            <div class="reward-rate">
+              <span class="reward-label">AI Booster:</span>
+              <span class="reward-value">${metadata['AI-Booster'] || 'X1.0'}</span>
+            </div>
+            <div class="reward-rate daily-reward ${metadata.rarity?.toLowerCase() || 'standard'}-reward">
+              <span class="reward-label">Daily Reward:</span>
+              <span class="reward-value">${metadata.dailyReward.toFixed(2)} IASE</span>
+            </div>
+          </div>
+          
+          <button class="unstake-btn" data-nft-id="${metadata.id}">Unstake</button>
+        </div>
+      `;
+      
+      // Aggiungi listener per il bottone di unstake
+      const unstakeBtn = nftCard.querySelector('.unstake-btn');
+      if (unstakeBtn) {
+        unstakeBtn.addEventListener('click', unstakeNFT);
+      }
+      
+      // Aggiungi la card al container
+      container.appendChild(nftCard);
+    } catch (error) {
+      console.error(`❌ Error rendering staked NFT:`, error);
+    }
+  }
+  
+  // Aggiorna il contatore NFT (se la funzione esiste)
+  if (typeof updateNFTCounter === 'function') {
+    updateNFTCounter();
   }
 }
 

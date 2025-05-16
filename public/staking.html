@@ -1435,7 +1435,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let response;
       try {
         // Usa l'endpoint corretto
-        response = await fetch('https://iaseproject-com.onrender.com/api/stake', {
+        response = await fetch(`${window.location.origin}/api/stake`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1637,7 +1637,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let response;
       try {
         // Modifica per utilizzare l'endpoint corretto
-        response = await fetch('https://iaseproject-com.onrender.com/api/unstake', {
+        response = await fetch(`${window.location.origin}/api/unstake`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -1742,7 +1742,7 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       
       // Effettua la chiamata API per registrare il claim utilizzando l'endpoint corretto
-      const response = await fetch('https://iaseproject-com.onrender.com/api/mark-claimed', {
+      const response = await fetch(`${window.location.origin}/api/mark-claimed`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1757,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const result = await response.json();
       
       // Prima ottieni il totale delle ricompense per questo stake
-      const rewardsResponse = await fetch(`https://iaseproject-com.onrender.com/api/rewards/${walletAddress}`);
+      const rewardsResponse = await fetch(`${window.location.origin}/api/rewards/${walletAddress}`);
       if (!rewardsResponse.ok) {
         throw new Error(`Errore API rewards: ${rewardsResponse.status}`);
       }

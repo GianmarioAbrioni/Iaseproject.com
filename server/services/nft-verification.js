@@ -57,9 +57,8 @@ const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
 const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
 const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
-// Per retrocompatibilità con il codice esistente
-const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
-const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
+// Non usiamo più i vecchi calcoli di reward basati su valori mensili
+// Ora utilizziamo solo i valori fissi giornalieri definiti sopra
 
 /**
  * Calcola la ricompensa giornaliera per un NFT in base alla sua rarità
@@ -543,7 +542,8 @@ export async function verifyAllStakes(): Promise<void> {
             const rarityMultiplier = await getNftRarityMultiplier(stake.nftId);
             
             // Calcolo ricompensa con moltiplicatore di rarità
-            const rewardAmount = DAILY_REWARD * rarityMultiplier;
+            // Usiamo il valore base come riferimento di partenza
+            const rewardAmount = BASE_DAILY_REWARD * rarityMultiplier;
             
             console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
             

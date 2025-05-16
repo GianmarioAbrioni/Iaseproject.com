@@ -22,7 +22,7 @@ export function getClaimConfig() {
  */
 export function setupClaimRoutes(app, storage) {
   // Get claim config
-  app.get('/api/claim/config', (req, res) => {
+  app.get('/api/config', (req, res) => {
     try {
       const config = getClaimConfig();
       res.json(config);
@@ -33,7 +33,7 @@ export function setupClaimRoutes(app, storage) {
   });
 
   // Get staking rewards for a wallet
-  app.get('/api/claim/rewards/:walletAddress', async (req, res) => {
+  app.get('/api/rewards/:walletAddress', async (req, res) => {
     try {
       const { walletAddress } = req.params;
       const rewards = await storage.getRewardsByWalletAddress(walletAddress);
@@ -68,7 +68,7 @@ export function setupClaimRoutes(app, storage) {
   });
 
   // Mark rewards as claimed
-  app.post('/api/claim/mark-claimed', async (req, res) => {
+  app.post('/api/mark-claimed', async (req, res) => {
     try {
       const { stakeId, txHash } = req.body;
       

@@ -12,6 +12,26 @@
  * - Ottimizzazione per Render con hardcoded values
  */
 
+/**
+ * Restituisce il valore fisso di reward giornaliero in base alla rarità
+ * @param {string} rarity - La rarità dell'NFT (Standard, Advanced, Elite, Prototype)
+ * @returns {number} Il valore della ricompensa giornaliera
+ */
+function getFixedDailyReward(rarity) {
+  switch (rarity) {
+    case 'Standard':
+      return 33.33;
+    case 'Advanced':
+      return 50;
+    case 'Elite':
+      return 66.67;
+    case 'Prototype':
+      return 83.33;
+    default:
+      return 0;
+  }
+}
+
 // Utilizzo delle funzioni globali caricate da nftReader.js
 // Le funzioni sono disponibili globalmente tramite window
 const getUserNFTs = window.getUserNFTs;
@@ -113,17 +133,7 @@ function showLoader(container, message = 'Caricamento...') {
     </div>`;
 }
 
-/**
- * Funzione ottimizzata per ottenere il reward giornaliero in base alla rarità
- * @param {string} rarity - Rarità dell'NFT (Standard, Advanced, Elite, Prototype)
- * @returns {number} - Reward giornaliero in IASE tokens
- */
-function getFixedDailyReward(rarity) {
-  if (rarity === 'Advanced') return ADVANCED_DAILY_REWARD;
-  if (rarity === 'Elite') return ELITE_DAILY_REWARD;
-  if (rarity === 'Prototype') return PROTOTYPE_DAILY_REWARD;
-  return BASE_DAILY_REWARD; // Standard
-}
+
 
 /**
  * Restituisce il reward giornaliero fisso basato sulla rarità dell'NFT
@@ -323,9 +333,9 @@ async function loadAvailableNfts() {
                 <span class="reward-value">${metadata['AI-Booster'] || metadata.aiBooster || 'X1.0'}</span>
               </div>
               <div class="reward-rate daily-reward ${metadata.rarity?.toLowerCase() || 'standard'}-reward" 
-                   title="Reward fisso in base alla rarità: ${metadata.rarity || 'Standard'} = ${metadata.dailyReward} IASE/giorno">
+                   title="Reward fisso in base alla rarità: ${metadata.rarity || 'Standard'}">
                 <span class="reward-label">Daily Reward:</span>
-                <span class="reward-value">${getFixedDailyReward(metadata.rarity)} IASE</span>
+                <span id="daily-reward-${tokenId}" class="reward-value"></span>
               </div>
             </div>
             
@@ -339,6 +349,10 @@ async function loadAvailableNfts() {
         
         // Aggiungi l'elemento al container
         container.appendChild(nftElement);
+        
+        // Imposta il valore del reward giornaliero
+        const rewardValue = getDailyReward(metadata.rarity);
+        document.getElementById(`daily-reward-${tokenId}`).textContent = `${rewardValue} IASE`;
         
         // Aggiungi event listener per il pulsante stake
         const stakeBtn = nftElement.querySelector('.stake-btn');
@@ -545,7 +559,7 @@ async function tryFallbackNftLoading() {
             <div class="reward-rate daily-reward ${rarityClass}-reward" 
                  title="Reward calcolato in base alla rarità: ${nft.rarity || 'Standard'} = ${nft.dailyReward || getDailyReward(nft.rarity)} IASE/giorno">
               <span class="reward-label">Daily Reward:</span>
-              <span class="reward-value">${getFixedDailyReward(nft.rarity)} IASE</span>
+              <span id="daily-reward-${nft.id}" class="reward-value"></span>
             </div>
           </div>
           
@@ -559,6 +573,10 @@ async function tryFallbackNftLoading() {
       
       // Aggiungi l'elemento al container
       container.appendChild(nftElement);
+      
+      // Imposta il valore del reward giornaliero
+      const rewardValue = getDailyReward(nft.rarity);
+      document.getElementById(`daily-reward-${nft.id}`).textContent = `${rewardValue} IASE`;
       
       // Aggiungi event listener per il pulsante stake
       const stakeBtn = nftElement.querySelector('.stake-btn');

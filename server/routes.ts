@@ -13,6 +13,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Configura le routes per lo staking degli NFT
   app.use("/api/staking", stakingRoutes);
+  
+  // Aggiungi compatibilità con il percorso /api/nft/stake utilizzato su Render
+  app.post("/api/nft/stake", async (req, res) => {
+    try {
+      const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
+      
+      // Normalizza l'indirizzo per la consistenza
+      const normalizedAddress = address.toLowerCase();
+      
+      // Crea il record di staking nel database
+      const stake = await storage.createNFTStake({
+        tokenId: parseInt(tokenId),
+        walletAddress: normalizedAddress,
+        rarityLevel,
+        dailyReward: parseFloat(dailyReward),
+        stakedAt: new Date(stakeDate),
+        isActive: true
+      });
+      
+      res.status(201).json(stake);
+    } catch (error) {
+      console.error("Errore durante lo staking:", error);
+      res.status(500).json({ error: "Errore durante l'operazione di staking" });
+    }
+  });
 
   // Inizializza lo script di verifica giornaliera degli NFT in staking
   // Sarà eseguito una volta al giorno alle 00:01

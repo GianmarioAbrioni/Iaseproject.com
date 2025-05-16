@@ -1085,7 +1085,308 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostra il modal
     stakeModal.style.display = 'block';
     
+    // Aggiungi event listener al pulsante di conferma
+    const confirmStakeBtn = document.getElementById('confirmStakeBtn');
+    const cancelStakeBtn = document.getElementById('cancelStakeBtn');
+    
+    // Rimuovi eventuali event listener precedenti
+    if (confirmStakeBtn) {
+      const newConfirmBtn = confirmStakeBtn.cloneNode(true);
+      confirmStakeBtn.parentNode.replaceChild(newConfirmBtn, confirmStakeBtn);
+      
+      // Aggiungi il nuovo event listener
+      newConfirmBtn.addEventListener('click', function() {
+        confirmStakeNFT(tokenId);
+      });
+    }
+    
+    // Event listener per chiudere il modal
+    if (cancelStakeBtn) {
+      cancelStakeBtn.addEventListener('click', function() {
+        stakeModal.style.display = 'none';
+      });
+    }
+    
     console.log(`✅ Modal di staking aperto per NFT #${tokenId}`);
+  }
+  
+  /**
+   * Conferma lo staking dell'NFT
+   * @param {string} tokenId - ID del token da mettere in staking
+   */
+  async function confirmStakeNFT(tokenId) {
+    console.log(`🔄 Conferma staking per NFT #${tokenId}`);
+    
+    try {
+      // Ottieni l'indirizzo del wallet
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        alert('Wallet non connesso. Connetti il wallet prima di proseguire.');
+        return;
+      }
+      
+      // Ottieni i metadati dell'NFT per la rarità
+      const metadata = await getNFTMetadata(tokenId);
+      const rarityName = metadata.rarity || 'Standard';
+      
+      // Determina il valore di reward in base alla rarità
+      let rewardValue = 33.33; // Default per Standard
+      if (rarityName.toLowerCase().includes('elite')) {
+        rewardValue = 66.67;
+      } else if (rarityName.toLowerCase().includes('advanced')) {
+        rewardValue = 50.00;
+      } else if (rarityName.toLowerCase().includes('prototype')) {
+        rewardValue = 83.33;
+      }
+      
+      // Prepara i dati per la chiamata API
+      const stakeData = {
+        walletAddress: walletAddress,
+        nftId: tokenId,
+        rarityName: rarityName,
+        dailyReward: rewardValue,
+        stakeDate: new Date().toISOString()
+      };
+      
+      // Effettua la chiamata API per registrare lo staking
+      const response = await fetch('/api/staking/stake', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(stakeData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Errore API: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Chiudi il modal
+      const stakeModal = document.getElementById('stakeModal');
+      if (stakeModal) {
+        stakeModal.style.display = 'none';
+      }
+      
+      // Mostra notifica di successo
+      alert(`NFT #${tokenId} messo in staking con successo! Guadagnerai ${rewardValue} IASE tokens al giorno.`);
+      
+      // Aggiorna la UI dopo lo staking
+      renderNFTs();
+      
+      console.log(`✅ Staking completato per NFT #${tokenId}`);
+    } catch (error) {
+      console.error('❌ Errore durante lo staking:', error);
+      alert(`Errore durante lo staking: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Apre il modal di unstaking per un NFT
+   * @param {string} tokenId - ID del token da rimuovere dallo staking
+   * @param {object} stakeInfo - Informazioni sullo stake attuale
+   */
+  function openUnstakeModal(tokenId, stakeInfo) {
+    console.log(`🔄 Apertura modal unstaking per NFT #${tokenId}`);
+    
+    // Ottieni il modal
+    const unstakeModal = document.getElementById('unstakeModal');
+    if (!unstakeModal) {
+      console.error('❌ Modal di unstaking non trovato');
+      return;
+    }
+    
+    // Imposta l'ID del token nel modal come attributo data
+    unstakeModal.setAttribute('data-token-id', tokenId);
+    unstakeModal.setAttribute('data-stake-id', stakeInfo.id);
+    
+    // Aggiorna elementi UI nel modal
+    const unstakeNftTitle = document.getElementById('unstakeNftTitle');
+    const unstakeNftId = document.getElementById('unstakeNftId');
+    const unstakeNftRewards = document.getElementById('unstakeNftRewards');
+    const unstakeNftStakingTime = document.getElementById('unstakeNftStakingTime');
+    
+    if (unstakeNftTitle) unstakeNftTitle.textContent = `IASE Unit #${tokenId}`;
+    if (unstakeNftId) unstakeNftId.textContent = `Token ID: ${tokenId}`;
+    
+    // Imposta le informazioni sul reward
+    if (unstakeNftRewards) {
+      unstakeNftRewards.textContent = `${stakeInfo.accumulatedRewards || '0.00'} IASE`;
+    }
+    
+    // Formatta la data di staking
+    if (unstakeNftStakingTime && stakeInfo.stakeDate) {
+      const stakeDate = new Date(stakeInfo.stakeDate);
+      unstakeNftStakingTime.textContent = stakeDate.toLocaleDateString();
+    }
+    
+    // Carica l'immagine dell'NFT (se disponibile)
+    const unstakeNftImage = document.getElementById('unstakeNftImage');
+    if (unstakeNftImage) {
+      // Tenta di recuperare i metadati per l'immagine
+      getNFTMetadata(tokenId)
+        .then(metadata => {
+          unstakeNftImage.src = metadata.image || 'images/placeholder-nft.jpg';
+          
+          // Imposta anche la rarità se disponibile
+          const unstakeNftRarity = document.getElementById('unstakeNftRarity');
+          if (unstakeNftRarity && metadata.rarity) {
+            unstakeNftRarity.textContent = metadata.rarity;
+            unstakeNftRarity.className = `rarity-badge ${metadata.rarity.toLowerCase() || 'standard'}`;
+          }
+        })
+        .catch(error => {
+          console.error(`❌ Errore nel caricare i metadati per il modal:`, error);
+          unstakeNftImage.src = 'images/placeholder-nft.jpg';
+        });
+    }
+    
+    // Mostra il modal
+    unstakeModal.style.display = 'block';
+    
+    // Aggiungi event listener al pulsante di conferma
+    const confirmUnstakeBtn = document.getElementById('confirmUnstakeBtn');
+    const cancelUnstakeBtn = document.getElementById('cancelUnstakeBtn');
+    
+    // Rimuovi eventuali event listener precedenti
+    if (confirmUnstakeBtn) {
+      const newConfirmBtn = confirmUnstakeBtn.cloneNode(true);
+      confirmUnstakeBtn.parentNode.replaceChild(newConfirmBtn, confirmUnstakeBtn);
+      
+      // Aggiungi il nuovo event listener
+      newConfirmBtn.addEventListener('click', function() {
+        confirmUnstakeNFT(tokenId, stakeInfo.id);
+      });
+    }
+    
+    // Event listener per chiudere il modal
+    if (cancelUnstakeBtn) {
+      cancelUnstakeBtn.addEventListener('click', function() {
+        unstakeModal.style.display = 'none';
+      });
+    }
+    
+    console.log(`✅ Modal di unstaking aperto per NFT #${tokenId}`);
+  }
+  
+  /**
+   * Conferma l'unstaking dell'NFT e richiede il claim delle ricompense
+   * @param {string} tokenId - ID del token da rimuovere dallo staking
+   * @param {string} stakeId - ID dello stake nel database
+   */
+  async function confirmUnstakeNFT(tokenId, stakeId) {
+    console.log(`🔄 Conferma unstaking per NFT #${tokenId} (Stake ID: ${stakeId})`);
+    
+    try {
+      // Ottieni l'indirizzo del wallet
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        alert('Wallet non connesso. Connetti il wallet prima di proseguire.');
+        return;
+      }
+      
+      // Prepara i dati per la chiamata API
+      const unstakeData = {
+        walletAddress: walletAddress,
+        nftId: tokenId,
+        stakeId: stakeId,
+        unstakeDate: new Date().toISOString()
+      };
+      
+      // Effettua la chiamata API per registrare l'unstaking
+      const response = await fetch('/api/staking/unstake', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(unstakeData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Errore API: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Chiudi il modal
+      const unstakeModal = document.getElementById('unstakeModal');
+      if (unstakeModal) {
+        unstakeModal.style.display = 'none';
+      }
+      
+      // Mostra notifica di successo
+      alert(`NFT #${tokenId} rimosso dallo staking con successo! Hai ricevuto ${result.claimedAmount || '0.00'} IASE tokens di ricompensa.`);
+      
+      // Aggiorna la UI dopo l'unstaking
+      renderNFTs();
+      
+      console.log(`✅ Unstaking completato per NFT #${tokenId}`);
+    } catch (error) {
+      console.error('❌ Errore durante l\'unstaking:', error);
+      alert(`Errore durante l'unstaking: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Richiede il claim delle ricompense accumulate per un NFT in staking
+   * @param {string} tokenId - ID del token per cui richiedere le ricompense
+   * @param {string} stakeId - ID dello stake nel database
+   */
+  async function claimNFTRewards(tokenId, stakeId) {
+    console.log(`🔄 Richiesta claim per ricompense NFT #${tokenId} (Stake ID: ${stakeId})`);
+    
+    try {
+      // Ottieni l'indirizzo del wallet
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        alert('Wallet non connesso. Connetti il wallet prima di proseguire.');
+        return;
+      }
+      
+      // Prepara i dati per la chiamata API
+      const claimData = {
+        walletAddress: walletAddress,
+        stakeId: stakeId,
+        txHash: `claim-${Date.now()}` // Identificativo della transazione
+      };
+      
+      // Effettua la chiamata API per registrare il claim utilizzando l'endpoint corretto
+      const response = await fetch('/api/claim/mark-claimed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(claimData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Errore API: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Prima ottieni il totale delle ricompense per questo stake
+      const rewardsResponse = await fetch(`/api/claim/rewards/${walletAddress}`);
+      if (!rewardsResponse.ok) {
+        throw new Error(`Errore API rewards: ${rewardsResponse.status}`);
+      }
+      
+      const rewards = await rewardsResponse.json();
+      const thisStakeReward = rewards.find(r => r.stakeId === stakeId);
+      const claimedAmount = thisStakeReward ? thisStakeReward.totalReward : 0;
+      
+      // Mostra notifica di successo
+      alert(`Ricompense per NFT #${tokenId} richieste con successo! Hai ricevuto ${claimedAmount.toFixed(2)} IASE tokens.`);
+      
+      // Aggiorna la UI dopo il claim
+      renderNFTs();
+      
+      console.log(`✅ Claim completato per NFT #${tokenId} - ${claimedAmount.toFixed(2)} IASE tokens`);
+    } catch (error) {
+      console.error('❌ Errore durante il claim:', error);
+      alert(`Errore durante il claim: ${error.message}`);
+    }
   }
 </script>
 </body>

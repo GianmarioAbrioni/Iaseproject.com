@@ -6,8 +6,13 @@
  */
 
 import { storage } from '../storage.js';
-import { CONFIG } from '../config.js';
 import { verifyNftOwnership } from './nft-verification.js';
+
+// Costanti globali per i valori fissi dei reward
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
 async function processStakingRewards() {
   console.log("🔄 Verifica stake NFT e distribuzione ricompense avviata");
@@ -20,9 +25,6 @@ async function processStakingRewards() {
     let verifiedCount = 0;
     let failedCount = 0;
     
-    // Calcola ricompensa giornaliera base (ricompensa mensile / 30 giorni)
-    const dailyBaseReward = CONFIG.staking.monthlyReward / 30;
-    
     for (const stake of activeStakes) {
       try {
         // Verifica proprietà NFT
@@ -33,8 +35,24 @@ async function processStakingRewards() {
           // Aggiorna lo stake come verificato
           await storage.updateNftStakeVerification(stake.id);
           
-          // Calcola ricompensa con moltiplicatore di rarità
-          const rewardAmount = dailyBaseReward * stake.rarityMultiplier;
+          // Usa valori fissi per le ricompense in base alla rarità
+          let rewardAmount = BASE_DAILY_REWARD;
+          let rarityName = "Standard";
+          
+          if (stake.rarityName) {
+            const rarityLower = stake.rarityName.toLowerCase();
+            
+            if (rarityLower.includes('advanced')) {
+              rewardAmount = ADVANCED_DAILY_REWARD;
+              rarityName = "Advanced";
+            } else if (rarityLower.includes('elite')) {
+              rewardAmount = ELITE_DAILY_REWARD;
+              rarityName = "Elite";
+            } else if (rarityLower.includes('prototype')) {
+              rewardAmount = PROTOTYPE_DAILY_REWARD;
+              rarityName = "Prototype";
+            }
+          }
           
           // Crea record ricompensa
           const reward = {
@@ -47,7 +65,7 @@ async function processStakingRewards() {
           
           await storage.createStakingReward(reward);
           
-          console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE tokens (${stake.rarityMultiplier}x) assegnata per NFT ${stake.nftId}`);
+          console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE tokens (${rarityName}) assegnata per NFT ${stake.nftId}`);
           verifiedCount++;
         } else {
           console.log(`❌ Verifica fallita per NFT ${stake.nftId}: non più di proprietà di ${stake.walletAddress}`);

@@ -112,11 +112,17 @@ export class DatabaseStorage implements IStorage {
   async getNftStakesByWallet(walletAddress: string): Promise<NftStake[]> {
     try {
       console.log(`Database - Cercando NFT in staking per wallet: ${walletAddress}`);
-      return await db
-        .select()
-        .from(nftStakes)
-        .where(eq(nftStakes.walletAddress, walletAddress))
-        .orderBy(desc(nftStakes.startTime));
+      
+      // Eseguiamo una query SQL nativa per evitare problemi con i nomi delle colonne
+      // e usiamo ILIKE per fare un match case-insensitive
+      console.log(`Esecuzione query SQL: SELECT * FROM nft_stakes WHERE LOWER(wallet_address) = LOWER('${walletAddress}') AND is_active = true`);
+      const result = await pool.query(
+        `SELECT * FROM nft_stakes WHERE LOWER(wallet_address) = LOWER($1) AND is_active = true`,
+        [walletAddress]
+      );
+      
+      console.log(`Database - Trovati ${result.rows.length} NFT in staking`);
+      return result.rows;
     } catch (error) {
       console.error("Errore nel recupero degli stake dal database:", error);
       // In caso di errore, restituiamo un array vuoto per evitare crash

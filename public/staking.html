@@ -698,6 +698,55 @@
   
   <!-- Script di staking caricato in modo tradizionale per massima compatibilità -->
   <script src="js/staking.js"></script>
+  <script>
+    // Aggiorna i valori di reward dopo il caricamento della pagina
+    document.addEventListener('DOMContentLoaded', function() {
+      // Funzione per aggiornare tutti i valori di reward
+      function updateAllRewards() {
+        console.log("🔄 Aggiornamento di tutti i valori di reward...");
+        
+        // Trova tutti gli elementi con ID che inizia con "daily-reward-"
+        const rewardElements = document.querySelectorAll('[id^="daily-reward-"]');
+        console.log(`📊 Trovati ${rewardElements.length} elementi reward da aggiornare`);
+        
+        rewardElements.forEach(element => {
+          // Estrai l'ID dell'NFT dall'ID dell'elemento
+          const nftId = element.id.replace('daily-reward-', '');
+          
+          // Trova la card NFT contenitore
+          const cardElement = element.closest('.nft-card');
+          if (!cardElement) return;
+          
+          // Trova l'elemento badge di rarità per determinare la rarità
+          const rarityBadge = cardElement.querySelector('.rarity-badge');
+          if (!rarityBadge) return;
+          
+          // Ottieni la rarità dal testo del badge
+          const rarity = rarityBadge.textContent.trim();
+          
+          // Determina il valore di reward in base alla rarità
+          let rewardValue = 33.33; // Default per Standard
+          
+          if (rarity.includes('Elite')) {
+            rewardValue = 66.67;
+          } else if (rarity.includes('Advanced')) {
+            rewardValue = 50.00;
+          } else if (rarity.includes('Prototype')) {
+            rewardValue = 83.33;
+          }
+          
+          // Aggiorna il testo dell'elemento
+          element.textContent = `${rewardValue} IASE`;
+          console.log(`✅ Aggiornato reward per NFT #${nftId} (${rarity}): ${rewardValue} IASE`);
+        });
+      }
+      
+      // Esegui inizialmente e poi ogni 2 secondi per assicurarsi che tutti i valori vengano aggiornati
+      // anche quando nuove card vengono caricate dinamicamente
+      updateAllRewards();
+      setInterval(updateAllRewards, 2000);
+    });
+  </script>
   
   <!-- Script connector per wallet (verificato e ottimizzato) -->
   <script src="js/staking-simple-connector.js"></script>
@@ -888,7 +937,7 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
               <div class="reward-rate">
                 <span class="reward-label">Daily Reward:</span>
-                <span class="reward-value">33.33 IASE</span>
+                <span id="daily-reward-${nft.id}" class="reward-value"></span>
               </div>
             </div>
             

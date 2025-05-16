@@ -51,6 +51,13 @@ const ERC721_ABI = [
 ];
 
 // Costanti per le ricompense di staking
+// Utilizziamo valori fissi in base alla rarità
+const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+
+// Per retrocompatibilità con il codice esistente
 const MONTHLY_REWARD = 1000; // 1000 IASE tokens mensili
 const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
 
@@ -61,16 +68,72 @@ const DAILY_REWARD = MONTHLY_REWARD / 30; // ~33.33 IASE tokens al giorno
  * @returns La ricompensa giornaliera calcolata
  */
 export async function calculateDailyReward(tokenId: string, rarityTier?: string): Promise<number> {
-  // Se la rarità è specificata, usiamo quella per calcolare il moltiplicatore
+  // Se la rarità è specificata, usiamo quella per assegnare direttamente il valore fisso
   if (rarityTier) {
-    const rarityKey = rarityTier.charAt(0).toUpperCase() + rarityTier.slice(1).toLowerCase();
-    const multiplier = ETH_CONFIG.rarityMultipliers[rarityKey as keyof typeof ETH_CONFIG.rarityMultipliers] || 1.0;
-    return DAILY_REWARD * multiplier;
+    const rarityLower = rarityTier.toLowerCase();
+    
+    // Utilizziamo i valori fissi in base alla rarità
+    if (rarityLower.includes('prototype') || rarityLower.includes('legendary')) {
+      return PROTOTYPE_DAILY_REWARD;
+    } else if (rarityLower.includes('elite') || rarityLower.includes('epic')) {
+      return ELITE_DAILY_REWARD;
+    } else if (rarityLower.includes('advanced') || rarityLower.includes('rare')) {
+      return ADVANCED_DAILY_REWARD;
+    } else {
+      return BASE_DAILY_REWARD; // Standard/Common
+    }
   }
   
-  // Altrimenti, recuperiamo il moltiplicatore di rarità in base ai metadati dell'NFT
-  const rarityMultiplier = await getNftRarityMultiplier(tokenId);
-  return DAILY_REWARD * rarityMultiplier;
+  // Altrimenti, recuperiamo i metadati dell'NFT e determiniamo la rarità
+  try {
+    const metadata = await getNftMetadata(tokenId);
+    if (!metadata) return BASE_DAILY_REWARD;
+    
+    // Estrai attributi rilevanti
+    const attributes = metadata.attributes || [];
+    let cardFrame = null;
+    let aiBooster = null;
+    
+    for (const attr of attributes) {
+      if (attr.trait_type && attr.trait_type.toLowerCase() === 'card frame') {
+        cardFrame = attr.value;
+      }
+      if (attr.trait_type && 
+          (attr.trait_type.toLowerCase() === 'ai-booster' || 
+           attr.trait_type.toLowerCase() === 'ai booster')) {
+        aiBooster = attr.value;
+      }
+    }
+    
+    // Determina rarità in base a Card Frame o AI-Booster
+    if (cardFrame) {
+      const frameValue = cardFrame.toLowerCase();
+      if (frameValue.includes("prototype")) {
+        return PROTOTYPE_DAILY_REWARD;
+      } else if (frameValue.includes("elite")) {
+        return ELITE_DAILY_REWARD;
+      } else if (frameValue.includes("advanced")) {
+        return ADVANCED_DAILY_REWARD;
+      }
+    } 
+    // Fallback a AI-Booster se non c'è Card Frame o è standard
+    else if (aiBooster) {
+      const boosterValue = aiBooster.toString().toUpperCase();
+      if (boosterValue.includes('X2.5') || boosterValue.includes('2.5')) {
+        return PROTOTYPE_DAILY_REWARD;
+      } else if (boosterValue.includes('X2.0') || boosterValue.includes('2.0')) {
+        return ELITE_DAILY_REWARD;
+      } else if (boosterValue.includes('X1.5') || boosterValue.includes('1.5')) {
+        return ADVANCED_DAILY_REWARD;
+      }
+    }
+    
+    // Default per Standard/Common
+    return BASE_DAILY_REWARD;
+  } catch (error) {
+    console.error(`Errore nel calcolo della ricompensa per il token ${tokenId}:`, error);
+    return BASE_DAILY_REWARD; // Valore default in caso di errore
+  }
 }
 
 /**
@@ -182,8 +245,23 @@ export async function getNftRarityMultiplier(tokenId: string): Promise<number> {
         trait.traitType.toUpperCase() === 'CARD FRAME');
       
       if (frameTrait) {
-        const multiplier = ETH_CONFIG.rarityMultipliers[frameTrait.value] || 1.0;
-        console.log(`📊 Rarità NFT #${tokenId} da cache: ${frameTrait.value} (${multiplier}x)`);
+        // Utilizziamo i valori fissi di ricompensa invece dei moltiplicatori
+        const frameValue = frameTrait.value.toLowerCase();
+        let multiplier = 1.0; // Default moltiplicatore
+        let dailyReward = BASE_DAILY_REWARD; // Default reward
+        
+        if (frameValue.includes("prototype")) {
+          multiplier = 2.5;
+          dailyReward = PROTOTYPE_DAILY_REWARD;
+        } else if (frameValue.includes("elite")) {
+          multiplier = 2.0;
+          dailyReward = ELITE_DAILY_REWARD;
+        } else if (frameValue.includes("advanced")) {
+          multiplier = 1.5;
+          dailyReward = ADVANCED_DAILY_REWARD;
+        }
+        
+        console.log(`📊 Rarità NFT #${tokenId} da cache: ${frameTrait.value} (${multiplier}x) - ${dailyReward} IASE`);
         return multiplier;
       }
     }
@@ -380,18 +458,18 @@ export async function verifyAllStakes(): Promise<void> {
               // NFT ancora posseduto, calcola ricompensa
               console.log(`✅ NFT #${stake.nftId} ancora posseduto da ${walletAddress}`);
               
-              // Calcola rarità e ricompensa
-              const rarityMultiplier = await getNftRarityMultiplier(stake.nftId);
+              // Calcola ricompensa direttamente usando la funzione aggiornata che fornisce valori fissi
+              const dailyReward = await calculateDailyReward(stake.nftId);
               
-              // Calcolo ricompensa con moltiplicatore di rarità
-              const rewardAmount = DAILY_REWARD * rarityMultiplier;
+              // Per retrocompatibilità, calcoliamo il moltiplicatore approssimativo 
+              const rarityMultiplier = Math.round((dailyReward / BASE_DAILY_REWARD) * 10) / 10;
               
-              console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
+              console.log(`💰 Ricompensa calcolata: ${dailyReward.toFixed(2)} IASE (${rarityMultiplier}x)`);
               
               // Crea ricompensa
               await storage.createStakingReward({
                 stakeId: stake.id,
-                amount: rewardAmount,
+                amount: dailyReward,
                 walletAddress: stake.walletAddress,
                 claimed: false
               });

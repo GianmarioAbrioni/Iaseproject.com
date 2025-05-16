@@ -942,21 +942,38 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("- First NFT (example):", result.nfts[0]);
       }
       
-      // Load already staked NFTs to exclude them
-      const stakedIds = JSON.parse(localStorage.getItem('iase_staked_token_ids') || '[]');
-      console.log("NFTs already in staking:", stakedIds);
+      // Get the current wallet address
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        console.error("❌ Wallet not connected");
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-wallet-3-line"></i>
+            <h3>Wallet Not Connected</h3>
+            <p>Please connect your wallet to view your NFTs.</p>
+          </div>`;
+        return;
+      }
+      
+      // Load already staked NFTs from localStorage to exclude them
+      const stakedNfts = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
+      
+      // Filter staked NFTs for the current wallet address
+      const myStakedNfts = stakedNfts.filter(nft => 
+        nft.address && nft.address.toLowerCase() === walletAddress.toLowerCase()
+      );
+      
+      // Extract token IDs of staked NFTs
+      const stakedTokenIds = myStakedNfts.map(nft => nft.tokenId.toString());
+      console.log("Staked token IDs for current wallet:", stakedTokenIds);
       
       // Filter available NFTs excluding those already in staking
       let availableNfts = result.nfts || [];
       
-      // Make sure we're working with strings for comparison
-      const stakedIdsAsStrings = stakedIds.map(id => id.toString());
-      console.log("Staked IDs as strings for filtering:", stakedIdsAsStrings);
-      
-      if (stakedIdsAsStrings.length > 0) {
+      if (stakedTokenIds.length > 0) {
         availableNfts = availableNfts.filter(nft => {
           const nftIdAsString = nft.id.toString();
-          const isStaked = stakedIdsAsStrings.includes(nftIdAsString);
+          const isStaked = stakedTokenIds.includes(nftIdAsString);
           if (isStaked) {
             console.log(`NFT #${nftIdAsString} is already staked, excluding from available list`);
           }
@@ -1095,6 +1112,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Error loading rewards:", error);
       }
       
+      // Get all NFTs to ensure we have images
+      const allNftsResult = await loadAllIASENFTs();
+      const allNfts = allNftsResult.nfts || [];
+      
       // Render each staked NFT
       for (const stakedNft of myStakedNfts) {
         // Find reward for this NFT
@@ -1110,12 +1131,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const stakingDays = Math.floor((now - stakingStartDate) / (1000 * 60 * 60 * 24));
         const stakingHours = Math.floor((now - stakingStartDate) / (1000 * 60 * 60)) % 24;
         
-        // Fix image path if needed - ensure we have a valid image
-        const nftImage = stakedNft.image || `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stakedNft.tokenId}.png`;
+        // Try to find the corresponding NFT in all NFTs to get image
+        const matchingNft = allNfts.find(nft => nft.id.toString() === stakedNft.tokenId.toString());
+        let nftImage = stakedNft.image; // Use image from staked NFT data
+        
+        // Use image from matching NFT if available, or alternative sources
+        if (matchingNft && matchingNft.image) {
+          nftImage = matchingNft.image;
+        } else if (!nftImage) {
+          // Try Alchemy NFT API format if we have an address
+          nftImage = `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stakedNft.tokenId}.png`;
+        }
         
         nftElement.innerHTML = `
           <div class="nft-image">
-            <img src="${nftImage}" alt="NFT #${stakedNft.tokenId}" loading="lazy" onerror="this.src='../assets/placeholder-nft.jpg'">
+            <img src="${nftImage}" alt="NFT #${stakedNft.tokenId}" loading="lazy" 
+                 onerror="this.onerror=null; this.src='https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stakedNft.tokenId}.png';">
             <div class="staked-badge">STAKED</div>
           </div>
           <div class="nft-details">
@@ -1391,9 +1422,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Salva i dati in localStorage per renderli persistenti tra le sessioni
         const localStakes = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
         
-        // Ottieni anche l'immagine dell'NFT da salvare
+        // Ottieni informazioni dell'NFT comprese immagini e metadati
         const allNfts = await loadAllIASENFTs();
         const nftData = allNfts.nfts.find(nft => nft.id.toString() === tokenId.toString());
+        
+        if (!nftData) {
+          console.error(`NFT con token ID ${tokenId} non trovato nei dati caricati`);
+        } else {
+          console.log(`NFT trovato per staking:`, nftData);
+        }
+        
         const nftImage = nftData?.image || `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png`;
         
         const newStake = {
@@ -1404,7 +1442,8 @@ document.addEventListener('DOMContentLoaded', function() {
           dailyReward: stakeData.dailyReward,
           stakeDate: stakeData.stakeDate,
           createdAt: new Date().toISOString(),
-          image: nftImage
+          image: nftImage,
+          metadata: nftData || null // Salva tutto l'oggetto NFT con i suoi metadati
         };
         
         localStakes.push(newStake);

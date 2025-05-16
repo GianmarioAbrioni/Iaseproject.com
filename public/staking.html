@@ -1149,8 +1149,8 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       
       // Effettua la chiamata API per registrare lo staking
-      // Utilizza il percorso dedicato per la compatibilità con Render
-      const response = await fetch('/api/nft/stake', {
+      // Utilizza il percorso assoluto completo per Render
+      const response = await fetch('https://iaseproject-com.onrender.com/api/stake', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

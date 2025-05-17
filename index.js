@@ -19,8 +19,11 @@ const __dirname = path.dirname(__filename);
 // Configurazione server
 const app = express();
 const PORT = process.env.PORT || 3000;
-registerRoutes(app);
 
+app.use(express.json()); // <-- VA PRIMA di registerRoutes
+app.use(express.urlencoded({ extended: true }));
+
+registerRoutes(app); // <-- VA DOPO
 // Configurazione database
 const pg_config = {
   host: process.env.PGHOST || 'dpg-d0ff45buibrs73ekrt6g-a',

@@ -3,11 +3,121 @@ import { createServer, type Server } from 'http';
 import path from 'path';
 import stakingRouter from './routes/staking';
 import claimRouter from './routes/claim';
+import bodyParser from 'body-parser';
 
 export function registerRoutes(app: Express): Server {
+  // Assicurati che Express possa analizzare correttamente i JSON e form data
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+  
+  // Configura CORS per permettere richieste da tutti i domini
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    next();
+  });
+  
+  // Log delle richieste per debug
+  app.use((req, res, next) => {
+    console.log(`📝 [${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+  
   // Registra i router specifici
   app.use('/api/staking', stakingRouter);
   app.use('/api/claim', claimRouter);
+  
+  // IMPORTANTE: Aggiungi esplicitamente la route /api/stake richiesta dal frontend
+  // Questa route è necessaria perché il client la usa direttamente
+  app.post('/api/stake', async (req, res) => {
+    try {
+      const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
+      
+      // Normalizza l'indirizzo per la consistenza
+      const normalizedAddress = address?.toLowerCase() || '';
+      
+      console.log(`🔄 Richiesta di staking ricevuta per NFT #${tokenId} da ${normalizedAddress}`);
+      console.log('📦 Dati staking:', req.body);
+      
+      // Se abbiamo parametri mancanti, restituisci errore
+      if (!tokenId || !address) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Parametri mancanti. tokenId e address sono richiesti.'
+        });
+      }
+      
+      // Determina il tier di rarità per il multiplier corretto
+      let rarityTier = 'standard';
+      if (rarityLevel) {
+        // Converti il rarityLevel in un formato compatibile con il database
+        if (rarityLevel.toLowerCase().includes('advanced')) rarityTier = 'advanced';
+        else if (rarityLevel.toLowerCase().includes('elite')) rarityTier = 'elite';
+        else if (rarityLevel.toLowerCase().includes('prototype')) rarityTier = 'prototype';
+      }
+      
+      // Crea un oggetto stake con i dati necessari
+      const stakeData = {
+        walletAddress: normalizedAddress,
+        nftId: `ETH_${tokenId}`,
+        rarityTier: rarityTier,
+        active: true,
+        rarityMultiplier: rarityTier === 'standard' ? 1.0 : 
+                          rarityTier === 'advanced' ? 1.5 : 
+                          rarityTier === 'elite' ? 2.0 : 
+                          rarityTier === 'prototype' ? 2.5 : 1.0
+      };
+      
+      console.log('🔄 Inserimento nel database:', stakeData);
+      
+      // BYPASS COMPLETO: Usiamo direttamente un'interrogazione SQL per salvare nel database
+      const { pool } = await import('./db');
+      
+      // Utilizziamo una query SQL nativa con i nomi corretti delle colonne
+      const result = await pool.query(
+        `INSERT INTO nft_stakes 
+        (wallet_address, nft_id, rarity_tier, is_active, daily_reward_rate, staking_start_time) 
+        VALUES ($1, $2, $3, $4, $5, NOW()) 
+        RETURNING *`,
+        [
+          normalizedAddress, 
+          `ETH_${tokenId}`, 
+          rarityTier,
+          true,
+          dailyReward || 33.33
+        ]
+      );
+      
+      console.log('✅ Dati salvati nel database con SQL diretto:', result.rows[0]);
+      
+      // Restituisci risposta di successo con i dati salvati
+      res.status(200).json({
+        success: true,
+        message: 'Staking registrato con successo nel database',
+        data: {
+          id: result.rows[0].id,
+          tokenId,
+          address: normalizedAddress,
+          rarityLevel,
+          rarityTier,
+          dailyReward,
+          stakeDate: stakeDate || new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('❌ Errore durante lo staking:', error);
+      
+      // Restituisci errore al client quando il salvataggio fallisce
+      res.status(500).json({
+        success: false,
+        error: 'Errore durante il salvataggio dello staking nel database',
+        message: `Database error: ${(error as Error).message || 'Unknown database error'}`,
+        details: error
+      });
+    }
+  });
   
   // Aggiungi un endpoint personalizzato per gestire le chiamate da staking.html/js
   app.get('/api/by-wallet/:address', async (req, res) => {
@@ -83,8 +193,11 @@ export function registerRoutes(app: Express): Server {
           // Dal momento che stiamo usando SQL diretto, i nomi dei campi sono quelli del database (snake_case)
           // Quando usiamo TypeScript con ORM, i nomi sono in camelCase
           // Controlliamo entrambi per sicurezza
+          // Controlla sia nftId (TypeScript) sia nft_id (database SQL)
+          // Utilizziamo la sintassi con indice per permettere l'accesso a proprietà dinamiche
+          // Questo per compatibilità con i dati provenienti da SQL diretto 
           return stake && 
-                 ((stake.nft_id && stake.nft_id.includes(tokenId)) || 
+                 (((stake as any)['nft_id'] && (stake as any)['nft_id'].includes(tokenId)) || 
                   (stake.nftId && stake.nftId.includes(tokenId)));
         });
         

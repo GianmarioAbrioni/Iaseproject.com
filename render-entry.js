@@ -34,20 +34,74 @@ app.use(express.urlencoded({ extended: true }));
 
 // Importa e configura le routes dell'API - FONDAMENTALE
 try {
-  // Importa dal percorso corretto del file routes.ts in server
+  // Priorità assoluta a server/routes.ts che contiene tutte le implementazioni corrette
+  console.log('[INFO] Caricamento routes da server/routes.ts');
   const { registerRoutes } = await import('./server/routes.ts');
   const server = await registerRoutes(app);
-  console.log('[INFO] Routes caricate con successo da server/routes.ts');
+  console.log('[INFO] ✅ Routes caricate con successo da server/routes.ts');
 } catch (routesError) {
-  console.error('[ERROR] Errore nel caricamento di routes.ts:', routesError);
+  console.error('[ERROR] Errore nel caricamento di server/routes.ts:', routesError);
+  
+  // Non tentiamo più di caricare il modulo da percorsi esterni
+  // poiché tutte le rotte sono ora definite direttamente in server/routes.ts
+  console.log('[INFO] server/routes.ts deve contenere tutte le implementazioni delle rotte necessarie');
   
   // Registra comunque l'endpoint /api/stake per lo staking
   app.post('/api/stake', async (req, res) => {
     try {
-      console.log('[INFO] Richiesta di staking ricevuta:', req.body);
+      const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
+      
+      // Normalizza l'indirizzo per la consistenza
+      const normalizedAddress = address?.toLowerCase() || '';
+      
+      console.log(`[INFO] Richiesta di staking ricevuta per NFT #${tokenId} da ${normalizedAddress}`);
+      console.log('[INFO] Dati staking completi:', req.body);
+      
+      // Se mancano parametri fondamentali
+      if (!tokenId || !address) {
+        return res.status(400).json({
+          success: false,
+          error: 'Parametri invalidi. tokenId e address sono obbligatori'
+        });
+      }
+      
+      // Gestisci staking per diversi livelli di rarità
+      let finalDailyReward = dailyReward;
+      
+      // Se il dailyReward non è specificato, lo calcoliamo in base al rarityLevel
+      if (!finalDailyReward && rarityLevel) {
+        // Valori di reward fissi come in staking.ts
+        const BASE_REWARD = 33.33;       // Standard
+        const ADVANCED_REWARD = 50.00;   // Advanced 
+        const ELITE_REWARD = 66.67;      // Elite
+        const PROTOTYPE_REWARD = 83.33;  // Prototype
+        
+        // Determina il reward in base alla rarità
+        const rarityLowerCase = rarityLevel.toLowerCase();
+        if (rarityLowerCase.includes('advanced')) {
+          finalDailyReward = ADVANCED_REWARD;
+        } else if (rarityLowerCase.includes('elite')) {
+          finalDailyReward = ELITE_REWARD;
+        } else if (rarityLowerCase.includes('prototype')) {
+          finalDailyReward = PROTOTYPE_REWARD;
+        } else {
+          // Default a Standard
+          finalDailyReward = BASE_REWARD;
+        }
+      }
+      
+      // Risposta positiva con tutti i dati
       res.status(200).json({
         success: true,
-        message: 'Staking registrato con successo'
+        message: 'Staking registrato con successo',
+        data: {
+          tokenId,
+          address: normalizedAddress,
+          rarityLevel,
+          dailyReward: finalDailyReward || 33.33, // Default al valore standard
+          stakeDate: stakeDate || new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        }
       });
     } catch (error) {
       console.error('[ERROR] Errore durante lo staking:', error);

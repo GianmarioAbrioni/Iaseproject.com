@@ -28,7 +28,7 @@ export function setupClaimRoutes(app, storage) {
       res.json(config);
     } catch (error) {
       console.error('Error fetching claim config:', error);
-      res.status(500).json({ error: 'Errore nel recupero della configurazione' });
+      res.status(500).json({ error: 'Error retrieving configuration' });
     }
   });
 
@@ -41,11 +41,12 @@ export function setupClaimRoutes(app, storage) {
       // Calcola il totale per stakingId
       const stakeTotals = {};
       for (const reward of rewards) {
+        // Utilizziamo esattamente i nomi delle colonne come nelle immagini
         if (!stakeTotals[reward.stakeId]) {
           stakeTotals[reward.stakeId] = {
             stakeId: reward.stakeId,
             totalReward: 0,
-            claimed: reward.claimed,
+            claimed: reward.claimed || false,
             rewardCount: 0
           };
         }
@@ -53,7 +54,7 @@ export function setupClaimRoutes(app, storage) {
         stakeTotals[reward.stakeId].totalReward += reward.amount;
         stakeTotals[reward.stakeId].rewardCount += 1;
         
-        // Se anche una sola ricompensa è claimed, tutto lo stake è marked as claimed
+        // Se qualsiasi reward è claimed, consideriamo l'intero stake come claimed
         if (reward.claimed) {
           stakeTotals[reward.stakeId].claimed = true;
         }
@@ -63,25 +64,32 @@ export function setupClaimRoutes(app, storage) {
       res.json(result);
     } catch (error) {
       console.error('Error fetching rewards:', error);
-      res.status(500).json({ error: 'Errore nel recupero delle ricompense' });
+      res.status(500).json({ error: 'Error retrieving rewards' });
     }
   });
 
-  // Mark rewards as claimed
+  // Mark rewards as claimed by setting claimed=true and claimTxHash
   app.post('/api/mark-claimed', async (req, res) => {
     try {
       const { stakeId, txHash } = req.body;
       
       if (!stakeId) {
-        return res.status(400).json({ error: 'Stake ID richiesto' });
+        return res.status(400).json({ error: 'Stake ID required' });
       }
       
-      await storage.markRewardsAsClaimed(stakeId);
+      // Impostiamo claimed=true e claimTxHash con l'hash della transazione
+      await storage.markRewardsAsClaimed(stakeId, txHash || 'claimed');
       
-      res.json({ success: true, message: 'Ricompense marcate come riscosse' });
+      // Restituisci una risposta di successo
+      res.json({ 
+        success: true, 
+        message: 'Rewards marked as claimed successfully',
+        stakeId,
+        txHash: txHash || 'claimed'
+      });
     } catch (error) {
       console.error('Error marking rewards as claimed:', error);
-      res.status(500).json({ error: 'Errore nel marcare le ricompense come riscosse' });
+      res.status(500).json({ error: 'Error marking rewards as claimed' });
     }
   });
 }

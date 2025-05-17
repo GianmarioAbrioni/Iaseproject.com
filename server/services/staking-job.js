@@ -54,13 +54,13 @@ async function processStakingRewards() {
             }
           }
           
-          // Crea record ricompensa
+          // Crea record ricompensa usando esattamente la struttura dal database reale
           const reward = {
             stakeId: stake.id,
-            walletAddress: stake.walletAddress,
             amount: rewardAmount,
             rewardDate: new Date(),
-            claimed: false
+            claimed: false,
+            claimTxHash: null
           };
           
           await storage.createStakingReward(reward);

@@ -469,8 +469,9 @@ export async function verifyAllStakes(): Promise<void> {
               await storage.createStakingReward({
                 stakeId: stake.id,
                 amount: dailyReward,
-                walletAddress: stake.walletAddress,
-                claimed: false
+                rewardDate: new Date(),
+                claimed: false,
+                claimTxHash: null
               });
               
               // Aggiorna lo stake
@@ -547,11 +548,11 @@ export async function verifyAllStakes(): Promise<void> {
             
             console.log(`💰 Ricompensa calcolata: ${rewardAmount.toFixed(2)} IASE (${rarityMultiplier}x)`);
             
-            // Crea ricompensa
+            // Crea ricompensa usando la struttura corretta
             await storage.createStakingReward({
               stakeId: stake.id,
               amount: rewardAmount,
-              walletAddress: stake.walletAddress,
+              rewardDate: new Date(),
               claimed: false
             });
             

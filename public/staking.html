@@ -1515,75 +1515,28 @@ document.addEventListener('DOMContentLoaded', function() {
         stakeDate: new Date().toISOString()
       };
       
-      // Gestisci lo staking con gestione locale e API esterna
-      // Prima prova l'API remota, poi gestisci localmente in caso di errore
-      let response;
-      try {
-        // Usa l'endpoint corretto
-        response = await fetch(`${window.location.origin}/api/stake`, {
+      // Gestisci lo staking direttamente con l'API, senza fallback locale
+      // Chiamata diretta all'endpoint del database PostgreSQL
+      console.log("📊 Inizio chiamata API stake al database PostgreSQL");
+      
+      // IMPORTANTE: Usiamo l'URL relativo per garantire che funzioni su qualsiasi dominio
+      const response = await fetch(`/api/stake`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(stakeData)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Errore API: ${response.status}`);
-        }
-      } catch (apiError) {
-        console.error("Errore chiamata API remota:", apiError);
-        console.log("Gestione staking locale attivata");
-        
-        // Gestisci staking in locale
-        // Salva i dati in localStorage per renderli persistenti tra le sessioni
-        const localStakes = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
-        
-        // Ottieni informazioni dell'NFT comprese immagini e metadati
-        const allNfts = await loadAllIASENFTs();
-        const nftData = allNfts.nfts.find(nft => nft.id.toString() === tokenId.toString());
-        
-        if (!nftData) {
-          console.error(`NFT con token ID ${tokenId} non trovato nei dati caricati`);
-        } else {
-          console.log(`NFT trovato per staking:`, nftData);
-        }
-        
-        const nftImage = nftData?.image || `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png`;
-        
-        const newStake = {
-          id: Date.now().toString(), // ID unico basato sul timestamp
-          tokenId: stakeData.tokenId,
-          address: stakeData.address.toLowerCase(),
-          rarity: stakeData.rarityLevel,
-          dailyReward: stakeData.dailyReward,
-          stakeDate: stakeData.stakeDate,
-          createdAt: new Date().toISOString(),
-          image: nftImage,
-          metadata: nftData || null // Salva tutto l'oggetto NFT con i suoi metadati
-        };
-        
-        localStakes.push(newStake);
-        localStorage.setItem('iase_staked_nfts', JSON.stringify(localStakes));
-        
-        // Salva anche la lista degli NFT già messi in staking per escluderli dalla visualizzazione
-        const stakedIds = JSON.parse(localStorage.getItem('iase_staked_token_ids') || '[]');
-        if (!stakedIds.includes(stakeData.tokenId)) {
-          stakedIds.push(stakeData.tokenId);
-          localStorage.setItem('iase_staked_token_ids', JSON.stringify(stakedIds));
-        }
-        
-        // Crea una response simulata
-        response = {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            success: true,
-            message: 'Staking registrato localmente con successo',
-            data: newStake
-          })
-        };
+      });
+      
+      // Se la chiamata API fallisce, mostriamo l'errore e interrompiamo
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Errore API staking (${response.status}):`, errorText);
+        alert(`Error staking NFT: ${response.status} - Please try again later.`);
+        throw new Error(`API staking error: ${response.status} - ${errorText}`);
       }
+      
+      console.log("✅ Chiamata API stake completata con successo");
       
       const result = await response.json();
       
@@ -1593,13 +1546,22 @@ document.addEventListener('DOMContentLoaded', function() {
         stakeModal.style.display = 'none';
       }
       
+      // IMPORTANTE: Reset completo della cache per forzare ricaricamento dal database
+      window.stakedNftsData = null;
+      window.stakedNftIds = [];
+      
       // Mostra notifica di successo in inglese
       alert(`NFT #${tokenId} successfully staked! You will earn ${rewardValue} IASE tokens per day.`);
       
-      // Aggiorna la UI dopo lo staking
-      renderNFTs();
-      
-      console.log(`✅ Staking completato per NFT #${tokenId}`);
+      // Importante: Aggiungiamo un ritardo prima di aggiornare l'interfaccia
+      // per garantire che il database abbia il tempo di aggiornare i dati
+      setTimeout(() => {
+        console.log("🔄 Aggiornamento dell'interfaccia dopo staking...");
+        // Aggiorna la UI dopo lo staking
+        renderNFTs();
+        
+        console.log(`✅ Staking completato per NFT #${tokenId}`);
+      }, 500);
     } catch (error) {
       console.error('❌ Errore durante lo staking:', error);
       alert(`Staking error: ${error.message}`);
@@ -1710,11 +1672,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      // Prepara i dati per la chiamata API nel formato corretto
+      // Prepara i dati per la chiamata API con la struttura corretta del database
       const unstakeData = {
-        address: walletAddress,
+        walletAddress: walletAddress,
         tokenId: tokenId,
         stakeId: stakeId,
+        isActive: false,
         unstakeDate: new Date().toISOString()
       };
       

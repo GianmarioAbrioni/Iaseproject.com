@@ -729,6 +729,23 @@
   <!-- Adattatore per compatibilità con vecchi script -->
   <script src="js/nft-reader-adapter.js"></script>
   
+  <!-- Definisci window.STAKING_CONFIG prima del caricamento del modulo di staking -->
+  <script>
+    // Configurazione del modulo di staking
+    window.STAKING_CONFIG = {
+      // Se true, usa l'endpoint obsoleto con formato completo
+      useObsoleteEndpoint: false,
+      // Se true, abilita log dettagliati
+      debug: true,
+      // API Endpoint per il caricamento degli NFT in staking
+      apiEndpoint: '/api',
+      // Se true, usa la versione patch di staking.js
+      usePatchedVersion: true,
+      // Se true, mostra nei log le API chiamate
+      logApi: true
+    };
+  </script>
+  
   <!-- Script di staking caricato in modo tradizionale per massima compatibilità -->
   <script src="js/staking.js"></script>
   <script>
@@ -955,17 +972,43 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      // Load already staked NFTs from localStorage to exclude them
-      const stakedNfts = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
+      // Carica gli NFT in staking direttamente dal database
+      // Questo è il punto critico: dobbiamo usare il database invece del localStorage
+      console.log("🔄 Caricamento NFT in staking dal database per escluderli dalla lista dei disponibili");
       
-      // Filter staked NFTs for the current wallet address
-      const myStakedNfts = stakedNfts.filter(nft => 
-        nft.address && nft.address.toLowerCase() === walletAddress.toLowerCase()
-      );
+      // Array per memorizzare gli ID degli NFT in staking
+      let stakedTokenIds = [];
       
-      // Extract token IDs of staked NFTs
-      const stakedTokenIds = myStakedNfts.map(nft => nft.tokenId.toString());
-      console.log("Staked token IDs for current wallet:", stakedTokenIds);
+      try {
+        // Ottieni gli NFT in staking dal database usando l'API
+        const formattedAddress = walletAddress.toLowerCase();
+        const response = await fetch(`/api/by-wallet/${formattedAddress}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ Dati NFT in staking dal database:", data);
+          
+          // Estrai gli NFT in staking dalla risposta
+          const stakedNfts = Array.isArray(data) ? data : (data.stakes || []);
+          
+          // Estrai gli ID degli NFT in staking
+          stakedTokenIds = stakedNfts.map(stake => {
+            // Gestisci diversi formati di ID
+            if (stake.tokenId) return stake.tokenId.toString();
+            if (stake.token_id) return stake.token_id.toString();
+            if (stake.nft_id && stake.nft_id.includes('_')) {
+              return stake.nft_id.split('_')[1].toString();
+            }
+            return stake.id ? stake.id.toString() : '';
+          }).filter(id => id); // Rimuovi ID vuoti
+        } else {
+          console.warn(`⚠️ Errore nel caricamento degli NFT in staking: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("❌ Errore nel caricamento degli NFT in staking dal database:", error);
+      }
+      
+      console.log("🔄 Token ID in staking dal database:", stakedTokenIds);
       
       // Filter available NFTs excluding those already in staking
       let availableNfts = result.nfts || [];
@@ -1675,68 +1718,17 @@ document.addEventListener('DOMContentLoaded', function() {
         unstakeDate: new Date().toISOString()
       };
       
-      // Effettua la chiamata API per registrare l'unstaking
-      let response;
-      try {
-        // Modifica per utilizzare l'endpoint corretto
-        response = await fetch(`${window.location.origin}/api/unstake`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(unstakeData)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Errore API: ${response.status}`);
-        }
-      } catch (apiError) {
-        console.error("Errore chiamata API remota unstake:", apiError);
-        console.log("Gestione unstaking locale attivata");
-        
-        // Gestisci unstaking in locale (mock)
-        const localStakes = JSON.parse(localStorage.getItem('iase_staked_nfts') || '[]');
-        const stakeIndex = localStakes.findIndex(s => 
-          s.tokenId === tokenId && s.address.toLowerCase() === walletAddress.toLowerCase()
-        );
-        
-        if (stakeIndex !== -1) {
-          // Rimuovi lo stake dalla lista
-          const removedStake = localStakes.splice(stakeIndex, 1)[0];
-          localStorage.setItem('iase_staked_nfts', JSON.stringify(localStakes));
-          
-          // Rimuovi dalla lista dei token ID in staking
-          const stakedIds = JSON.parse(localStorage.getItem('iase_staked_token_ids') || '[]');
-          const idIndex = stakedIds.indexOf(tokenId.toString());
-          if (idIndex !== -1) {
-            stakedIds.splice(idIndex, 1);
-            localStorage.setItem('iase_staked_token_ids', JSON.stringify(stakedIds));
-          }
-          
-          // Crea una response simulata
-          response = {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              success: true,
-              message: 'NFT successfully unstaked (local mode)',
-              data: {
-                ...removedStake,
-                unstakeDate: new Date().toISOString()
-              }
-            })
-          };
-        } else {
-          // NFT non trovato in staking
-          response = {
-            ok: true,
-            status: 200,
-            json: async () => ({
-              success: false,
-              message: 'NFT not found in staking (local mode)'
-            })
-          };
-        }
+      // Effettua la chiamata API per registrare l'unstaking direttamente nel database PostgreSQL
+      const response = await fetch(`/api/unstake`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(unstakeData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Errore API: ${response.status}`);
       }
       
       const result = await response.json();
@@ -1750,10 +1742,18 @@ document.addEventListener('DOMContentLoaded', function() {
       // Mostra notifica di successo
       alert(`NFT #${tokenId} successfully removed from staking! You received ${result.claimedAmount || '0.00'} IASE tokens as reward.`);
       
-      // Aggiorna la UI dopo l'unstaking
-      renderNFTs();
+      // IMPORTANTE: Pulisci completamente la cache per forzare un reload dal database
+      // Questo risolve il problema degli NFT che apparivano ancora in staking dopo l'unstaking
+      window.stakedNftsData = null;
+      window.stakedNftIds = [];
       
-      console.log(`✅ Unstaking completato per NFT #${tokenId}`);
+      // Aggiungi un ritardo prima di ricaricare gli NFT per garantire che il database sia aggiornato
+      setTimeout(() => {
+        // Aggiorna la UI dopo l'unstaking
+        renderNFTs();
+        
+        console.log(`✅ Unstaking completato per NFT #${tokenId}`);
+      }, 500);
     } catch (error) {
       console.error('❌ Errore durante l\'unstaking:', error);
       alert(`Unstaking error: ${error.message}`);
@@ -1783,8 +1783,8 @@ document.addEventListener('DOMContentLoaded', function() {
         txHash: `claim-${Date.now()}` // Identificativo della transazione
       };
       
-      // Effettua la chiamata API per registrare il claim utilizzando l'endpoint corretto
-      const response = await fetch(`${window.location.origin}/api/mark-claimed`, {
+      // Effettua la chiamata API per registrare il claim utilizzando l'endpoint corretto che punta al database
+      const response = await fetch(`/api/claim/mark-claimed`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1798,8 +1798,8 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const result = await response.json();
       
-      // Prima ottieni il totale delle ricompense per questo stake
-      const rewardsResponse = await fetch(`${window.location.origin}/api/rewards/${walletAddress}`);
+      // Prima ottieni il totale delle ricompense per questo stake dal database
+      const rewardsResponse = await fetch(`/api/claim/rewards/${walletAddress}`);
       if (!rewardsResponse.ok) {
         throw new Error(`Errore API rewards: ${rewardsResponse.status}`);
       }

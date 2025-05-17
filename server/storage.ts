@@ -5,7 +5,7 @@ import { users, nftStakes, stakingRewards, nftTraits,
   type NftTrait, type InsertNftTrait
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -38,6 +38,8 @@ export interface IStorage {
   getRewardsByStakeId(stakeId: number): Promise<StakingReward[]>;
   getRewardsByWalletAddress(walletAddress: string): Promise<StakingReward[]>;
   markRewardsAsClaimed(stakeId: number): Promise<void>;
+  getClaimedRewardsByStakeId(stakeId: number): Promise<StakingReward[]>;
+  getActiveNftStakesByWallet(walletAddress: string): Promise<NftStake[]>;
   
   // NFT Traits operations
   createNftTrait(trait: InsertNftTrait): Promise<NftTrait>;
@@ -193,6 +195,28 @@ export class DatabaseStorage implements IStorage {
       ));
   }
   
+  async getClaimedRewardsByStakeId(stakeId: number): Promise<StakingReward[]> {
+    return await db
+      .select()
+      .from(stakingRewards)
+      .where(and(
+        eq(stakingRewards.stakeId, stakeId),
+        eq(stakingRewards.claimed, true)
+      ))
+      .orderBy(desc(stakingRewards.rewardDate));
+  }
+  
+  async getActiveNftStakesByWallet(walletAddress: string): Promise<NftStake[]> {
+    return await db
+      .select()
+      .from(nftStakes)
+      .where(and(
+        eq(nftStakes.walletAddress, walletAddress),
+        eq(nftStakes.active, true)
+      ))
+      .orderBy(nftStakes.startTime);
+  }
+  
   // NFT Traits operations
   async createNftTrait(trait: InsertNftTrait): Promise<NftTrait> {
     const [newTrait] = await db.insert(nftTraits).values(trait).returning();
@@ -338,6 +362,14 @@ export class MemStorage implements IStorage {
   
   async markRewardsAsClaimed(stakeId: number): Promise<void> {
     return;
+  }
+  
+  async getClaimedRewardsByStakeId(stakeId: number): Promise<StakingReward[]> {
+    return [];
+  }
+  
+  async getActiveNftStakesByWallet(walletAddress: string): Promise<NftStake[]> {
+    return [];
   }
   
   async createNftTrait(trait: InsertNftTrait): Promise<NftTrait> {

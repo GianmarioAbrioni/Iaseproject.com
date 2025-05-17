@@ -1,10 +1,15 @@
 import express, { type Express } from 'express';
 import { createServer, type Server } from 'http';
 import path from 'path';
-import stakingRouter from './routes/staking';
 import claimRouter from './routes/claim';
 import bodyParser from 'body-parser';
 
+/**
+ * Registra tutte le rotte necessarie per l'API
+ * Importante: Per deployment su Render, le rotte sono implementate direttamente qui
+ * @param app L'applicazione Express
+ * @returns L'HTTP server
+ */
 export function registerRoutes(app: Express): Server {
   // Assicurati che Express possa analizzare correttamente i JSON e form data
   app.use(bodyParser.json());
@@ -24,12 +29,13 @@ export function registerRoutes(app: Express): Server {
     next();
   });
   
-  // Registra i router specifici
-  app.use('/api/staking', stakingRouter);
+  // IMPORTANTE: Registra le rotte esattamente come nel client
+  // Registra la route /api/claim
   app.use('/api/claim', claimRouter);
   
-  // IMPORTANTE: Aggiungi esplicitamente la route /api/stake richiesta dal frontend
-  // Questa route è necessaria perché il client la usa direttamente
+  // IMPLEMENTAZIONE DIRETTA DELLE API NECESSARIE PER LO STAKING
+  // Nota: Utilizziamo un approccio diretto (senza router) per evitare problemi con i path
+  // 1. API per lo staking - /api/stake
   app.post('/api/stake', async (req, res) => {
     try {
       const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
@@ -119,49 +125,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
   
-  // Aggiungi un endpoint personalizzato per gestire le chiamate da staking.html/js
-  app.get('/api/by-wallet/:address', async (req, res) => {
-    try {
-      // Ottieni l'indirizzo dal parametro
-      const walletAddress = req.params.address.toLowerCase();
-      console.log(`Endpoint personalizzato: Chiamata a /api/by-wallet/${walletAddress}`);
-      
-      // Cerca gli stake nel database
-      const { storage } = await import('./storage');
-      const stakes = await storage.getNftStakesByWallet(walletAddress);
-      
-      // Restituisci i dati con la struttura attesa dai client
-      res.json({ stakes: stakes || [] });
-    } catch (error) {
-      console.error('Errore nell\'endpoint personalizzato:', error);
-      res.status(500).json({ error: 'Errore interno', message: 'Si è verificato un errore durante il recupero degli stake' });
-    }
-  });
-  
-  // Endpoint per gestire le chiamate POST a get-staked-nfts
-  app.post('/api/get-staked-nfts', async (req, res) => {
-    try {
-      // Ottieni l'indirizzo dal body
-      const walletAddress = req.body.address?.toLowerCase();
-      
-      if (!walletAddress) {
-        return res.status(400).json({ error: 'Indirizzo wallet mancante' });
-      }
-      
-      console.log(`Endpoint personalizzato: Chiamata POST a /api/get-staked-nfts per ${walletAddress}`);
-      
-      // Cerca gli stake nel database
-      const { storage } = await import('./storage');
-      const stakes = await storage.getNftStakesByWallet(walletAddress);
-      
-      // Restituisci i dati con la struttura attesa dai client
-      res.json({ stakes: stakes || [] });
-    } catch (error) {
-      console.error('Errore nell\'endpoint personalizzato:', error);
-      res.status(500).json({ error: 'Errore interno', message: 'Si è verificato un errore durante il recupero degli stake' });
-    }
-  });
-  // Endpoint per gestire la richiesta di unstake di un NFT
+  // 2. API per l'unstaking - /api/unstake
   app.post('/api/unstake', async (req, res) => {
     try {
       const { tokenId, address } = req.body;
@@ -190,12 +154,7 @@ export function registerRoutes(app: Express): Server {
         // Trova lo stake specifico dell'NFT
         // I dati ritornati dal database hanno nomi di campo coerenti con il database
         const targetStake = stakes.find(stake => {
-          // Dal momento che stiamo usando SQL diretto, i nomi dei campi sono quelli del database (snake_case)
-          // Quando usiamo TypeScript con ORM, i nomi sono in camelCase
-          // Controlliamo entrambi per sicurezza
-          // Controlla sia nftId (TypeScript) sia nft_id (database SQL)
           // Utilizziamo la sintassi con indice per permettere l'accesso a proprietà dinamiche
-          // Questo per compatibilità con i dati provenienti da SQL diretto 
           return stake && 
                  (((stake as any)['nft_id'] && (stake as any)['nft_id'].includes(tokenId)) || 
                   (stake.nftId && stake.nftId.includes(tokenId)));
@@ -243,176 +202,76 @@ export function registerRoutes(app: Express): Server {
     }
   });
   
-  app.post('/api/stake', async (req, res) => {
+  // 3. API per ottenere gli NFT in staking - /api/by-wallet/:address
+  app.get('/api/by-wallet/:address', async (req, res) => {
     try {
-      const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
+      // Ottieni l'indirizzo dal parametro
+      const walletAddress = req.params.address.toLowerCase();
+      console.log(`Endpoint personalizzato: Chiamata a /api/by-wallet/${walletAddress}`);
       
-      // Normalizza l'indirizzo per la consistenza
-      const normalizedAddress = address?.toLowerCase() || '';
+      // Cerca gli stake nel database
+      const { storage } = await import('./storage');
+      const stakes = await storage.getNftStakesByWallet(walletAddress);
       
-      console.log(`Richiesta di staking ricevuta per NFT #${tokenId} da ${normalizedAddress}`);
-      console.log('Dati staking:', req.body);
+      // Restituisci i dati con la struttura attesa dai client
+      res.json({ stakes: stakes || [] });
+    } catch (error) {
+      console.error('Errore nell\'endpoint personalizzato:', error);
+      res.status(500).json({ error: 'Errore interno', message: 'Si è verificato un errore durante il recupero degli stake' });
+    }
+  });
+  
+  // 4. Endpoint per gestire le chiamate POST a get-staked-nfts (alternativa a by-wallet)
+  app.post('/api/get-staked-nfts', async (req, res) => {
+    try {
+      // Ottieni l'indirizzo dal body
+      const walletAddress = req.body.address?.toLowerCase();
       
-      // Se abbiamo parametri mancanti, restituisci errore
-      if (!tokenId || !address) {
-        return res.status(400).json({ 
-          success: false,
-          error: 'Parametri mancanti. tokenId e address sono richiesti.'
-        });
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Indirizzo wallet mancante' });
       }
       
-      // Determina il tier di rarità per il multiplier corretto
-      let rarityTier = 'standard';
-      if (rarityLevel) {
-        // Converti il rarityLevel in un formato compatibile con il database
-        if (rarityLevel.toLowerCase().includes('advanced')) rarityTier = 'advanced';
-        else if (rarityLevel.toLowerCase().includes('elite')) rarityTier = 'elite';
-        else if (rarityLevel.toLowerCase().includes('prototype')) rarityTier = 'prototype';
-      }
+      console.log(`Endpoint personalizzato: Chiamata POST a /api/get-staked-nfts per ${walletAddress}`);
       
-      // Crea un oggetto stake con i dati necessari
-      const stakeData = {
-        walletAddress: normalizedAddress,
-        nftId: `ETH_${tokenId}`,
-        rarityTier: rarityTier,
-        active: true,
-        rarityMultiplier: rarityTier === 'standard' ? 1.0 : 
-                          rarityTier === 'advanced' ? 1.5 : 
-                          rarityTier === 'elite' ? 2.0 : 
-                          rarityTier === 'prototype' ? 2.5 : 1.0
-      };
+      // Cerca gli stake nel database
+      const { storage } = await import('./storage');
+      const stakes = await storage.getNftStakesByWallet(walletAddress);
       
-      console.log('🔄 Inserimento nel database:', stakeData);
-      
-      // BYPASS COMPLETO: Usiamo direttamente un'interrogazione SQL per salvare nel database
-      const { pool } = await import('./db');
-      
-      // Utilizziamo una query SQL nativa con i nomi corretti delle colonne
-      const result = await pool.query(
-        `INSERT INTO nft_stakes 
-        (wallet_address, nft_id, rarity_tier, is_active, daily_reward_rate, staking_start_time) 
-        VALUES ($1, $2, $3, $4, $5, NOW()) 
-        RETURNING *`,
-        [
-          normalizedAddress, 
-          `ETH_${tokenId}`, 
-          rarityTier,
-          true,
-          dailyReward || 33.33
-        ]
-      );
-      
-      console.log('✅ Dati salvati nel database con SQL diretto:', result.rows[0]);
-      
-      // Restituisci risposta di successo con i dati salvati
-      res.status(200).json({
-        success: true,
-        message: 'Staking registrato con successo nel database',
-        data: {
-          id: result.rows[0].id,
-          tokenId,
-          address: normalizedAddress,
-          rarityLevel,
-          rarityTier,
-          dailyReward,
-          stakeDate: stakeDate || new Date().toISOString(),
-          createdAt: new Date().toISOString()
+      // Restituisci i dati con la struttura attesa dai client
+      res.json({ stakes: stakes || [] });
+    } catch (error) {
+      console.error('Errore nell\'endpoint personalizzato:', error);
+      res.status(500).json({ error: 'Errore interno', message: 'Si è verificato un errore durante il recupero degli stake' });
+    }
+  });
+  
+  // Logging delle rotte registrate per debug
+  console.log('📊 Rotte API registrate:');
+  const routes: string[] = [];
+  
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) {
+      // Route registrate direttamente nell'app
+      const path = middleware.route.path;
+      const methods = Object.keys(middleware.route.methods);
+      routes.push(`${path} [${methods}]`);
+    } else if (middleware.name === 'router') {
+      // Middleware router
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) {
+          const path = handler.route.path;
+          const methods = Object.keys(handler.route.methods);
+          const routerPath = middleware.regexp.toString().match(/^\/\^\\\/([^\\]+)/)?.[1] || '';
+          routes.push(`${routerPath}${path} [${methods}]`);
         }
       });
-    } catch (error: any) {
-      console.error('❌ Errore durante lo staking:', error);
-      
-      // Restituisci errore al client quando il salvataggio fallisce
-      res.status(500).json({
-        success: false,
-        error: 'Errore durante il salvataggio dello staking nel database',
-        message: `Database error: ${error.message || 'Unknown database error'}`,
-        details: error
-      });
     }
   });
-
-  // Serve static files from the public directory
-  app.use(express.static(path.join(process.cwd(), "public")));
-
-  // API route for articles data
-  app.get('/api/articles', (req, res) => {
-    try {
-      const articlesData = require('../public/iase_articles.json');
-      res.json(articlesData);
-    } catch (error: any) {
-      console.error('Error loading articles data:', error);
-      res.status(500).json({ error: 'Failed to load articles data' });
-    }
-  });
-
-  // Serve HTML files for specific routes
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
-  });
   
-  // Project routes
-  app.get('/project-overview', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'project-overview.html'));
-  });
+  // Ordina e stampa le rotte
+  routes.sort().forEach(route => console.log(route));
   
-  app.get('/technology', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'technology.html'));
-  });
-  
-  app.get('/behind', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'behind.html'));
-  });
-  
-  // Web3 routes
-  app.get('/web3', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'web3.html'));
-  });
-  
-  app.get('/token', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'token.html'));
-  });
-  
-  app.get('/nft', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'nft.html'));
-  });
-  
-  app.get('/staking', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'staking.html'));
-  });
-  
-  app.get('/roadmap', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'roadmap.html'));
-  });
-  
-  // Resources routes
-  app.get('/articles', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'articles.html'));
-  });
-  
-  app.get('/publication', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'publication.html'));
-  });
-  
-  app.get('/contact', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'contact.html'));
-  });
-  
-  // Policy routes
-  app.get('/privacy-policy', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'privacy-policy.html'));
-  });
-  
-  app.get('/cookie-policy', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'cookie-policy.html'));
-  });
-
-  // Fallback route - send index.html for any other routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
-  });
-
+  // Crea il server HTTP e restituiscilo
   const httpServer = createServer(app);
-  
   return httpServer;
 }

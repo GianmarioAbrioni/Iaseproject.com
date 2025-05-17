@@ -107,8 +107,44 @@ export class DatabaseStorage implements IStorage {
   
   // NFT Staking operations
   async createNftStake(stake: InsertNftStake): Promise<NftStake> {
-    const [newStake] = await db.insert(nftStakes).values(stake).returning();
-    return newStake;
+    // Log di debugging per vedere cosa stiamo effettivamente tentando di inserire
+    console.log('⏱️ Tentativo di inserire stake nel database:', JSON.stringify(stake, null, 2));
+    
+    // Assicuriamoci che tutti i campi necessari siano presenti
+    if (!stake.walletAddress || !stake.nftId) {
+      throw new Error('Dati incompleti per lo staking: walletAddress e nftId sono campi obbligatori');
+    }
+    
+    try {
+      // APPROCCIO MOLTO SEMPLICE: evitiamo tutte le problematiche di ORM e usiamo una query SQL diretta
+      // con valori hardcoded per garantire che funzioni
+      const walletAddress = stake.walletAddress;
+      const nftId = stake.nftId;
+      const rarityTier = stake.rarityTier || "standard";
+      const isActive = true;
+      const dailyReward = 33.33;
+      
+      // Query SQL semplificata al massimo
+      const result = await pool.query(
+        `INSERT INTO nft_stakes 
+        (wallet_address, nft_id, rarity_tier, is_active, daily_reward_rate, staking_start_time) 
+        VALUES ($1, $2, $3, $4, $5, NOW()) 
+        RETURNING *`,
+        [
+          walletAddress, 
+          nftId, 
+          rarityTier,
+          isActive,
+          dailyReward
+        ]
+      );
+      
+      console.log('✅ Stake inserito con successo nel database:', result.rows[0]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('❌ Errore durante inserimento stake:', error);
+      throw error;
+    }
   }
   
   async getNftStakesByWallet(walletAddress: string): Promise<NftStake[]> {
@@ -133,101 +169,151 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getNftStakeById(stakeId: number): Promise<NftStake | undefined> {
-    const [stake] = await db.select().from(nftStakes).where(eq(nftStakes.id, stakeId));
-    return stake;
+    // Usiamo una query SQL diretta invece dell'ORM per evitare problemi di nomi colonne
+    const result = await pool.query(
+      `SELECT * FROM nft_stakes WHERE id = $1`,
+      [stakeId]
+    );
+    return result.rows[0];
   }
   
   async updateNftStakeVerification(stakeId: number): Promise<NftStake | undefined> {
     const now = new Date();
-    const [updatedStake] = await db
-      .update(nftStakes)
-      .set({ lastVerificationTime: now })
-      .where(eq(nftStakes.id, stakeId))
-      .returning();
-    return updatedStake;
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `UPDATE nft_stakes SET last_verification_time = $1 WHERE id = $2 RETURNING *`,
+      [now, stakeId]
+    );
+    return result.rows[0];
   }
   
   async endNftStake(stakeId: number): Promise<NftStake | undefined> {
-    const [updatedStake] = await db
-      .update(nftStakes)
-      .set({ active: false })
-      .where(eq(nftStakes.id, stakeId))
-      .returning();
-    return updatedStake;
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `UPDATE nft_stakes SET is_active = false WHERE id = $1 RETURNING *`,
+      [stakeId]
+    );
+    return result.rows[0];
   }
   
   async getAllActiveStakes(): Promise<NftStake[]> {
-    return await db
-      .select()
-      .from(nftStakes)
-      .where(eq(nftStakes.active, true));
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `SELECT * FROM nft_stakes WHERE is_active = true`
+    );
+    return result.rows;
   }
   
   // Rewards operations
   async createStakingReward(reward: InsertStakingReward): Promise<StakingReward> {
-    const [newReward] = await db.insert(stakingRewards).values(reward).returning();
-    return newReward;
+    // Usiamo una query diretta esattamente con i nomi delle colonne dalle immagini
+    const result = await pool.query(
+      `INSERT INTO staking_rewards 
+      ("stakeId", amount, "rewardDate", claimed, "claimTxHash", "createdAt", "updatedAt") 
+      VALUES ($1, $2, NOW(), false, NULL, NOW(), NOW()) 
+      RETURNING *`,
+      [
+        reward.stakeId, 
+        reward.amount
+      ]
+    );
+    return result.rows[0];
   }
   
   async getRewardsByStakeId(stakeId: number): Promise<StakingReward[]> {
-    return await db
-      .select()
-      .from(stakingRewards)
-      .where(eq(stakingRewards.stakeId, stakeId))
-      .orderBy(desc(stakingRewards.rewardDate));
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `SELECT * FROM staking_rewards 
+      WHERE "stakeId" = $1 
+      ORDER BY "rewardDate" DESC`,
+      [stakeId]
+    );
+    return result.rows;
   }
   
   async getRewardsByWalletAddress(walletAddress: string): Promise<StakingReward[]> {
-    return await db
-      .select()
-      .from(stakingRewards)
-      .where(eq(stakingRewards.walletAddress, walletAddress))
-      .orderBy(desc(stakingRewards.rewardDate));
+    // Prima cerchiamo gli stake dell'utente
+    const stakesResult = await pool.query(
+      `SELECT id FROM nft_stakes 
+      WHERE LOWER(wallet_address) = LOWER($1)`,
+      [walletAddress]
+    );
+    
+    if (stakesResult.rows.length === 0) {
+      return [];
+    }
+    
+    // Poi troviamo tutte le rewards associate a quegli stake
+    const stakeIds = stakesResult.rows.map(stake => stake.id);
+    const placeholders = stakeIds.map((_, i) => `$${i + 1}`).join(',');
+    
+    const result = await pool.query(
+      `SELECT * FROM staking_rewards 
+      WHERE "stakeId" IN (${placeholders}) 
+      ORDER BY "rewardDate" DESC`,
+      stakeIds
+    );
+    return result.rows;
   }
   
-  async markRewardsAsClaimed(stakeId: number): Promise<void> {
-    await db
-      .update(stakingRewards)
-      .set({ claimed: true })
-      .where(and(
-        eq(stakingRewards.stakeId, stakeId),
-        eq(stakingRewards.claimed, false)
-      ));
+  async markRewardsAsClaimed(stakeId: number, txHash: string = 'claimed'): Promise<void> {
+    // Aggiorna il flag claimed a true e imposta claimTxHash
+    await pool.query(
+      `UPDATE staking_rewards 
+      SET claimed = true, "claimTxHash" = $2 
+      WHERE "stakeId" = $1 AND claimed = false`,
+      [stakeId, txHash]
+    );
+    console.log(`✅ Ricompense per stake ID ${stakeId} marcate come reclamate con hash: ${txHash}`);
   }
   
   async getClaimedRewardsByStakeId(stakeId: number): Promise<StakingReward[]> {
-    return await db
-      .select()
-      .from(stakingRewards)
-      .where(and(
-        eq(stakingRewards.stakeId, stakeId),
-        eq(stakingRewards.claimed, true)
-      ))
-      .orderBy(desc(stakingRewards.rewardDate));
+    // Recupera tutte le ricompense reclamate per uno stake specifico
+    const result = await pool.query(
+      `SELECT * FROM staking_rewards 
+      WHERE "stakeId" = $1 AND claimed = true 
+      ORDER BY "rewardDate" DESC`,
+      [stakeId]
+    );
+    return result.rows;
   }
   
   async getActiveNftStakesByWallet(walletAddress: string): Promise<NftStake[]> {
-    return await db
-      .select()
-      .from(nftStakes)
-      .where(and(
-        eq(nftStakes.walletAddress, walletAddress),
-        eq(nftStakes.active, true)
-      ))
-      .orderBy(nftStakes.startTime);
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `SELECT * FROM nft_stakes 
+      WHERE LOWER(wallet_address) = LOWER($1) AND is_active = true 
+      ORDER BY staking_start_time DESC`,
+      [walletAddress]
+    );
+    return result.rows;
   }
   
   // NFT Traits operations
   async createNftTrait(trait: InsertNftTrait): Promise<NftTrait> {
-    const [newTrait] = await db.insert(nftTraits).values(trait).returning();
-    return newTrait;
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `INSERT INTO nft_traits 
+      (nft_id, trait_type, trait_value, reward_multiplier) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING *`,
+      [
+        trait.nftId,
+        trait.traitType,
+        trait.traitValue,
+        trait.rewardMultiplier || 1.0
+      ]
+    );
+    return result.rows[0];
   }
   
   async getNftTraitsByNftId(nftId: string): Promise<NftTrait[]> {
-    return await db
-      .select()
-      .from(nftTraits)
-      .where(eq(nftTraits.nftId, nftId));
+    // Usiamo una query SQL diretta con i nomi corretti delle colonne
+    const result = await pool.query(
+      `SELECT * FROM nft_traits WHERE nft_id = $1`,
+      [nftId]
+    );
+    return result.rows;
   }
 }
 

@@ -78,7 +78,15 @@ export function registerRoutes(app: Express): Server {
         const stakes = await storage.getNftStakesByWallet(normalizedAddress);
         
         // Trova lo stake specifico dell'NFT
-        const targetStake = stakes.find(stake => stake.nftId.includes(tokenId));
+        // I dati ritornati dal database hanno nomi di campo coerenti con il database
+        const targetStake = stakes.find(stake => {
+          // Dal momento che stiamo usando SQL diretto, i nomi dei campi sono quelli del database (snake_case)
+          // Quando usiamo TypeScript con ORM, i nomi sono in camelCase
+          // Controlliamo entrambi per sicurezza
+          return stake && 
+                 ((stake.nft_id && stake.nft_id.includes(tokenId)) || 
+                  (stake.nftId && stake.nftId.includes(tokenId)));
+        });
         
         if (!targetStake) {
           return res.status(404).json({
@@ -140,71 +148,73 @@ export function registerRoutes(app: Express): Server {
         });
       }
       
-      // CORREZIONE: Salva effettivamente i dati nel database PostgreSQL
-      try {
-        const { storage } = await import('./storage');
-        
-        // Determina il tier di rarità per il multiplier corretto
-        let rarityTier = 'standard';
-        if (rarityLevel) {
-          // Converti il rarityLevel in un formato compatibile con il database
-          if (rarityLevel.toLowerCase().includes('advanced')) rarityTier = 'advanced';
-          else if (rarityLevel.toLowerCase().includes('elite')) rarityTier = 'elite';
-          else if (rarityLevel.toLowerCase().includes('prototype')) rarityTier = 'prototype';
-        }
-        
-        // Crea un oggetto stake con i dati necessari
-        const stakeData = {
-          walletAddress: normalizedAddress,
-          nftId: `ETH_${tokenId}`,
-          rarityTier: rarityTier,
-          active: true
-        };
-        
-        console.log('🔄 Inserimento nel database:', stakeData);
-        
-        // Salva nel database PostgreSQL
-        const result = await storage.createNftStake(stakeData);
-        console.log('✅ Dati salvati nel database:', result);
-        
-        // Restituisci risposta di successo con i dati salvati
-        res.status(200).json({
-          success: true,
-          message: 'Staking registrato con successo nel database',
-          data: {
-            id: result.id,
-            tokenId,
-            address: normalizedAddress,
-            rarityLevel,
-            rarityTier,
-            dailyReward,
-            stakeDate: stakeDate || new Date().toISOString(),
-            createdAt: new Date().toISOString()
-          }
-        });
-      } catch (dbError: any) {
-        console.error('❌ Errore durante il salvataggio nel database:', dbError);
-        
-        // Anche se c'è un errore nel salvataggio, restituiamo comunque successo al client
-        // per mantenere la compatibilità, ma logghiamo l'errore per debug
-        res.status(200).json({
-          success: true,
-          message: 'Staking registrato (nota: errore di salvataggio nel database)',
-          data: {
-            tokenId,
-            address: normalizedAddress,
-            rarityLevel,
-            dailyReward,
-            stakeDate: stakeDate || new Date().toISOString(),
-            createdAt: new Date().toISOString()
-          }
-        });
+      // Determina il tier di rarità per il multiplier corretto
+      let rarityTier = 'standard';
+      if (rarityLevel) {
+        // Converti il rarityLevel in un formato compatibile con il database
+        if (rarityLevel.toLowerCase().includes('advanced')) rarityTier = 'advanced';
+        else if (rarityLevel.toLowerCase().includes('elite')) rarityTier = 'elite';
+        else if (rarityLevel.toLowerCase().includes('prototype')) rarityTier = 'prototype';
       }
+      
+      // Crea un oggetto stake con i dati necessari
+      const stakeData = {
+        walletAddress: normalizedAddress,
+        nftId: `ETH_${tokenId}`,
+        rarityTier: rarityTier,
+        active: true,
+        rarityMultiplier: rarityTier === 'standard' ? 1.0 : 
+                          rarityTier === 'advanced' ? 1.5 : 
+                          rarityTier === 'elite' ? 2.0 : 
+                          rarityTier === 'prototype' ? 2.5 : 1.0
+      };
+      
+      console.log('🔄 Inserimento nel database:', stakeData);
+      
+      // BYPASS COMPLETO: Usiamo direttamente un'interrogazione SQL per salvare nel database
+      const { pool } = await import('./db');
+      
+      // Utilizziamo una query SQL nativa con i nomi corretti delle colonne
+      const result = await pool.query(
+        `INSERT INTO nft_stakes 
+        (wallet_address, nft_id, rarity_tier, is_active, daily_reward_rate, staking_start_time) 
+        VALUES ($1, $2, $3, $4, $5, NOW()) 
+        RETURNING *`,
+        [
+          normalizedAddress, 
+          `ETH_${tokenId}`, 
+          rarityTier,
+          true,
+          dailyReward || 33.33
+        ]
+      );
+      
+      console.log('✅ Dati salvati nel database con SQL diretto:', result.rows[0]);
+      
+      // Restituisci risposta di successo con i dati salvati
+      res.status(200).json({
+        success: true,
+        message: 'Staking registrato con successo nel database',
+        data: {
+          id: result.rows[0].id,
+          tokenId,
+          address: normalizedAddress,
+          rarityLevel,
+          rarityTier,
+          dailyReward,
+          stakeDate: stakeDate || new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        }
+      });
     } catch (error: any) {
-      console.error('Errore durante lo staking:', error);
-      res.status(500).json({ 
+      console.error('❌ Errore durante lo staking:', error);
+      
+      // Restituisci errore al client quando il salvataggio fallisce
+      res.status(500).json({
         success: false,
-        error: 'Errore durante l\'operazione di staking'
+        error: 'Errore durante il salvataggio dello staking nel database',
+        message: `Database error: ${error.message || 'Unknown database error'}`,
+        details: error
       });
     }
   });

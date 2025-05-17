@@ -1,15 +1,16 @@
-import { Router } from 'express';
+import { Router, Express } from 'express';
+import { createServer, type Server } from 'http';
 import path from 'path';
-import fs from 'fs';
+import express from 'express';
+import stakingRoutes from './staking';
 
-const router = Router();
-
-// Importa il modulo staking dalla cartella rarita se esiste
-// Non utilizzare moduli dinamici per ora - utilizza il router integrato
-
-// Endpoint di base per lo staking (fallback)
-// Registra sia /stake che /staking/stake per compatibilità
-router.post('/stake', async (req, res) => {
+// Esporta la funzione registerRoutes usata in server/index.ts
+export function registerRoutes(app: Express): Server {
+  // Registra le routes di staking sotto /api/staking
+  app.use("/api/staking", stakingRoutes);
+  
+  // Endpoint diretto per lo staking (per compatibilità)
+  app.post("/api/stake", async (req, res) => {
   try {
     const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
     
@@ -40,36 +41,11 @@ router.post('/stake', async (req, res) => {
         createdAt: new Date().toISOString()
       }
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Errore durante lo staking:', error);
     res.status(500).json({ 
       success: false,
       error: 'Errore durante l\'operazione di staking'
-    });
-  }
-});
-
-// Endpoint per l'unstaking
-router.post('/unstake', async (req, res) => {
-  try {
-    const { tokenId, address, stakeId } = req.body;
-    console.log(`Richiesta di unstaking per NFT #${tokenId}, stakeId: ${stakeId}`);
-    
-    // Qui inserire la logica per l'unstaking (per ora è un mock)
-    res.status(200).json({
-      success: true,
-      message: 'NFT unstaked con successo',
-      data: {
-        tokenId,
-        address,
-        unstakeDate: new Date().toISOString()
-      }
-    });
-  } catch (error: any) {
-    console.error('Errore durante l\'unstaking:', error);
-    res.status(500).json({
-      success: false, 
-      error: 'Errore durante l\'operazione di unstaking'
     });
   }
 });

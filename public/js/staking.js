@@ -6,11 +6,38 @@
  * utilizzando il metodo di scansione diretta implementato in nftReader.js
  * con approccio balanceOf + ownerOf per massima compatibilità
  * 
- * Versione 1.2.0 - 2025-05-15
+ * Versione 1.3.0 - 2025-05-17
  * - Rimosso import ES6 per compatibilità cross-browser
  * - Utilizzo di funzioni globali da window (caricate da nftReader.js)
  * - Ottimizzazione per Render con hardcoded values
+ * - Migliorata gestione della risposta API da PostgreSQL
+ * - Risolti conflitti di funzione tra script multipli
+ * - Supporto per configurazione tramite window.STAKING_CONFIG
  */
+
+// Verifica se esiste già un oggetto di configurazione globale, altrimenti crea uno predefinito
+// Configurazione di default se non è già definita
+// Questa è la configurazione usata dalla versione unificata di staking.js
+window.STAKING_CONFIG = window.STAKING_CONFIG || {
+  apiEndpoint: '/api',
+  enableDebug: true,
+  usePatchedVersion: true,
+  forceApiForStakedNfts: true,
+  prioritizeApiStakingData: true,
+  useObsoleteEndpoint: false,
+  version: '1.3.0',
+  debug: false,
+  apiEndpoint: '/api',
+  usePatchedVersion: true,
+  logApi: false
+};
+
+// Imposta la funzione di log in base alla configurazione
+const logDebug = window.STAKING_CONFIG.debug 
+  ? function(...args) { console.log(...args); }
+  : function() {}; // No-op quando debug è false
+
+logDebug('🚀 IASE Staking Module v1.3.0 - Inizializzazione con configurazione:', window.STAKING_CONFIG);
 
 /**
  * Restituisce il valore fisso di reward giornaliero in base alla rarità
@@ -86,9 +113,28 @@ function setupWalletEvents() {
     const walletAddress = event.detail.address;
     console.log(`✅ Wallet connected: ${walletAddress} (${event.detail.shortAddress}, Chain: ${event.detail.chainId})`);
     
-    // Carica tutti gli NFT quando il wallet si connette
-    await loadStakedNfts(); // Prima carica gli NFT in staking
-    await loadAvailableNfts(); // Poi carica gli NFT disponibili
+    // Salva l'indirizzo del wallet in una variabile globale per operazioni future
+    window.currentWalletAddress = walletAddress;
+    
+    // Carica gli NFT in staking con un piccolo ritardo per evitare race conditions
+    setTimeout(async () => {
+      try {
+        console.log("🔄 Caricamento NFT in staking dopo connessione wallet...");
+        await loadStakedNfts();
+      } catch (err) {
+        console.error("Errore nel caricamento degli NFT in staking:", err);
+      }
+      
+      // Carica gli NFT disponibili solo dopo aver terminato il caricamento degli NFT in staking
+      setTimeout(async () => {
+        try {
+          console.log("🔄 Caricamento NFT disponibili dopo connessione wallet...");
+          await loadAvailableNfts();
+        } catch (err) {
+          console.error("Errore nel caricamento degli NFT disponibili:", err);
+        }
+      }, 1000);
+    }, 500);
   });
   
   // Evento: wallet disconnesso
@@ -97,21 +143,50 @@ function setupWalletEvents() {
     
     // Pulisci l'interfaccia quando il wallet si disconnette
     clearNftsUI();
+    
+    // Rimuovi l'indirizzo del wallet dalla memoria
+    window.currentWalletAddress = null;
   });
   
   // Evento per caricamento manuale NFT
-  window.addEventListener('manual:loadNFTs', async function() {
-    console.log('🔄 Manual NFT loading requested');
-    await loadStakedNfts(); // Prima carica gli NFT in staking
-    await loadAvailableNfts(); // Poi carica gli NFT disponibili
+  window.addEventListener('manual:loadNFTs', async function(event) {
+    console.log('🔄 Manual NFT loading requested', event.detail);
+    
+    // Se c'è un address specifico nell'evento, usalo
+    if (event.detail && event.detail.address) {
+      window.currentWalletAddress = event.detail.address;
+    }
+    
+    // Carica prima gli NFT in staking, poi quelli disponibili con un ritardo
+    setTimeout(async () => {
+      await loadStakedNfts();
+      
+      setTimeout(async () => {
+        await loadAvailableNfts();
+      }, 1000);
+    }, 500);
   });
 }
 
 /**
  * Carica gli NFT in staking per l'utente corrente
  * Questa funzione interroga il server per ottenere gli NFT attualmente in staking
+ * Versione 1.3.0 con gestione migliorata degli errori e supporto per vari formati di risposta API
  */
 async function loadStakedNfts() {
+  console.log('🔄 Avvio caricamento NFT in staking - versione unificata 1.3.0');
+  
+  // Verifico se la funzione è già definita da un altro script (evita sovrascritture)
+  if (window._stakingFunctionsInitialized && !window.STAKING_CONFIG.usePatchedVersion) {
+    console.log('⚠️ Funzione loadStakedNfts già definita, sto usando quella esistente');
+    if (typeof window._originalLoadStakedNfts === 'function') {
+      return window._originalLoadStakedNfts();
+    }
+    return;
+  }
+  
+  // Salva la funzione come inizializzata
+  window._stakingFunctionsInitialized = true;
   try {
     // Ottieni elemento container
     const container = domElements.stakedNftsContainer;
@@ -127,7 +202,16 @@ async function loadStakedNfts() {
     showLoader(container, 'Loading staked NFTs...');
     
     // Ottieni l'indirizzo del wallet connesso da varie fonti possibili
-    const walletAddress = window.ethereum?.selectedAddress || window.userWalletAddress || window.currentWalletAddress;
+    // Ordine di priorità: window.currentWalletAddress > window.ethereum?.selectedAddress > window.userWalletAddress
+    const walletAddress = window.currentWalletAddress || window.ethereum?.selectedAddress || window.userWalletAddress;
+    
+    console.log('🔑 Verifico indirizzo wallet:', {
+      currentWalletAddress: window.currentWalletAddress,
+      ethereumSelected: window.ethereum?.selectedAddress,
+      userWalletAddress: window.userWalletAddress,
+      finalAddress: walletAddress
+    });
+    
     if (!walletAddress) {
       console.error('❌ No wallet address available');
       container.innerHTML = `
@@ -139,32 +223,86 @@ async function loadStakedNfts() {
     }
     
     console.log(`🔄 Caricamento NFT in staking per wallet: ${walletAddress}`);
-    console.log(`📝 Indirizzo wallet pulito per API: ${walletAddress}`);
     
+    let data;
     try {
-      // Prima proviamo con GET
-      const url = `/api/by-wallet/${walletAddress}`;
-      console.log(`🌐 Calling API: ${url}`);
-      const response = await fetch(url);
+      // Prepara l'indirizzo del wallet nel formato corretto per l'API
+      const formattedAddress = walletAddress.toLowerCase();
+      console.log(`🔍 Verifico NFT in staking per wallet: ${formattedAddress}`);
       
-      // Se la risposta non è ok, proviamo con POST
-      if (!response.ok) {
-        console.log('⚠️ GET request failed, trying POST to /api/get-staked-nfts');
-        const postResponse = await fetch('/api/get-staked-nfts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress })
-        });
-        
-        if (!postResponse.ok) {
-          throw new Error(`API error: ${postResponse.status} ${postResponse.statusText}`);
+      // Prova diversi endpoint per massima compatibilità
+      let response = null;
+      let data = null;
+      let endpoints = [
+        `/api/by-wallet/${formattedAddress}`,
+        `/api/stakes/by-wallet/${formattedAddress}`,
+        `/api/stakes?wallet=${formattedAddress}`,
+        `/by-wallet/${formattedAddress}`
+      ];
+      
+      // Tenta ogni endpoint finché uno non ha successo
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`🔄 Tentativo endpoint GET: ${endpoint}`);
+          response = await fetch(endpoint);
+          if (response.ok) {
+            data = await response.json();
+            console.log(`✅ Endpoint ${endpoint} ha risposto con successo`, data);
+            break; // Esci dal ciclo se un endpoint ha successo
+          } else {
+            console.log(`⚠️ Endpoint ${endpoint} ha risposto con stato: ${response.status}`);
+          }
+        } catch (err) {
+          console.log(`⚠️ Errore con endpoint ${endpoint}:`, err.message);
         }
-        
-        return processStakedNfts(await postResponse.json(), container);
       }
       
-      // Elabora la risposta GET
-      return processStakedNfts(await response.json(), container);
+      // Se nessun endpoint GET ha funzionato, proviamo POST
+      if (!data) {
+        try {
+          console.log('⚠️ Tutti i tentativi GET falliti, provo con POST a /api/get-staked-nfts');
+          
+          const postResponse = await fetch('/api/get-staked-nfts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              walletAddress: formattedAddress, 
+              address: formattedAddress 
+            })
+          });
+          
+          if (postResponse.ok) {
+            data = await postResponse.json();
+            console.log('📦 Dati ricevuti da POST:', data);
+          } else {
+            console.log(`⚠️ Anche POST fallito con stato: ${postResponse.status}`);
+          }
+        } catch (postErr) {
+          console.log('⚠️ Errore con richiesta POST:', postErr.message);
+        }
+      }
+      
+      // Se non abbiamo dati anche dopo tutti i tentativi, creiamo un oggetto vuoto
+      if (!data) {
+        console.log('⚠️ Nessuna risposta valida da alcun endpoint, uso oggetto vuoto');
+        data = { stakes: [] };
+      }
+      
+      // Salva i dati in window per debug e per riferimento futuro
+      window.stakedNftsData = data;
+      
+      // Se siamo arrivati qui, abbiamo ottenuto dei dati da elaborare
+      // Verifica che i dati siano nel formato corretto
+      if (!data) {
+        console.warn('⚠️ Dati mancanti dalla risposta API');
+        data = { stakes: [] };
+      } else if (!Array.isArray(data) && !data.stakes) {
+        console.warn('⚠️ Formato dati non riconosciuto:', data);
+        data = { stakes: [] };
+      }
+      
+      // Ora elabora i dati attraverso il processore
+      processStakedNfts(data, container);
       
     } catch (error) {
       console.error('❌ API fetch error:', error);
@@ -173,6 +311,7 @@ async function loadStakedNfts() {
           <i class="ri-error-warning-line"></i>
           <h3>Error loading staked NFTs</h3>
           <p>Could not connect to the server. Please try again later.</p>
+          <p class="error-details">${error.message}</p>
         </div>`;
     }
   } catch (error) {
@@ -196,10 +335,42 @@ async function loadStakedNfts() {
  * @param {HTMLElement} container - Container dove mostrare gli NFT
  */
 function processStakedNfts(data, container) {
-  console.log('📊 Processing staked NFTs data:', data);
+  logDebug('📊 Elaborazione dati degli NFT in staking:', data);
+  
+  // Controllo extra per assicurarsi che il container esista ancora
+  if (!container || !container.parentNode) {
+    console.error('❌ Container è stato rimosso nel frattempo');
+    return;
+  }
   
   // Estrai gli NFT in staking dalla struttura di risposta
-  const stakedNfts = data.stakes || [];
+  // Ora gestiamo sia {stakes: [...]} che [...] come formato valido
+  let stakedNfts = [];
+  
+  if (Array.isArray(data)) {
+    // Caso 1: risposta diretta come array
+    stakedNfts = data;
+  } else if (data && typeof data === 'object') {
+    // Caso 2: risposta in formato {stakes: [...]}
+    stakedNfts = data.stakes || [];
+  }
+  
+  // Salva gli NFT in staking nel global scope per riferimento futuro
+  window.currentStakedNfts = stakedNfts;
+  
+  logDebug('🧾 NFT in staking trovati:', stakedNfts.length);
+  
+  // Estrai gli ID degli NFT in staking per usi futuri (filtro, ecc.)
+  const stakedIds = stakedNfts.map(nft => {
+    if (nft.nft_id) {
+      const parts = nft.nft_id.split('_');
+      return parts.length > 1 ? parts[1] : nft.nft_id;
+    }
+    return nft.token_id || nft.tokenId || nft.id;
+  }).filter(id => id);
+  
+  // Salva gli ID nel global scope per riferimento futuro
+  window.stakedNftIds = stakedIds || [];
   
   // Se non ci sono NFT in staking, mostra un messaggio
   if (!stakedNfts || !stakedNfts.length) {
@@ -214,35 +385,58 @@ function processStakedNfts(data, container) {
   }
   
   // Pulisci container e renderizza gli NFT trovati
-  console.log(`✅ Staked NFTs found: ${stakedNfts.length}`);
+  console.log(`✅ Staked NFTs trovati: ${stakedNfts.length}`);
   container.innerHTML = '';
   
   // Renderizza gli NFT in staking
+  let counter = 0;
   for (const nft of stakedNfts) {
     try {
       // Debug per vedere il formato esatto dei dati ricevuti
-      console.log('Dati NFT ricevuti:', nft);
+      console.log(`📋 Dati NFT #${counter+1}:`, nft);
       
       // Estrai i dati dall'NFT in staking
       let tokenId = '';
       if (nft.nft_id) {
-        const parts = nft.nft_id.split('_');
-        tokenId = parts.length > 1 ? parts[1] : nft.nft_id;
+        // Rimuovi lo spazio bianco e poi estrai l'ID
+        const cleanNftId = nft.nft_id.trim();
+        const parts = cleanNftId.split('_');
+        tokenId = parts.length > 1 ? parts[1] : cleanNftId;
+        
+        // Se il tokenId è ancora vuoto o non è numerico, proviamo altre proprietà
+        if (!tokenId || isNaN(parseInt(tokenId))) {
+          // Opzioni di fallback
+          tokenId = nft.token_id || nft.tokenId || nft.id || '0000';
+        }
+      } else if (nft.token_id) {
+        tokenId = nft.token_id;
+      } else if (nft.tokenId) {
+        tokenId = nft.tokenId;
+      } else if (nft.id && typeof nft.id === 'string' && nft.id.includes('_')) {
+        const parts = nft.id.split('_');
+        tokenId = parts[1] || nft.id;
+      } else {
+        tokenId = nft.id || '0000';
       }
-      const rarityTier = nft.rarity_tier || 'Standard';
-      const dailyRewardRate = nft.daily_reward_rate || 33.33;
+      
+      // Pulisci il tokenId rimuovendo caratteri non numerici
+      tokenId = tokenId.toString().replace(/[^0-9]/g, '');
+      
+      // Verifica dei valori di rarità e rewards
+      const rarityTier = nft.rarity_tier || nft.rarity || 'Standard';
+      const dailyRewardRate = nft.daily_reward_rate || nft.dailyReward || getFixedDailyReward(rarityTier);
       
       // Prepara i metadati dell'NFT usando i dati dal database
       let metadata = {
         id: tokenId,
         image: `https://iaseproject.com/assets/img/nft/${tokenId}.png`,
         rarity: rarityTier,
-        'AI-Booster': 'X1.0',
+        'AI-Booster': 'X1.5',
         dailyReward: dailyRewardRate
       };
       
       // Stampa i dati dell'NFT per debug
-      console.log("NFT in staking:", {
+      console.log("🎯 NFT in staking elaborato:", {
         tokenId: metadata.id,
         rarity: metadata.rarity,
         dailyReward: metadata.dailyReward
@@ -314,7 +508,7 @@ function processStakedNfts(data, container) {
           }
         </style>
         <div class="nft-image">
-          <img src="${metadata.image}" alt="NFT #${metadata.id}" loading="lazy">
+          <img src="${metadata.image}" alt="NFT #${metadata.id}" loading="lazy" onerror="this.src='https://iaseproject.com/assets/img/nft/default.png';">
         </div>
         <div class="nft-details">
           <h3 class="nft-title">NFT #${metadata.id}</h3>
@@ -344,6 +538,7 @@ function processStakedNfts(data, container) {
       
       // Aggiungi la card al container
       container.appendChild(nftCard);
+      counter++;
     } catch (error) {
       console.error(`❌ Error rendering staked NFT:`, error);
     }
@@ -353,6 +548,8 @@ function processStakedNfts(data, container) {
   if (typeof updateNFTCounter === 'function') {
     updateNFTCounter();
   }
+  
+  console.log(`✅ Completato rendering di ${counter} NFT in staking`);
 }
 
 /**
@@ -534,11 +731,13 @@ async function loadAvailableNfts() {
     // Mostra loader durante il caricamento
     showLoader(container, 'Loading available NFTs...');
     
-    // Prima otteniamo gli NFT già in staking per evitare di mostrarli come disponibili
+    // Otteniamo gli NFT in staking sia dal DOM che dall'API per un filtro più affidabile
     console.log('🔍 Verifica NFT già in staking per evitare duplicati...');
     let stakedNftIds = [];
+    
+    // METODO 1: Ottieni gli NFT in staking dal DOM (metodo originale)
     try {
-      // Preleva gli ID degli NFT già in staking
+      // Preleva gli ID degli NFT già in staking dal DOM
       const stakedContainer = domElements.stakedNftsContainer;
       if (stakedContainer) {
         const stakedCards = stakedContainer.querySelectorAll('.nft-card');
@@ -547,10 +746,112 @@ async function loadAvailableNfts() {
           return idBtn ? idBtn.getAttribute('data-nft-id') : null;
         }).filter(id => id !== null);
       }
-      console.log(`✅ Trovati ${stakedNftIds.length} NFT già in staking: ${stakedNftIds.join(', ')}`);
+      console.log(`✅ Trovati ${stakedNftIds.length} NFT in staking dal DOM: ${stakedNftIds.join(', ')}`);
     } catch (error) {
-      console.error('❌ Errore durante il controllo degli NFT in staking:', error);
+      console.error('❌ Errore durante il controllo degli NFT in staking dal DOM:', error);
     }
+    
+    // METODO 2: Otteniamo direttamente gli NFT in staking tramite API (più affidabile)
+    // O utilizziamo i dati già caricati in precedenza nel window object
+    try {
+      // Controlla se abbiamo già dati in window.stakedNftsData
+      if (window.stakedNftsData) {
+        console.log('🔍 Utilizzando dati NFT in staking già caricati da window.stakedNftsData');
+        
+        const apiStakedNfts = Array.isArray(window.stakedNftsData) 
+          ? window.stakedNftsData 
+          : (window.stakedNftsData.stakes || []);
+        
+        // Estrai gli ID dal formato nft_id o tokenId
+        const apiStakedIds = apiStakedNfts.map(nft => {
+          if (nft.nft_id) {
+            const parts = nft.nft_id.split('_');
+            return parts.length > 1 ? parts[1] : nft.nft_id;
+          }
+          return nft.token_id || nft.tokenId || nft.id;
+        }).filter(id => id);
+        
+        // Aggiungi gli ID trovati all'array principale senza duplicati
+        apiStakedIds.forEach(id => {
+          if (!stakedNftIds.includes(id)) {
+            stakedNftIds.push(id);
+          }
+        });
+        
+        console.log(`✅ Trovati ${apiStakedIds.length} NFT in staking dai dati precaricati: ${apiStakedIds.join(', ')}`);
+      }
+      // Se non abbiamo dati precaricati, facciamo una chiamata API
+      else {
+        // Ottieni l'indirizzo del wallet connesso
+        const walletAddress = window.currentWalletAddress || window.ethereum?.selectedAddress || window.userWalletAddress;
+        if (walletAddress) {
+          // Prepara l'indirizzo del wallet nel formato corretto per l'API
+          const formattedAddress = walletAddress.toLowerCase();
+          console.log(`🔍 Verifico NFT in staking per wallet: ${formattedAddress}`);
+          
+          // Prova diversi endpoint per massima compatibilità
+          let response = null;
+          let data = null;
+          let endpoints = [
+            `/api/by-wallet/${formattedAddress}`,
+            `/api/stakes/by-wallet/${formattedAddress}`,
+            `/api/stakes?wallet=${formattedAddress}`,
+            `/by-wallet/${formattedAddress}`
+          ];
+        
+          // Tenta ogni endpoint finché uno non ha successo
+          for (const endpoint of endpoints) {
+            try {
+              console.log(`🔄 Tentativo endpoint: ${endpoint}`);
+              response = await fetch(endpoint);
+              if (response.ok) {
+                data = await response.json();
+                console.log(`✅ Endpoint ${endpoint} ha risposto con successo`, data);
+                break; // Esci dal ciclo se un endpoint ha successo
+              } else {
+                console.log(`⚠️ Endpoint ${endpoint} ha risposto con stato: ${response.status}`);
+              }
+            } catch (err) {
+              console.log(`⚠️ Errore con endpoint ${endpoint}:`, err.message);
+            }
+          }
+        
+          if (data) {
+            // Salviamo i dati nel window object per riferimenti futuri
+            window.stakedNftsData = data;
+            
+            const apiStakedNfts = Array.isArray(data) ? data : (data.stakes || []);
+            
+            // Estrai gli ID dal formato nft_id o tokenId
+            const apiStakedIds = apiStakedNfts.map(nft => {
+              if (nft.nft_id) {
+                const parts = nft.nft_id.split('_');
+                return parts.length > 1 ? parts[1] : nft.nft_id;
+              }
+              return nft.token_id || nft.tokenId || nft.id;
+            }).filter(id => id);
+            
+            // Aggiungi gli ID trovati all'array principale senza duplicati
+            apiStakedIds.forEach(id => {
+              if (!stakedNftIds.includes(id)) {
+                stakedNftIds.push(id);
+              }
+            });
+            
+            console.log(`✅ Trovati ${apiStakedIds.length} NFT in staking dall'API: ${apiStakedIds.join(', ')}`);
+          } else {
+            console.log(`⚠️ Nessun dato ricevuto dall'API per il wallet: ${formattedAddress}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Errore durante il controllo degli NFT in staking dall\'API:', error);
+    }
+    
+    console.log(`✅ Totale NFT in staking identificati: ${stakedNftIds.length}`);
+    
+    // Salva gli ID nel global scope per riferimento futuro
+    window.stakedNftIds = stakedNftIds;
     
     // Carica gli NFT con getUserNFTs() da nftReader.js
     // Utilizzerà il metodo di scansione diretta con balanceOf + ownerOf
@@ -980,9 +1281,11 @@ function openStakeModal(tokenId) {
   // ...
 }
 
-// Esporta le funzioni per utilizzo esterno
-export { 
+// Rendi disponibili le funzioni nel global window scope
+window.stakingFunctions = {
   loadAvailableNfts, 
   clearNftsUI,
-  showLoader
+  showLoader,
+  loadStakedNfts,
+  processStakedNfts
 };

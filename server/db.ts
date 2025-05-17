@@ -14,8 +14,8 @@ const sslConfig = isProduction ? { rejectUnauthorized: false } : false;
 
 // PostgreSQL connection configuration
 const pgConfig = {
-  // Use DATABASE_URL if specified, otherwise configure for Render internal
-  connectionString: process.env.DATABASE_URL || "postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a/iaseproject",
+  // Use DATABASE_URL from environment variable
+  connectionString: process.env.DATABASE_URL,
   // Connection settings
   max: 20, // maximum number of clients in the pool
   idleTimeoutMillis: 30000, // maximum idle time
@@ -25,7 +25,8 @@ const pgConfig = {
 
 // Check for DATABASE_URL environment variable
 if (!process.env.DATABASE_URL) {
-  console.warn("⚠️ DATABASE_URL not set - using internal configuration");
+  console.error("❌ DATABASE_URL not set - database connections will fail");
+  throw new Error("DATABASE_URL is required for the application to function");
 }
 
 // Initialize PostgreSQL connection pool

@@ -10,6 +10,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { registerRoutes } from './routes-loader.js';
 
 // Fix per __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +19,7 @@ const __dirname = path.dirname(__filename);
 // Configurazione server
 const app = express();
 const PORT = process.env.PORT || 3000;
+registerRoutes(app);
 
 // Configurazione database
 const pg_config = {

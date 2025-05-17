@@ -698,15 +698,17 @@ async function unstakeNFT(e) {
     }
     
     // Chiama l'API per lo unstaking
-    const apiBase = STAKING_API_ENDPOINT.endsWith('/api') ? STAKING_API_ENDPOINT : `${STAKING_API_ENDPOINT}/api`;
-    const response = await fetch(`${apiBase}/unstake`, {
+    console.log(`🔄 Chiamata API per unstake di NFT #${tokenId} per wallet ${walletAddress}`);
+    
+    // Usa l'endpoint corretto che salva nel database PostgreSQL
+    const response = await fetch(`/api/unstake`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         tokenId,
-        walletAddress
+        address: walletAddress // chiave consistente con l'API
       })
     });
     
@@ -1390,10 +1392,101 @@ async function tryFallbackNftLoading() {
 }
 
 // Funzioni ausiliarie
-function openStakeModal(tokenId) {
-  // Implementazione apertura modal di staking
+/**
+ * Apre il modal di staking e gestisce il processo di staking dell'NFT
+ * @param {string} tokenId - ID dell'NFT da mettere in staking
+ */
+async function openStakeModal(tokenId) {
   console.log(`🔄 Apertura modal staking per NFT #${tokenId}`);
-  // ...
+  
+  // Recupera i metadati dell'NFT per ottenere la rarità
+  const metadata = await getNFTMetadata(tokenId);
+  if (!metadata) {
+    alert('Could not retrieve NFT metadata. Please try again.');
+    return;
+  }
+  
+  // Calcola il daily reward basato sulla rarità
+  const dailyReward = getDailyReward(metadata);
+  
+  try {
+    // Chiedi conferma all'utente
+    const confirmed = confirm(`
+      Do you want to stake IASE Unit #${tokenId}?
+      
+      Rarity: ${metadata.rarity || 'Standard'}
+      Daily Reward: ${dailyReward} IASE tokens
+      
+      After staking, you'll need to wait at least 24 hours before claiming rewards.
+    `);
+    
+    if (!confirmed) {
+      console.log('User cancelled staking operation');
+      return;
+    }
+    
+    // Ottieni l'indirizzo del wallet corrente
+    const walletAddress = window.ethereum?.selectedAddress;
+    if (!walletAddress) {
+      alert('No wallet connected. Please connect your wallet first.');
+      return;
+    }
+    
+    // Mostra un indicatore di caricamento
+    const container = domElements.availableNftsContainer;
+    if (container) {
+      showLoader(container, 'Processing your staking request...');
+    }
+    
+    console.log(`📤 Inviando richiesta di staking per NFT #${tokenId}...`);
+    
+    // Prepara i dati da inviare
+    const stakeData = {
+      tokenId: tokenId,
+      address: walletAddress,
+      rarityLevel: metadata.rarity || 'Standard',
+      dailyReward: dailyReward,
+      stakeDate: new Date().toISOString()
+    };
+    
+    // Invia i dati al server tramite API
+    const response = await fetch('/api/stake', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(stakeData)
+    });
+    
+    // Verifica la risposta
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ Staking completato con successo:', result);
+      
+      // Mostra messaggio di successo
+      alert(`Successfully staked NFT #${tokenId}!`);
+      
+      // Aggiorna l'UI - ricarica sia gli NFT in staking che quelli disponibili
+      // con un leggero ritardo per dare tempo al server di aggiornare i dati
+      setTimeout(() => {
+        loadStakedNfts(); // Ricarica gli NFT in staking
+        loadAvailableNfts(); // Ricarica gli NFT disponibili
+      }, 2000);
+    } else {
+      throw new Error(result.error || 'Unknown error occurred during staking');
+    }
+  } catch (error) {
+    console.error('❌ Errore durante lo staking:', error);
+    alert(`Failed to stake NFT: ${error.message}`);
+    
+    // Ripristina l'UI
+    loadAvailableNfts();
+  }
 }
 
 // Rendi disponibili le funzioni nel global window scope

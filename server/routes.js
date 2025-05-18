@@ -328,7 +328,7 @@ export function registerRoutes(app) {
 
 	// Crea il server HTTP e restituiscilo
 	const httpServer = createServer(app);
-	export default httpServer;
+	return httpServer;
 }
 
 

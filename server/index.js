@@ -1,12 +1,12 @@
 import { Router, Express } from 'express';
-import { createServer, Server } from 'http';
+import { createServer, type Server } from 'http';
 import path from 'path';
 import express from 'express';
-import { stakingRoutes } from './server/routes.js';
+import { stakingRoutes } from './dist/routes.js';
 
 
 // Esporta la funzione registerRoutes usata in server/index.ts
-export function registerRoutes(app) {
+export function registerRoutes(app: Express): Server {
   // Registra le routes di staking sotto /api/staking
   app.use("/api/staking", stakingRoutes);
   
@@ -24,28 +24,28 @@ export function registerRoutes(app) {
     // Se abbiamo parametri mancanti, restituisci errore
     if (!tokenId || !address) {
       return res.status(400).json({ 
-        success,
+        success: false,
         error: 'Parametri mancanti. tokenId e address sono richiesti.'
       });
     }
     
     // Restituisci risposta di successo
     res.status(200).json({
-      success,
+      success: true,
       message: 'Staking registrato con successo',
       data: {
         tokenId,
-        address,
+        address: normalizedAddress,
         rarityLevel,
         dailyReward,
-        stakeDate || new Date().toISOString(),
-        createdAt Date().toISOString()
+        stakeDate: stakeDate || new Date().toISOString(),
+        createdAt: new Date().toISOString()
       }
     });
   } catch (error) {
     console.error('Errore durante lo staking:', error);
     res.status(500).json({ 
-      success,
+      success: false,
       error: 'Errore durante l\'operazione di staking'
     });
   }

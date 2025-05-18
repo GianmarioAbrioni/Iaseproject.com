@@ -184,19 +184,16 @@ app.get('*', (req, res) => {
 
 // Importa direttamente il server già pronto da routes.js
 import('./server/routes.js')
-  .then(module => {
+  .then((module) => {
     console.log('✅ Logica avanzata server caricata da server/routes.js');
 
-    // Verifica se il modulo esporta direttamente il server HTTP
-    const httpServer = module.default;
-
-    if (!httpServer || typeof httpServer.listen !== 'function') {
-      throw new Error('❌ Il modulo routes.js non ha restituito un httpServer valido');
+    if (typeof module.registerRoutes === 'function') {
+      module.registerRoutes(app); // Registra tutte le rotte sull'app Express
+    } else {
+      throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
 
-    // Avvia il server direttamente
-    const PORT = process.env.PORT || 3000;
-    httpServer.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
       console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
       console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);

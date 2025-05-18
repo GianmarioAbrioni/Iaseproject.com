@@ -4,12 +4,6 @@ import path from 'path';
 import express from 'express';
 import { registerRoutes } from './dist/routes.js';
 
-export function registerRoutesWrapper(app: Express): Server {
-  // Registra tutte le rotte, middleware e endpoint da routes.ts
-  registerRoutes(app);
-
-  return createServer(app);
-}
 
 // Esporta la funzione registerRoutes usata in server/index.ts
 export function registerRoutes(app: Express): Server {

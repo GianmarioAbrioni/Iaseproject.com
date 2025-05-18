@@ -2,7 +2,7 @@ const { Router } = require('express');
 const { createServer } = require('http');
 const path = require('path');
 const express = require('express');
-const { registerRoutes } = require('./dist/routes.js');
+const { registerRoutes } = require('./server/routes.js');
 
 exports.registerRoutesWrapper = function registerRoutesWrapper(app) {
   // Registra tutte le rotte, middleware e endpoint da routes.ts

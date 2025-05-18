@@ -56,5 +56,6 @@ export function registerRoutes(app: Express): Server {
     });
   }
 });
+}
 
 export default router;

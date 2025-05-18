@@ -11,6 +11,7 @@ import bodyParser from 'body-parser';
  * @returns L'HTTP server
  */
 export function registerRoutes(app: Express): Server {
+console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione rotte');
   // Assicurati che Express possa analizzare correttamente i JSON e form data
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));

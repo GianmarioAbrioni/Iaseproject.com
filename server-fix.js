@@ -182,22 +182,26 @@ app.get('*', (req, res) => {
   }
 });
 
-// Importa e avvia la logica avanzata server da TypeScript compilato
-import('./server/index.js')
+// Importa direttamente il server già pronto da routes.js
+import('./server/routes.js')
   .then(module => {
-    console.log('✅ Logica avanzata server caricata da server/index.js');
+    console.log('✅ Logica avanzata server caricata da server/routes.js');
 
-    if (typeof module.default === 'function') {
-      module.default(app); // Passa l'app Express già configurata
+    // Verifica se il modulo esporta direttamente il server HTTP
+    const httpServer = module.default;
+
+    if (!httpServer || typeof httpServer.listen !== 'function') {
+      throw new Error('❌ Il modulo routes.js non ha restituito un httpServer valido');
     }
 
-    // Avvia server SOLO dopo il caricamento riuscito
-    app.listen(PORT, '0.0.0.0', () => {
+    // Avvia il server direttamente
+    const PORT = process.env.PORT || 3000;
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
       console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
       console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
     });
   })
   .catch(err => {
-    console.error('❌ Errore nel caricamento di server/index.js:', err);
+    console.error('❌ Errore nel caricamento di server/routes.js:', err);
   });

@@ -2,14 +2,8 @@ import { Router, Express } from 'express';
 import { createServer, Server } from 'http';
 import path from 'path';
 import express from 'express';
-import { registerRoutes } from './server/routes.js';
+import { stakingRoutes } from './server/routes.js';
 
-export function registerRoutesWrapper(app) {
-  // Registra tutte le rotte, middleware e endpoint da routes.ts
-  registerRoutes(app);
-
-  return createServer(app);
-}
 
 // Esporta la funzione registerRoutes usata in server/index.ts
 export function registerRoutes(app) {

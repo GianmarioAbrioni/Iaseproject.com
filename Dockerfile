@@ -9,10 +9,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
+
 # Copia il codice sorgente
 COPY . .
 
-RUN npm run build:stacking
 
 # Imposta variabili d'ambiente
 ENV NODE_ENV=production

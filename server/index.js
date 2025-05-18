@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { createServer } from 'http';
 import path from 'path';
 import express from 'express';
-import { stakingRoutes } from './routes.js'; // Assuming .js extension for ES modules
+import stakingRoutes from './routes.js'; // Assuming .js extension for ES modules
 
 // Esporta la funzione registerRoutes usata in server/index.ts
 export function registerRoutes(app) {

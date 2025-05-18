@@ -1,20 +1,20 @@
-const express = require('express');
-const { createServer } = require('http');
-const path = require('path');
-const claimRouter = require('./routes/claim');
-const bodyParser = require('body-parser');
+import express, { type Express } from 'express';
+import { createServer, type Server } from 'http';
+import path from 'path';
+import claimRouter from './server/routes/claim.js';
+import bodyParser from 'body-parser';
 
 /**
  * Registra tutte le rotte necessarie per l'API
- * Importante: Per deployment su Render, le rotte sono implementate direttamente qui
- * @param {object} app L'applicazione Express
- * @returns {object} L'HTTP server
+ * Importante deployment su Render, le rotte sono implementate direttamente qui
+ * @param app L'applicazione Express
+ * @returns L'HTTP server
  */
-exports.registerRoutes = async function registerRoutes(app) {
+export function registerRoutes(app) {
 console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione rotte');
   // Assicurati che Express possa analizzare correttamente i JSON e form data
   app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(bodyParser.urlencoded({ extended }));
   
   // Configura CORS per permettere richieste da tutti i domini
   app.use((req, res, next) => {
@@ -30,12 +30,12 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
     next();
   });
   
-  // IMPORTANTE: Registra le rotte esattamente come nel client
+  // IMPORTANTE le rotte esattamente come nel client
   // Registra la route /api/claim
   app.use('/api/claim', claimRouter);
   
   // IMPLEMENTAZIONE DIRETTA DELLE API NECESSARIE PER LO STAKING
-  // Nota: Utilizziamo un approccio diretto (senza router) per evitare problemi con i path
+  // Nota un approccio diretto (senza router) per evitare problemi con i path
   // 1. API per lo staking - /api/stake
   app.post('/api/stake', async (req, res) => {
     try {
@@ -50,7 +50,7 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
       // Se abbiamo parametri mancanti, restituisci errore
       if (!tokenId || !address) {
         return res.status(400).json({ 
-          success: false,
+          success,
           error: 'Parametri mancanti. tokenId e address sono richiesti.'
         });
       }
@@ -66,19 +66,16 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
       
       // Crea un oggetto stake con i dati necessari
       const stakeData = {
-        walletAddress: normalizedAddress,
+        walletAddress,
         nftId: `ETH_${tokenId}`,
-        rarityTier: rarityTier,
-        active: true,
-        rarityMultiplier: rarityTier === 'standard' ? 1.0 : 
-                          rarityTier === 'advanced' ? 1.5 : 
-                          rarityTier === 'elite' ? 2.0 : 
-                          rarityTier === 'prototype' ? 2.5 : 1.0
+        rarityTier,
+        active,
+        rarityMultiplier === 'standard' ? 1.0  === 'advanced' ? 1.5  === 'elite' ? 2.0  === 'prototype' ? 2.5 .0
       };
       
       console.log('🔄 Inserimento nel database:', stakeData);
       
-      // BYPASS COMPLETO: Usiamo direttamente un'interrogazione SQL per salvare nel database
+      // BYPASS COMPLETO direttamente un'interrogazione SQL per salvare nel database
       const { pool } = await import('./db');
       
       // Utilizziamo una query SQL nativa con i nomi corretti delle colonne
@@ -100,17 +97,17 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
       
       // Restituisci risposta di successo con i dati salvati
       res.status(200).json({
-        success: true,
+        success,
         message: 'Staking registrato con successo nel database',
         data: {
-          id: result.rows[0].id,
+          id.rows[0].id,
           tokenId,
-          address: normalizedAddress,
+          address,
           rarityLevel,
           rarityTier,
           dailyReward,
-          stakeDate: stakeDate || new Date().toISOString(),
-          createdAt: new Date().toISOString()
+          stakeDate || new Date().toISOString(),
+          createdAt Date().toISOString()
         }
       });
     } catch (error) {
@@ -118,10 +115,10 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
       
       // Restituisci errore al client quando il salvataggio fallisce
       res.status(500).json({
-        success: false,
+        success,
         error: 'Errore durante il salvataggio dello staking nel database',
-        message: `Database error: ${error.message || 'Unknown database error'}`,
-        details: error
+        message: `Database error: ${(error as Error).message || 'Unknown database error'}`,
+        details
       });
     }
   });
@@ -140,7 +137,7 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
       // Se abbiamo parametri mancanti, restituisci errore
       if (!tokenId || !address) {
         return res.status(400).json({ 
-          success: false,
+          success,
           error: 'Parametri mancanti. tokenId e address sono richiesti.'
         });
       }
@@ -156,15 +153,14 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
         // I dati ritornati dal database hanno nomi di campo coerenti con il database
         const targetStake = stakes.find(stake => {
           // Utilizziamo la sintassi con indice per permettere l'accesso a proprietà dinamiche
-          // In JavaScript, non è necessaria l'asserzione di tipo 'as any'
           return stake && 
-                 ((stake['nft_id'] && stake['nft_id'].includes(tokenId)) || 
+                 (((stake as any)['nft_id'] && (stake as any)['nft_id'].includes(tokenId)) || 
                   (stake.nftId && stake.nftId.includes(tokenId)));
         });
         
         if (!targetStake) {
           return res.status(404).json({
-            success: false,
+            success,
             error: `Nessuno stake trovato per NFT #${tokenId}`
           });
         }
@@ -176,13 +172,13 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
         
         // Restituisci risposta di successo
         return res.status(200).json({
-          success: true,
+          success,
           message: 'NFT unstaked con successo',
           data: {
-            id: targetStake.id,
+            id.id,
             tokenId,
-            address: normalizedAddress,
-            unstakeDate: new Date().toISOString()
+            address,
+            unstakeDate Date().toISOString()
           }
         });
       } catch (dbError) {
@@ -190,33 +186,33 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
         
         // Restituisci errore
         return res.status(500).json({
-          success: false,
+          success,
           error: 'Errore durante l\'operazione di unstake',
-          details: dbError.message
+          details.message
         });
       }
     } catch (error) {
       console.error('Errore durante l\'unstaking:', error);
       res.status(500).json({ 
-        success: false,
+        success,
         error: 'Errore durante l\'operazione di unstaking'
       });
     }
   });
   
-  // 3. API per ottenere gli NFT in staking - /api/by-wallet/:address
-  app.get('/api/by-wallet/:address', async (req, res) => {
+  // 3. API per ottenere gli NFT in staking - /api/by-wallet/
+  app.get('/api/by-wallet/', async (req, res) => {
     try {
       // Ottieni l'indirizzo dal parametro
       const walletAddress = req.params.address.toLowerCase();
-      console.log(`Endpoint personalizzato: Chiamata a /api/by-wallet/${walletAddress}`);
+      console.log(`Endpoint personalizzato a /api/by-wallet/${walletAddress}`);
       
       // Cerca gli stake nel database
       const { storage } = await import('./storage');
       const stakes = await storage.getNftStakesByWallet(walletAddress);
       
       // Restituisci i dati con la struttura attesa dai client
-      res.json({ stakes: stakes || [] });
+      res.json({ stakes || [] });
     } catch (error) {
       console.error('Errore nell\'endpoint personalizzato:', error);
       res.status(500).json({ error: 'Errore interno', message: 'Si è verificato un errore durante il recupero degli stake' });
@@ -233,14 +229,14 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
         return res.status(400).json({ error: 'Indirizzo wallet mancante' });
       }
       
-      console.log(`Endpoint personalizzato: Chiamata POST a /api/get-staked-nfts per ${walletAddress}`);
+      console.log(`Endpoint personalizzato POST a /api/get-staked-nfts per ${walletAddress}`);
       
       // Cerca gli stake nel database
       const { storage } = await import('./storage');
       const stakes = await storage.getNftStakesByWallet(walletAddress);
       
       // Restituisci i dati con la struttura attesa dai client
-      res.json({ stakes: stakes || [] });
+      res.json({ stakes || [] });
     } catch (error) {
       console.error('Errore nell\'endpoint personalizzato:', error);
       res.status(500).json({ error: 'Errore interno', message: 'Si è verificato un errore durante il recupero degli stake' });
@@ -249,7 +245,7 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
   
   // Logging delle rotte registrate per debug
   console.log('📊 Rotte API registrate:');
-  const routes = [];
+  const routes[] = [];
   
   app._router.stack.forEach((middleware) => {
     if (middleware.route) {
@@ -263,10 +259,8 @@ console.log('✅ Funzione registerRoutes inizializzata – Inizio registrazione 
         if (handler.route) {
           const path = handler.route.path;
           const methods = Object.keys(handler.route.methods);
-          // Extract the router path from the middleware's regexp
-          const routerPathMatch = middleware.regexp.toString().match(/^\/\^\\\/([^\\]+)/);
-          const routerPath = routerPathMatch ? routerPathMatch[1] : '';
-          routes.push(`/${routerPath}${path} [${methods}]`);
+          const routerPath = middleware.regexp.toString().match(/^\/\^\\\/([^\\]+)/)?.[1] || '';
+          routes.push(`${routerPath}${path} [${methods}]`);
         }
       });
     }

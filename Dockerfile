@@ -12,6 +12,8 @@ RUN npm install
 # Copia il codice sorgente
 COPY . .
 
+RUN npm run build:stacking
+
 # Imposta variabili d'ambiente
 ENV NODE_ENV=production
 ENV PORT=3000

@@ -182,10 +182,22 @@ app.get('*', (req, res) => {
   }
 });
 
-// Avvia server
-const server = http.createServer(app);
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[INFO] ✅ Server in esecuzione su porta ${PORT}`);
-  console.log(`[INFO] ✅ Ambiente: ${process.env.NODE_ENV}`);
-  console.log(`[INFO] ✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
-});
+// Importa e avvia la logica avanzata server da TypeScript compilato
+import('./dist/index.js')
+  .then(module => {
+    console.log('✅ Logica avanzata server caricata da dist/index.js');
+
+    if (typeof module.default === 'function') {
+      module.default(app); // Passa l'app Express già configurata
+    }
+
+    // Avvia server SOLO dopo il caricamento riuscito
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+      console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Errore nel caricamento di dist/index.js:', err);
+  });

@@ -1,7 +1,7 @@
 import express, { type Express } from 'express';
 import { createServer, type Server } from 'http';
 import path from 'path';
-import claimRouter from './server/routes/claim.js';
+import claimRouter from './routes/claim.js';
 import bodyParser from 'body-parser';
 
 /**

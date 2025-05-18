@@ -183,7 +183,7 @@ app.get('*', (req, res) => {
 });
 
 // Importa e avvia la logica avanzata server da TypeScript compilato
-import('./dist/index.js')
+import('./server/index.js')
   .then(module => {
     console.log('✅ Logica avanzata server caricata da dist/index.js');
 

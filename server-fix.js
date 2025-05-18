@@ -185,7 +185,7 @@ app.get('*', (req, res) => {
 // Importa e avvia la logica avanzata server da TypeScript compilato
 import('./server/index.js')
   .then(module => {
-    console.log('✅ Logica avanzata server caricata da dist/index.js');
+    console.log('✅ Logica avanzata server caricata da server/index.js');
 
     if (typeof module.default === 'function') {
       module.default(app); // Passa l'app Express già configurata
@@ -199,5 +199,5 @@ import('./server/index.js')
     });
   })
   .catch(err => {
-    console.error('❌ Errore nel caricamento di dist/index.js:', err);
+    console.error('❌ Errore nel caricamento di server/index.js:', err);
   });

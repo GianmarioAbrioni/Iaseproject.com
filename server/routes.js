@@ -331,3 +331,5 @@ export function registerRoutes(app) {
 	return httpServer;
 }
 
+export default httpServer;
+

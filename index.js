@@ -10,7 +10,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { registerRoutes } from './routes-loader.js';
+
 
 // Fix per __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json()); // <-- VA PRIMA di registerRoutes
+ // <-- VA PRIMA di registerRoutes
 app.use(express.urlencoded({ extended: true }));
 
 registerRoutes(app); // <-- VA DOPO
@@ -79,3 +79,15 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
 });
+
+// Importa e avvia la logica avanzata server da TypeScript compilato
+import('./dist/index.js')
+  .then(module => {
+    console.log('✅ Logica avanzata server caricata da dist/index.js');
+    if (typeof module.default === 'function') {
+      module.default(app); // Passa l'istanza già avviata se serve
+    }
+  })
+  .catch(err => {
+    console.error('❌ Errore nel caricamento di dist/index.js:', err);
+  });

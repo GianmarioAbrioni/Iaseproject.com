@@ -2,7 +2,7 @@ import { Router, Express } from 'express';
 import { createServer, type Server } from 'http';
 import path from 'path';
 import express from 'express';
-import { registerRoutes } from './dist/routes.js';
+import { stakingRoutes } from './dist/routes.js';
 
 
 // Esporta la funzione registerRoutes usata in server/index.ts

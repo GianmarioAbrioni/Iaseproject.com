@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from "@shared/schema2";
+import * as schema from "@shared/schema";
 
 /**
  * IASE Project - PostgreSQL Configuration

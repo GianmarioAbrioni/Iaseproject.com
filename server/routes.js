@@ -107,7 +107,7 @@ export function registerRoutes(app) {
 			// Utilizziamo una query SQL nativa con i nomi corretti delle colonne
 			const result = await pool.query(
 				`INSERT INTO nft_stakes
-        (walletAddress, nftId, rarityTier, active, dailyReward, startTime, rarityMultiplier)
+        (walletAddress, nftId, rarityTier, active, dailyReward, rarityMultiplier, startTime)
         VALUES ($1, $2, $3, $4, $5, $6, NOW())
         RETURNING *`,
 				[
@@ -119,6 +119,16 @@ export function registerRoutes(app) {
     stakeData.rarityMultiplier
   ]
 );
+
+// ✅ Aggiungi questo controllo
+if (!result.rows || result.rows.length === 0) {
+  console.error("❌ Inserimento fallito: nessuna riga restituita.");
+  return res.status(500).json({
+    success: false,
+    error: "Errore durante il salvataggio dello staking nel database",
+    message: "Nessun dato restituito dall'inserimento"
+  });
+}
 
 			console.log(
 				"✅ Dati salvati nel database con SQL diretto:",

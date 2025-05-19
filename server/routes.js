@@ -108,7 +108,7 @@ export function registerRoutes(app) {
 			const result = await pool.query(
 				`INSERT INTO nft_stakes
         (walletAddress, nftId, rarityTier, active, dailyReward, startTime, rarityMultiplier)
-        VALUES ($1, $2, $3, $4, $5,$6 NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
         RETURNING *`,
 				[
     stakeData.walletAddress,

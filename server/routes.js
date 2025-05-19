@@ -107,17 +107,18 @@ export function registerRoutes(app) {
 			// Utilizziamo una query SQL nativa con i nomi corretti delle colonne
 			const result = await pool.query(
 				`INSERT INTO nft_stakes
-        (walletAddress, nftId, rarityTier, active, dailyReward, startTime,rarityMultiplier,)
+        (walletAddress, nftId, rarityTier, active, dailyReward, startTime, rarityMultiplier,)
         VALUES ($1, $2, $3, $4, $5, NOW())
         RETURNING *`,
 				[
-					normalizedAddress,
-					`ETH_${tokenId}`,
-					rarityTier,
-					true,
-					dailyReward,
-				]
-			);
+    stakeData.walletAddress,
+    stakeData.nftId,
+    stakeData.rarityTier,
+    stakeData.active,
+    stakeData.dailyReward,
+    stakeData.rarityMultiplier
+  ]
+);
 
 			console.log(
 				"✅ Dati salvati nel database con SQL diretto:",
@@ -129,15 +130,15 @@ export function registerRoutes(app) {
 				success: true,
 				message: "Staking registrato con successo nel database",
 				data: {
-					id: result.rows[0].id,
-					tokenId,
-					address: normalizedAddress,
-					rarityLevel,
-					rarityTier,
-					dailyReward,
-					stakeDate: stakeDate || new Date().toISOString(),
-					createdAt: new Date().toISOString(),
-				},
+  id: result.rows[0].id,
+  tokenId: stakeData.nftId.split("_")[1], // se vuoi mantenere solo il numero
+  address: stakeData.walletAddress,
+  rarityLevel,
+  rarityTier: stakeData.rarityTier,
+  dailyReward: stakeData.dailyReward,
+  stakeDate: stakeDate || new Date().toISOString(),
+  createdAt: new Date().toISOString()
+},
 			});
 		} catch (error) {
 			console.error("❌ Errore durante lo staking:", error);
@@ -191,7 +192,7 @@ export function registerRoutes(app) {
 					return (
 						stake &&
 						((stake["nft_id"] &&
-							stake["nft_id"].includes(tokenId)) ||
+							stake["nftId"].includes(tokenId)) ||
 							(stake.nftId && stake.nftId.includes(tokenId)))
 					);
 				});

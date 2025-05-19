@@ -8,23 +8,32 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  walletAddress: text("wallet_address"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  email: text("email"), // nullable di default
+  walletAddress: text("walletAddress"), // nullable di default
+  createdAt: timestamp("createdAt"), // nullable
+  updatedAt: timestamp("updatedAt"), // nullable
 });
 
-// Schema nft_stakes allineato con le colonne del database
+// Schema nft_stakes allineato con le colonne del database reale
 export const nftStakes = pgTable("nft_stakes", {
   id: serial("id").primaryKey(),
-  walletAddress: text("wallet_address").notNull(),
-  nftId: text("nft_id").notNull(),
-  nftContractAddress: text("nft_contract_address"),
-  stakingStartTime: timestamp("staking_start_time").defaultNow().notNull(),
-  lastVerificationTime: timestamp("last_verification_time"),
-  isActive: boolean("is_active").default(true).notNull(),
-  totalRewardsEarned: doublePrecision("total_rewards_earned").default(0),
-  userId: integer("user_id"),
-  rarityTier: text("rarity_tier").default("standard").notNull(),
-  dailyRewardRate: doublePrecision("daily_reward_rate").default(33.33),
+
+  nftId: text("nftId").notNull(),
+  walletAddress: text("walletAddress").notNull(),
+
+  startTime: timestamp("startTime"),
+  endTime: timestamp("endTime"),
+
+  active: boolean("active"),
+  lastVerificationTime: timestamp("lastVerificationTime"),
+
+  rarityTier: text("rarityTier"),
+  rarityMultiplier: doublePrecision("rarityMultiplier"),
+
+  createdAt: timestamp("createdAt"),
+  updatedAt: timestamp("updatedAt"),
+
+  dailyReward: doublePrecision("dailyReward")
 });
 
 // Schema staking_rewards allineato con le colonne reali del database
@@ -42,10 +51,11 @@ export const stakingRewards = pgTable("staking_rewards", {
 // Schema nft_traits allineato con le colonne del database
 export const nftTraits = pgTable("nft_traits", {
   id: serial("id").primaryKey(),
-  nftId: text("nft_id").notNull(),
-  traitType: text("trait_type").notNull(),
-  traitValue: text("trait_value").notNull(),
-  rewardMultiplier: doublePrecision("reward_multiplier").default(1.0),
+  nftId: text("nftId").notNull(),
+  traitType: text("traitType").notNull(),
+  value: text("value").notNull(),
+  createdAt: timestamp("createdAt"),
+  updatedAt: timestamp("updatedAt")
 });
 
 // Schema relations

@@ -113,7 +113,7 @@ console.log("rarityMultiplier:", typeof stakeData.rarityMultiplier, stakeData.ra
 			// Utilizziamo una query SQL nativa con i nomi corretti delle colonne
 			const result = await pool.query(
 				`INSERT INTO nft_stakes
-        (walletAddress, nftId, rarityTier, active, dailyReward, rarityMultiplier, startTime)
+        ("walletAddress", "nftId", "rarityTier", "active", "dailyReward", "rarityMultiplier", "startTime")
         VALUES ($1, $2, $3, $4, $5, $6, NOW())
         RETURNING *`,
 				[

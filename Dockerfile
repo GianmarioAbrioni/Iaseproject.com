@@ -36,4 +36,4 @@ ENV ALTERNATIVE_PUBLIC_PATH=/app/public
 EXPOSE 3000
 
 # Esegui l'applicazione 
-CMD ["node", "server-fix.js"]
+CMD ["node", "server-fix.ts"]

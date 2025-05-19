@@ -23,7 +23,7 @@ console.log(`[ENV] STATIC_PATH: ${process.env.STATIC_PATH || 'non impostato'}`);
 console.log(`[ENV] CONFIG_PATH: ${process.env.CONFIG_PATH || 'non impostato'}`);
 console.log(`[ENV] USE_MEMORY_DB: ${process.env.USE_MEMORY_DB || 'non impostato'}`);
 console.log(`[ENV] PORT: ${process.env.PORT || '3000 (default)'}`);
-console.log(`[ENV] DATABASE_URL: ${process.env.DATABASE_URL ? 'impostato' : 'non impostato'}`);
+console.log(`[ENV] DATABASE_URL: ${process.env.DATABASE_URL || 'non impostato'}`);
 console.log(`[ENV] LOG_LEVEL: ${process.env.LOG_LEVEL || 'non impostato'}`);
 console.log(`[ENV] DEBUG: ${process.env.DEBUG || 'non impostato'}`);
 
@@ -50,6 +50,7 @@ process.env.PGUSER = process.env.PGUSER || 'iaseproject';
 process.env.PGDATABASE = process.env.PGDATABASE || 'iaseproject';
 process.env.PGPASSWORD = process.env.PGPASSWORD || 'GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1';
 process.env.PGPORT = process.env.PGPORT || '5432';
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a.oregon-postgres.render.com/iaseproject';
 process.env.USE_MEMORY_DB = process.env.USE_MEMORY_DB || "false";
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
 

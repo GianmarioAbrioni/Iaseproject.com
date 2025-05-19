@@ -82,21 +82,22 @@ export function registerRoutes(app) {
 
 			// Crea un oggetto stake con i dati necessari
 			const stakeData = {
-				walletAddress: normalizedAddress,
-				nftId: `ETH_${tokenId}`,
-				rarityTier: rarityTier,
-				active: true,
-				rarityMultiplier:
-					rarityTier === "standard"
-						? 1.0
-						: rarityTier === "advanced"
-						? 1.5
-						: rarityTier === "elite"
-						? 2.0
-						: rarityTier === "prototype"
-						? 2.5
-						: 1.0,
-			};
+  walletAddress: normalizedAddress,
+  nftId: `ETH_${tokenId}`,
+  rarityTier: rarityTier,
+  active: true,
+  rarityMultiplier:
+    rarityTier === "standard" ? 1.0 :
+    rarityTier === "advanced" ? 1.5 :
+    rarityTier === "elite" ? 2.0 :
+    rarityTier === "prototype" ? 2.5 : 1.0,
+  dailyReward: 33.33 * (
+    rarityTier === "standard" ? 1.0 :
+    rarityTier === "advanced" ? 1.5 :
+    rarityTier === "elite" ? 2.0 :
+    rarityTier === "prototype" ? 2.5 : 1.0
+  )
+};
 
 			console.log("🔄 Inserimento nel database:", stakeData);
 
@@ -106,7 +107,7 @@ export function registerRoutes(app) {
 			// Utilizziamo una query SQL nativa con i nomi corretti delle colonne
 			const result = await pool.query(
 				`INSERT INTO nft_stakes
-        (wallet_address, nft_id, rarity_tier, is_active, daily_reward_rate, staking_start_time)
+        (walletAddress, nftId, rarityTier, active, dailyReward, startTime,rarityMultiplier,)
         VALUES ($1, $2, $3, $4, $5, NOW())
         RETURNING *`,
 				[
@@ -114,7 +115,7 @@ export function registerRoutes(app) {
 					`ETH_${tokenId}`,
 					rarityTier,
 					true,
-					dailyReward || 33.33,
+					dailyReward,
 				]
 			);
 

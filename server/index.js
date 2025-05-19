@@ -12,7 +12,7 @@ export function registerRoutes(app) {
   // Endpoint diretto per lo staking (per compatibilità)
   app.post("/api/stake", async (req, res) => {
   try {
-    const { tokenId, address, rarityTier, dailyReward, startTime } = req.body;
+    const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
 
     // Normalizza l'indirizzo per la consistenza
     const normalizedAddress = address?.toLowerCase() || '';
@@ -33,11 +33,11 @@ export function registerRoutes(app) {
       success: true,
       message: 'Staking registrato con successo',
       data: {
-        nftId,
-        walletAddress: normalizedAddress,
-        rarityTier,
+        tokenId,
+        address: normalizedAddress,
+        rarityLevel,
         dailyReward,
-        startTime: startTime || new Date().toISOString(),
+        stakeDate: stakeDate || new Date().toISOString(),
         createdAt: new Date().toISOString()
       }
     });
@@ -49,8 +49,7 @@ export function registerRoutes(app) {
     });
   }
 });
-}
-
+};
 // Note: The original TypeScript code exports 'router' but it is not defined in the provided snippet.
 // We are preserving the export statement exactly as requested, but 'router' will be undefined.
 export default router;

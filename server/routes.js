@@ -104,6 +104,12 @@ export function registerRoutes(app) {
 			// BYPASS COMPLETO: Usiamo direttamente un'interrogazione SQL per salvare nel database
 			const { pool } = await import("./db.js"); // Assuming .js extension for ES modules
 
+console.log("🔍 Dati ricevuti per staking:", JSON.stringify(stakeData, null, 2));
+console.log("🧪 Tipi dei dati:");
+console.log("walletAddress:", typeof stakeData.walletAddress);
+console.log("nftId:", typeof stakeData.nftId);
+console.log("rarityMultiplier:", typeof stakeData.rarityMultiplier, stakeData.rarityMultiplier);
+
 			// Utilizziamo una query SQL nativa con i nomi corretti delle colonne
 			const result = await pool.query(
 				`INSERT INTO nft_stakes

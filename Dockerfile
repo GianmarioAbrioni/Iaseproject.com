@@ -30,7 +30,7 @@ ENV ALTERNATIVE_PUBLIC_PATH=/app/public
 # ENV PGDATABASE=iaseproject
 # ENV PGPASSWORD=GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1
 # ENV PGPORT=5432
-# ENV DATABASE_URL=postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a/iaseproject
+# ENV DATABASE_URL=postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a.oregon-postgres.render.com/iaseproject
 
 # Esponi la porta
 EXPOSE 3000

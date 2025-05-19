@@ -102,7 +102,7 @@ export function registerRoutes(app) {
 			console.log("🔄 Inserimento nel database:", stakeData);
 
 			// BYPASS COMPLETO: Usiamo direttamente un'interrogazione SQL per salvare nel database
-			const { pool } = await import("./db.js"); // Assuming .js extension for ES modules
+			const { pool } = await import("./db"); // Assuming .js extension for ES modules
 
 console.log("🔍 Dati ricevuti per staking:", JSON.stringify(stakeData, null, 2));
 console.log("🧪 Tipi dei dati:");

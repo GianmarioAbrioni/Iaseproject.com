@@ -12,7 +12,7 @@ export function registerRoutes(app) {
   // Endpoint diretto per lo staking (per compatibilità)
   app.post("/api/stake", async (req, res) => {
   try {
-    const { tokenId, address, rarityLevel, dailyReward, stakeDate } = req.body;
+    const { nftId, walletAddress, rarityTier, dailyReward, startTime } = req.body;
 
     // Normalizza l'indirizzo per la consistenza
     const normalizedAddress = address?.toLowerCase() || '';
@@ -21,7 +21,7 @@ export function registerRoutes(app) {
     console.log('Dati staking:', req.body);
 
     // Se abbiamo parametri mancanti, restituisci errore
-    if (!tokenId || !address) {
+    if (!nftId || !walletAddress) {
       return res.status(400).json({
         success: false,
         error: 'Parametri mancanti. tokenId e address sono richiesti.'
@@ -33,11 +33,11 @@ export function registerRoutes(app) {
       success: true,
       message: 'Staking registrato con successo',
       data: {
-        tokenId,
-        address: normalizedAddress,
-        rarityLevel,
+        nftId,
+        walletAddress: normalizedAddress,
+        rarityTier,
         dailyReward,
-        stakeDate: stakeDate || new Date().toISOString(),
+        startTime: startTime || new Date().toISOString(),
         createdAt: new Date().toISOString()
       }
     });

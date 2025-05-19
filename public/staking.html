@@ -1508,11 +1508,11 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Prepara i dati per la chiamata API come specificato dal backend
       const stakeData = {
-        address: walletAddress,
-        tokenId: tokenId,
-        rarityLevel: rarityName,
+        walletAddress: walletAddress,
+        nftId: tokenId,
+        rarityTier: rarityName,
         dailyReward: rewardValue,
-        stakeDate: new Date().toISOString()
+        startTime: new Date().toISOString()
       };
       
       // Gestisci lo staking direttamente con l'API, senza fallback locale
@@ -1675,10 +1675,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Prepara i dati per la chiamata API con la struttura corretta del database
       const unstakeData = {
         walletAddress: walletAddress,
-        tokenId: tokenId,
+        nftId: tokenId,
         stakeId: stakeId,
-        isActive: false,
-        unstakeDate: new Date().toISOString()
+        active: false,
+        endTime: new Date().toISOString()
       };
       
       // Effettua la chiamata API per registrare l'unstaking direttamente nel database PostgreSQL
@@ -1741,9 +1741,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Prepara i dati per la chiamata API nel formato corretto
       const claimData = {
-        address: walletAddress,
+        walletAddress: walletAddress,
         stakeId: stakeId,
-        txHash: `claim-${Date.now()}` // Identificativo della transazione
+        claimTxHash: `claim-${Date.now()}` // Identificativo della transazione
       };
       
       // Effettua la chiamata API per registrare il claim utilizzando l'endpoint corretto che punta al database

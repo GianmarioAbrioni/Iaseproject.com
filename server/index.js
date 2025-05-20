@@ -7,7 +7,7 @@ import stakingRoutes from './routes.js'; // Assuming .js extension for ES module
 // Esporta la funzione registerRoutes usata in server/index.ts
 export function registerRoutes(app) {
   // Registra le routes di staking sotto /api/staking
-  app.use("/api/staking", stakingRoutes);
+  app.use("/api", stakingRoutes);
 
   // Endpoint diretto per lo staking (per compatibilità)
   app.post("/api/stake", async (req, res) => {
@@ -28,15 +28,65 @@ export function registerRoutes(app) {
       });
     }
 
+    // Determina il tier di rarità per il multiplier corretto
+    let rarityTier = "standard";
+    if (rarityLevel) {
+      // Converti il rarityLevel in un formato compatibile con il database
+      if (rarityLevel.toLowerCase().includes("advanced"))
+        rarityTier = "advanced";
+      else if (rarityLevel.toLowerCase().includes("elite"))
+        rarityTier = "elite";
+      else if (rarityLevel.toLowerCase().includes("prototype"))
+        rarityTier = "prototype";
+    }
+
+    // Crea un oggetto stake con i dati necessari
+    const stakeData = {
+      walletAddress: normalizedAddress,
+      nftId: `ETH_${tokenId}`,
+      rarityTier: rarityTier,
+      active: true,
+      rarityMultiplier:
+        rarityTier === "standard" ? 1.0 :
+        rarityTier === "advanced" ? 1.5 :
+        rarityTier === "elite" ? 2.0 :
+        rarityTier === "prototype" ? 2.5 : 1.0,
+      dailyReward: dailyReward || 33.33 * (
+        rarityTier === "standard" ? 1.0 :
+        rarityTier === "advanced" ? 1.5 :
+        rarityTier === "elite" ? 2.0 :
+        rarityTier === "prototype" ? 2.5 : 1.0
+      )
+    };
+
+    console.log("Inserimento nel database:", stakeData);
+
+    // Inserimento nel database usando la storage API
+    const { storage } = await import('./storage.js');
+    const savedStake = await storage.createNftStake(stakeData);
+
+    if (!savedStake) {
+      console.error("❌ Inserimento fallito: nessun dato restituito.");
+      return res.status(500).json({
+        success: false,
+        error: "Errore durante il salvataggio dello staking nel database",
+        message: "Nessun dato restituito dall'inserimento"
+      });
+    }
+
+    console.log("✅ Dati salvati nel database:", savedStake);
+
     // Restituisci risposta di successo
     res.status(200).json({
       success: true,
-      message: 'Staking registrato con successo',
+      message: 'Staking registrato con successo nel database',
       data: {
-        tokenId,
-        address: normalizedAddress,
+        id: savedStake.id,
+        tokenId: stakeData.nftId.split("_")[1], // se vuoi mantenere solo il numero
+        address: stakeData.walletAddress,
         rarityLevel,
-        dailyReward,
+        rarityTier: stakeData.rarityTier,
+        dailyReward: stakeData.dailyReward,
         stakeDate: stakeDate || new Date().toISOString(),
         createdAt: new Date().toISOString()
       }

@@ -4,12 +4,21 @@
  * Questo servizio gestisce le operazioni di claim delle ricompense.
  */
 
-import { CONFIG } from '../config.js';
+// Configurazione hardcoded per garantire la compatibilità senza dipendenze esterne
+const CONFIG = {
+  staking: {
+    rewardDistributorContract: '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F'
+  },
+  bsc: {
+    rpcUrl: 'https://bsc-dataseed.binance.org',
+    tokenAddress: '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F'
+  }
+};
 
 /**
  * Restituisce la configurazione del servizio di claim
  */
-export function getClaimConfig() {
+function getClaimConfig() {
   return {
     rewardContractAddress: CONFIG.staking.rewardDistributorContract,
     networkRpc: CONFIG.bsc.rpcUrl,
@@ -19,8 +28,10 @@ export function getClaimConfig() {
 
 /**
  * API route per ottenere la configurazione del servizio di claim
+ * Questa funzione è destinata all'uso server-side, non client-side
+ * Viene mantenuta qui solo per riferimento
  */
-export function setupClaimRoutes(app, storage) {
+function setupClaimRoutes(app, storage) {
   // Get claim config
   app.get('/api/config', (req, res) => {
     try {

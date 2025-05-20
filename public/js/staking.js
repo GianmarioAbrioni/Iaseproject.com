@@ -303,7 +303,8 @@ async function loadStakedNfts() {
       const formattedAddress = walletAddress.toLowerCase();
       console.log(`🔍 Verifico NFT in staking per wallet: ${formattedAddress}`);
       
-      // Prova diversi endpoint per massima compatibilità
+      // Endpoint principale che dovrebbe funzionare (confermato dal server)
+      // Questo endpoint è il più affidabile in base ai test
       let response = null;
       let data = null;
       let endpoints = [
@@ -451,6 +452,7 @@ function processStakedNfts(data, container) {
   
   let stakedNfts = [];
   
+  // Gestione di tutti i possibili formati di risposta API
   if (Array.isArray(data)) {
     // Caso 1: risposta diretta come array
     console.log('📋 Formato dati: Array diretto');
@@ -458,23 +460,29 @@ function processStakedNfts(data, container) {
   } else if (data && typeof data === 'object') {
     // Caso 2: risposta in formato {stakes: [...]}
     console.log('📋 Formato dati: Oggetto con stakes');
-    if (data.stakes) {
+    if (data.stakes && Array.isArray(data.stakes)) {
       stakedNfts = data.stakes;
-    } else if (data.data && data.data.stakes) {
+    } else if (data.data && data.data.stakes && Array.isArray(data.data.stakes)) {
       // Caso 3: risposta in formato {data: {stakes: [...]}}
       stakedNfts = data.data.stakes;
     } else if (data.data && Array.isArray(data.data)) {
       // Caso 4: risposta in formato {data: [...]}
       stakedNfts = data.data;
     } else {
-      // Fallback: proviamo a cercare qualsiasi array nel data
+      // Caso 5: array con nome personalizzato (es. "nfts", "items", ecc.)
       console.log('⚠️ Formato dati non standard, cerco arrays...');
       for (const key in data) {
-        if (Array.isArray(data[key])) {
+        if (Array.isArray(data[key]) && data[key].length > 0) {
           console.log(`🔍 Trovato array in data.${key}, lo uso come stakedNfts`);
           stakedNfts = data[key];
           break;
         }
+      }
+      
+      // Caso 6: potrebbe essere un singolo oggetto stake
+      if (stakedNfts.length === 0 && (data.tokenId || data.token_id || data.nft_id)) {
+        console.log('🔍 Trovato singolo oggetto stake, lo uso direttamente');
+        stakedNfts = [data]; // Trasforma in array
       }
     }
   }
@@ -563,7 +571,8 @@ function processStakedNfts(data, container) {
     if (unstakeBtn) {
       unstakeBtn.addEventListener('click', function() {
         const nftId = this.getAttribute('data-nft-id');
-        const stakeId = this.getAttribute('data-stake-id');
+        const stakeId = this.getAttribute('data-stake-id') || stake.id || stake.stakeId;
+        console.log(`🔄 Tentativo di unstake per NFT #${nftId}, stake ID: ${stakeId}`);
         openUnstakeModal(nftId, stake);
       });
     }
@@ -572,7 +581,8 @@ function processStakedNfts(data, container) {
     if (claimBtn) {
       claimBtn.addEventListener('click', function() {
         const nftId = this.getAttribute('data-nft-id');
-        const stakeId = this.getAttribute('data-stake-id');
+        const stakeId = this.getAttribute('data-stake-id') || stake.id || stake.stakeId;
+        console.log(`💰 Tentativo di claim rewards per NFT #${nftId}, stake ID: ${stakeId}`);
         claimNFTRewards(nftId, stakeId);
       });
     }
@@ -788,9 +798,16 @@ async function loadAvailableNfts() {
     // Renderizza gli NFT trovati
     console.log(`✅ NFT trovati nel wallet: ${nftData.balance}, IDs: ${nftData.nftIds.join(', ')}`);
     
-    // Filtriamo gli NFT già in staking
-    // Prima utilizziamo l'array locale di NFT in staking per un filtro veloce
-    const preliminaryAvailableNftIds = nftData.nftIds.filter(id => !stakedNftIds.includes(id));
+    // Converto gli ID degli NFT in staking in stringhe per garantire confronti coerenti
+    // Questo è cruciale per evitare problemi con confronti di tipi diversi (numeri vs stringhe)
+    const normalizedStakedNftIds = stakedNftIds.map(id => id.toString());
+    console.log(`🔍 ID degli NFT in staking normalizzati: ${normalizedStakedNftIds.join(', ')}`);
+    
+    // Filtriamo gli NFT già in staking, convertendo anche gli ID del wallet in stringhe
+    const preliminaryAvailableNftIds = nftData.nftIds
+      .map(id => id.toString()) // Normalizza tutti gli ID in stringhe
+      .filter(id => !normalizedStakedNftIds.includes(id));
+    
     console.log(`🔄 NFT disponibili dopo filtro preliminare: ${preliminaryAvailableNftIds.length}, IDs: ${preliminaryAvailableNftIds.join(', ')}`);
     
     // Poi facciamo una verifica aggiuntiva con l'API per essere sicuri al 100% 

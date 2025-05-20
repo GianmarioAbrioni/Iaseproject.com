@@ -49,7 +49,8 @@ export function registerRoutes(app) {
     });
   }
 });
-};
+}
+
 // Note: The original TypeScript code exports 'router' but it is not defined in the provided snippet.
 // We are preserving the export statement exactly as requested, but 'router' will be undefined.
 export default router;

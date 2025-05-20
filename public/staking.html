@@ -992,14 +992,19 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Estrai gli ID degli NFT in staking
           stakedTokenIds = stakedNfts.map(stake => {
-            // Gestisci diversi formati di ID
-            if (stake.tokenId) return stake.tokenId.toString();
-            if (stake.token_id) return stake.token_id.toString();
-            if (stake.nft_id && stake.nft_id.includes('_')) {
-              return stake.nft_id.split('_')[1].toString();
-            }
-            return stake.id ? stake.id.toString() : '';
-          }).filter(id => id); // Rimuovi ID vuoti
+  // Gestisci tutti i formati noti di ID
+  if (stake.nftId && stake.nftId.includes('_')) {
+    return stake.nftId.split('_')[1].toString();
+  }
+  if (stake.nftId) return stake.nftId.toString(); // <-- quello giusto dal DB
+  if (stake.tokenId) return stake.tokenId.toString();
+  if (stake.token_id) return stake.token_id.toString();
+  if (stake.nft_id && stake.nft_id.includes('_')) {
+    return stake.nft_id.split('_')[1].toString();
+  }
+  if (stake.nft_id) return stake.nft_id.toString();
+  return stake.id ? stake.id.toString() : '';
+}).filter(id => id); // Rimuovi ID vuoti
         } else {
           console.warn(`⚠️ Errore nel caricamento degli NFT in staking: ${response.status}`);
         }

@@ -1012,22 +1012,46 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("❌ Errore nel caricamento degli NFT in staking dal database:", error);
       }
       
-      console.log("🔄 Token ID in staking dal database:", stakedTokenIds);
-      
-      // Filter available NFTs excluding those already in staking
-      let availableNfts = result.nfts || [];
-      
-      if (stakedTokenIds.length > 0) {
-        availableNfts = availableNfts.filter(nft => {
-          const nftIdAsString = nft.id.toString();
-          const isStaked = stakedTokenIds.includes(nftIdAsString);
-          if (isStaked) {
-            console.log(`NFT #${nftIdAsString} is already staked, excluding from available list`);
-          }
-          return !isStaked;
-        });
-        console.log(`Filtered out ${result.nfts.length - availableNfts.length} staked NFTs`);
-      }
+      // Log completo: cosa arriva dal backend
+console.log("✅ Token già in staking (dal database):", stakedTokenIds);
+
+// Mostra tutti gli NFT ricevuti come disponibili (es. da Alchemy)
+if (!result?.nfts || !Array.isArray(result.nfts)) {
+  console.error("❌ result.nfts è assente o non è un array:", result);
+} else {
+  console.log("📦 NFT ricevuti dal wallet/API:", result.nfts.map(n => n.id));
+}
+
+// Analisi e filtro
+let availableNfts = result.nfts || [];
+let errorCount = 0;
+
+if (stakedTokenIds.length > 0) {
+  availableNfts = availableNfts.filter(nft => {
+    const nftIdAsString = nft.id?.toString();
+
+    const isStaked = stakedTokenIds.includes(nftIdAsString);
+
+    if (isStaked) {
+      console.log(`❌ NFT #${nftIdAsString} è già in staking: lo rimuovo`);
+    } else {
+      console.log(`✅ NFT #${nftIdAsString} è disponibile`);
+    }
+
+    // Loga errore se ID non è definito
+    if (!nftIdAsString) {
+      errorCount++;
+      console.warn("⚠️ NFT con ID non valido:", nft);
+    }
+
+    return !isStaked;
+  });
+
+  console.log(`✅ Filtrati ${result.nfts.length - availableNfts.length} NFT già in staking`);
+  if (errorCount > 0) console.warn(`⚠️ ${errorCount} NFT avevano ID non validi`);
+} else {
+  console.warn("⚠️ Lista degli ID in staking vuota: nessun filtro applicato");
+}
       
       // Verify if there are available NFTs
       if (!availableNfts.length) {

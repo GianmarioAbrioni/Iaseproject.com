@@ -272,7 +272,11 @@ if (!result.rows || result.rows.length === 0) {
 			const stakes = await storage.getNftStakesByWallet(walletAddress);
 
 			// Restituisci i dati con la struttura attesa dai client
-			res.json({ stakes: stakes || [] });
+			res.json((stakes || []).map(s => {
+  const rawId = s.nftId || s.tokenId || s.id;
+  const tokenId = rawId?.includes("_") ? rawId.split("_")[1] : rawId;
+  return { tokenId: tokenId?.toString() };
+}));
 		} catch (error) {
 			console.error("Errore nell'endpoint personalizzato:", error);
 			res.status(500).json({

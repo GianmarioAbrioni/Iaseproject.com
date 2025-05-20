@@ -48,8 +48,22 @@ if (USE_MEMORY_DB) {
     }
 
     async getNftStakesByWallet(walletAddress) {
-      return [];
-    }
+  try {
+    const { pool } = await import('./db.js');
+
+    const result = await pool.query(
+      `SELECT "id", "nftId", "walletAddress", "active"
+       FROM nft_stakes
+       WHERE "walletAddress" = $1 AND "active" = true`,
+      [walletAddress]
+    );
+
+    return result.rows || [];
+  } catch (err) {
+    console.error("❌ Errore nella query getNftStakesByWallet:", err);
+    return [];
+  }
+}
 
     async getNftStakeById(stakeId) {
       return undefined;

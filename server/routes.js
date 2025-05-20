@@ -207,7 +207,7 @@ if (!result.rows || result.rows.length === 0) {
 					// Utilizziamo la sintassi con indice per permettere l'accesso a proprietà dinamiche
 					return (
 						stake &&
-						((stake["nftId"] &&
+						((stake["nft_id"] &&
 							stake["nftId"].includes(tokenId)) ||
 							(stake.nftId && stake.nftId.includes(tokenId)))
 					);

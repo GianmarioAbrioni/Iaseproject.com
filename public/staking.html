@@ -800,6 +800,9 @@
   <!-- Script connector per wallet (verificato e ottimizzato) -->
   <script src="js/staking-simple-connector.js"></script>
   
+  <!-- Script per la lettura degli NFT -->
+  <script src="js/nftReader.js"></script>
+  
   <!-- Script non critici caricati in modo asincrono -->
   <script src="js/claim-service.js" defer></script>
   <script src="js/roadmap.js" defer></script>
@@ -1581,15 +1584,28 @@ if (stakedTokenIds.length > 0) {
       // Mostra notifica di successo in inglese
       alert(`NFT #${tokenId} successfully staked! You will earn ${rewardValue} IASE tokens per day.`);
       
-      // Importante: Aggiungiamo un ritardo prima di aggiornare l'interfaccia
+      // Resetta completamente lo stato delle cache
+      console.log("🔄 Resetto le cache e i dati memorizzati per forzare un refresh completo...");
+      window.stakedNfts = [];
+      window.stakedNftIds = [];
+      window.availableNftIds = [];
+      window.nftMetadataCache = {};
+      
+      // Aggiungiamo un ritardo prima di aggiornare l'interfaccia
       // per garantire che il database abbia il tempo di aggiornare i dati
       setTimeout(() => {
         console.log("🔄 Aggiornamento dell'interfaccia dopo staking...");
-        // Aggiorna la UI dopo lo staking
-        renderNFTs();
         
-        console.log(`✅ Staking completato per NFT #${tokenId}`);
-      }, 500);
+        // Prima aggiorniamo gli NFT in staking
+        renderStakedNFTs().then(() => {
+          // Poi aggiorniamo gli NFT disponibili
+          renderAvailableNFTs().then(() => {
+            // Infine aggiorniamo le statistiche del dashboard
+            updateDashboardStats();
+            console.log(`✅ Staking completato e UI aggiornata per NFT #${tokenId}`);
+          });
+        });
+      }, 1000);
     } catch (error) {
       console.error('❌ Errore durante lo staking:', error);
       alert(`Staking error: ${error.message}`);

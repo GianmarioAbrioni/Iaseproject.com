@@ -789,8 +789,107 @@ async function loadAvailableNfts() {
     console.log(`✅ NFT trovati nel wallet: ${nftData.balance}, IDs: ${nftData.nftIds.join(', ')}`);
     
     // Filtriamo gli NFT già in staking
-    const availableNftIds = nftData.nftIds.filter(id => !stakedNftIds.includes(id));
-    console.log(`🔄 NFT disponibili dopo filtro: ${availableNftIds.length}, IDs: ${availableNftIds.join(', ')}`);
+    // Prima utilizziamo l'array locale di NFT in staking per un filtro veloce
+    const preliminaryAvailableNftIds = nftData.nftIds.filter(id => !stakedNftIds.includes(id));
+    console.log(`🔄 NFT disponibili dopo filtro preliminare: ${preliminaryAvailableNftIds.length}, IDs: ${preliminaryAvailableNftIds.join(', ')}`);
+    
+    // Poi facciamo una verifica aggiuntiva con l'API per essere sicuri al 100% 
+    // che gli NFT non siano in staking nel database
+    const availableNftIds = [];
+    
+    // Funzione per verificare NFT con l'API
+    const checkNftStakingStatus = async (tokenId) => {
+      try {
+        const walletAddress = window.currentWalletAddress || window.ethereum?.selectedAddress;
+        
+        // Verifica con endpoint dedicato per massima affidabilità
+        console.log(`🔍 Verifica staking via API per NFT #${tokenId}`);
+        const response = await fetch(`/api/check-staked-nft?token_id=${tokenId}&wallet_address=${walletAddress}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            console.log(`✅ Risultato verifica per NFT #${tokenId}: ${data.is_staked ? 'È in staking' : 'Non è in staking'}`);
+            // Se disponibile, salva info anche nel log per debug
+            if (data.is_staked && data.stake_info) {
+              console.log(`📊 Dettagli staking NFT #${tokenId}:`, data.stake_info);
+            }
+            return data.is_staked;
+          } else {
+            console.warn(`⚠️ API ha risposto con errore: ${data.error || 'Errore sconosciuto'}`);
+            return false;
+          }
+        }
+        
+        console.warn(`⚠️ Risposta API non valida (status ${response.status}) per NFT #${tokenId}`);
+        return false;
+      } catch (error) {
+        console.error(`❌ Errore verifica NFT #${tokenId}:`, error);
+        return false;
+      }
+    };
+    
+    // Array per tenere traccia degli NFT che sono in staking ma non presenti nella cache locale
+    const missingStakedNfts = [];
+    
+    // Verifichiamo ogni NFT con l'API
+    const verificationPromises = preliminaryAvailableNftIds.map(async (tokenId) => {
+      const isStaked = await checkNftStakingStatus(tokenId);
+      if (!isStaked) {
+        availableNftIds.push(tokenId);
+      } else {
+        console.log(`⚠️ NFT #${tokenId} rilevato come staked dall'API ma non dalla cache locale`);
+        
+        // Recuperiamo informazioni dettagliate sullo stake per aggiornare la lista
+        try {
+          const walletAddress = window.currentWalletAddress || window.ethereum?.selectedAddress;
+          const response = await fetch(`/api/check-staked-nft?token_id=${tokenId}&wallet_address=${walletAddress}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.is_staked && data.stake_info) {
+              // Aggiungiamo questo NFT alla lista stakedNfts se non è già presente
+              missingStakedNfts.push({
+                tokenId: tokenId.toString(),
+                address: walletAddress,
+                rarityLevel: data.stake_info.rarity_tier || 'standard',
+                dailyReward: parseFloat(data.stake_info.daily_reward || 33.33),
+                stakeDate: data.stake_info.staking_date || new Date().toISOString()
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Errore nel recupero dettagli per NFT #${tokenId}:`, error);
+        }
+      }
+    });
+    
+    // Attendiamo tutte le verifiche prima di continuare
+    await Promise.all(verificationPromises);
+    
+    // Aggiorniamo la lista globale degli NFT in staking con quelli trovati ma mancanti
+    if (missingStakedNfts.length > 0) {
+      console.log(`🔄 Aggiungendo ${missingStakedNfts.length} NFT mancanti alla sezione "Already Staked"`, missingStakedNfts);
+      window.stakedNfts = window.stakedNfts || [];
+      window.stakedNfts = [...window.stakedNfts, ...missingStakedNfts];
+      
+      // Aggiorniamo anche stakedNftIds per il filtro
+      missingStakedNfts.forEach(nft => {
+        if (!stakedNftIds.includes(nft.tokenId)) {
+          stakedNftIds.push(nft.tokenId);
+        }
+      });
+      
+      // Forziamo un aggiornamento della visualizzazione degli NFT in staking
+      setTimeout(() => {
+        if (typeof loadStakedNfts === 'function') {
+          console.log('🔄 Aggiornamento visualizzazione "Already Staked"');
+          loadStakedNfts();
+        }
+      }, 1000);
+    }
+    
+    console.log(`✅ NFT disponibili dopo verifica API: ${availableNftIds.length}, IDs: ${availableNftIds.join(', ')}`);
     
     // Pulisci nuovamente il container per rimuovere il loader
     container.innerHTML = '';

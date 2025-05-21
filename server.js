@@ -15,17 +15,17 @@ process.env.PGPASSWORD = 'localpass';
 process.env.DATABASE_URL = 'postgresql://localuser:localpass@localhost:5432/localdb';
 
 // Imposta le variabili d'ambiente per la modalità in-memory
-process.env.USE_MEMORY_DB = "true";
+process.env.USE_MEMORY_DB = "false"; // ← invece di "true"
 process.env.NODE_ENV = "production";
 
 // Stampa le informazioni di avvio
 console.log("🚀 Avvio IASE Project");
-console.log("⚙️ Modalità: IN-MEMORY storage con persistenza su file");
+console.log("⚙️ Modalità: database storage");
 console.log("🌐 Ambiente: PRODUCTION");
-console.log("📂 I dati vengono automaticamente salvati e ripristinati tra riavvii");
+console.log("📂 I dati vengono salvati sul database");
 
 // Importa il server
-import("./server/index-no-db.ts")
+import("./server/index.js")
   .then(() => {
     console.log("✅ Applicazione avviata con successo");
   })

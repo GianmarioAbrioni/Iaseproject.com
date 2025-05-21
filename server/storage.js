@@ -3,18 +3,6 @@
  * Used by staking-job.js and nft-verification.js in the cron job environment
  */
 
-import { USE_MEMORY_DB } from './config.js';
-
-// Import appropriate storage implementation based on environment
-let storage;
-
-if (USE_MEMORY_DB) {
-  // Import in-memory storage
-  import('./storage-mem.js').then(module => {
-    storage = module.storage;
-    console.log("📦 Utilizzo storage in memoria");
-  });
-} else {
   // Import database storage
   class DatabaseStorage {
     constructor() {

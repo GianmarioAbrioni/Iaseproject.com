@@ -151,6 +151,27 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Importa direttamente il server già pronto da routes.js
+import('./server/routes.js')
+  .then((module) => {
+    console.log('✅ Logica avanzata server caricata da server/routes.js');
+
+    if (typeof module.registerRoutes === 'function') {
+      module.registerRoutes(app); // Registra tutte le rotte sull'app Express
+    } else {
+      throw new Error('registerRoutes non è una funzione esportata da routes.js');
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+      console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Errore nel caricamento di server/routes.js:', err);
+  });
+
 // Fallback per SPA
 app.get('*', (req, res) => {
   if (foundPublicPath && fs.existsSync(path.join(foundPublicPath, 'index.html'))) {
@@ -183,23 +204,3 @@ app.get('*', (req, res) => {
   }
 });
 
-// Importa direttamente il server già pronto da routes.js
-import('./server/routes.js')
-  .then((module) => {
-    console.log('✅ Logica avanzata server caricata da server/routes.js');
-
-    if (typeof module.registerRoutes === 'function') {
-      module.registerRoutes(app); // Registra tutte le rotte sull'app Express
-    } else {
-      throw new Error('registerRoutes non è una funzione esportata da routes.js');
-    }
-
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
-      console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
-    });
-  })
-  .catch(err => {
-    console.error('❌ Errore nel caricamento di server/routes.js:', err);
-  });

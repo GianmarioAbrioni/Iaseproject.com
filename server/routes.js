@@ -1,49 +1,33 @@
 import express from "express";
 import { createServer } from "http";
 import path from "path";
-import claimRouter from "./routes/claim.js"; // Assuming .js extension for ES modules
 import bodyParser from "body-parser";
+import { pool } from "./db.js";
 
 /**
  * Registra tutte le rotte necessarie per l'API
- * Importante: Per deployment su Render, le rotte sono implementate direttamente qui
  * @param app L'applicazione Express
  * @returns L'HTTP server
  */
 export function registerRoutes(app) {
-        console.log(
-                "✅ Funzione registerRoutes inizializzata – Inizio registrazione rotte"
-        );
-        // Assicurati che Express possa analizzare correttamente i JSON e form data
-        app.use(bodyParser.json());
-        app.use(bodyParser.urlencoded({ extended: true }));
+  console.log("✅ Funzione registerRoutes inizializzata");
 
-        // Configura CORS per permettere richieste da tutti i domini
-        app.use((req, res, next) => {
-                res.header("Access-Control-Allow-Origin", "*");
-                res.header(
-                        "Access-Control-Allow-Methods",
-                        "GET, POST, PUT, DELETE, OPTIONS"
-                );
-                res.header(
-                        "Access-Control-Allow-Headers",
-                        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-                );
-                next();
-        });
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
 
-        // Log delle richieste per debug
-        app.use((req, res, next) => {
-                console.log(
-                        `📝 [${new Date().toISOString()}] ${req.method} ${req.path}`
-                );
-                next();
-        });
+  // CORS configuration
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+    next();
+  });
 
-        // IMPORTANTE: Registra le rotte esattamente come nel client
-        // Registra la route /api/claim
-        app.use("/api/claim", claimRouter);
-
+  // Request logging
+  app.use((req, res, next) => {
+    console.log(`📝 [${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
         // IMPLEMENTAZIONE DIRETTA DELLE API NECESSARIE PER LO STAKING
         // Nota: Utilizziamo un approccio diretto (senza router) per evitare problemi con i path
         // 1. API per lo staking - /api/stake

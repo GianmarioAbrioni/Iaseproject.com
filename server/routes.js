@@ -365,6 +365,70 @@ if (!result.rows || result.rows.length === 0) {
                 }
         });
 
+        // Root API endpoint
+app.get("/api", (req, res) => {
+  res.json({
+    success: true,
+    message: "API server is running",
+    timestamp: new Date().toISOString()
+  });
+});
+
+        // Aggiungi endpoint mark-claimed
+        app.post("/api/mark-claimed", async (req, res) => {
+          try {
+            const { walletAddress, amount } = req.body;
+            if (!walletAddress || !amount) {
+              return res.status(400).json({
+                success: false,
+                error: "WalletAddress and amount are required"
+              });
+            }
+
+            const { storage } = await import("./storage.js");
+            await storage.markRewardsAsClaimed(walletAddress.toLowerCase(), amount);
+
+            res.json({
+              success: true,
+              message: "Rewards marked as claimed"
+            });
+          } catch (error) {
+            console.error("❌ Error marking rewards as claimed:", error);
+            res.status(500).json({
+              success: false,
+              error: "Error marking rewards as claimed",
+              message: error.message
+            });
+          }
+        });
+
+        // Aggiungi endpoint rewards
+        app.get("/api/rewards/:walletAddress", async (req, res) => {
+          try {
+            const walletAddress = req.params.walletAddress.toLowerCase();
+            const { storage } = await import("./storage.js");
+            const activeStakes = await storage.getActiveNftStakesByWallet(walletAddress);
+
+            const rewards = activeStakes.map(stake => ({
+              nftId: stake.nftId,
+              dailyReward: stake.dailyReward,
+              totalReward: stake.dailyReward * Math.floor((Date.now() - new Date(stake.startTime).getTime()) / (24 * 60 * 60 * 1000))
+            }));
+
+            res.json({
+              success: true,
+              rewards
+            });
+          } catch (error) {
+            console.error("❌ Error getting rewards:", error);
+            res.status(500).json({
+              success: false,
+              error: "Error getting rewards",
+              message: error.message
+            });
+          }
+        });
+
         // Logging delle rotte registrate per debug
         console.log("📊 Rotte API registrate:");
         const routes = [];
@@ -398,5 +462,3 @@ if (!result.rows || result.rows.length === 0) {
         const httpServer = createServer(app);
         return httpServer;
 }
-
-

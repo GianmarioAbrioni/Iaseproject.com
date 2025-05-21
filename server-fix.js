@@ -142,7 +142,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     time: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    database: process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL',
+    database: process.env.USE_MEMORY_DB === 'false' ? 'In-Memory' : 'PostgreSQL',
     paths: {
       __dirname,
       cwd: process.cwd(),

@@ -7,7 +7,7 @@ import stakingRoutes from './routes.js'; // Assuming .js extension for ES module
 // Esporta la funzione registerRoutes usata in server/index.ts
 export function registerRoutes(app) {
   // Registra le routes di staking sotto /api/staking
-  app.use("/api", stakingRoutes);
+  app.use("/api/staking", stakingRoutes);
 
 
 }

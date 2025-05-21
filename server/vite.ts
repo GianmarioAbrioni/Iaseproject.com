@@ -41,12 +41,11 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+  app.use(async (req, res, next) => {
   const url = req.originalUrl;
 
-  // Se è una chiamata API, lascia passare
-  if (url.startsWith("/api")) {
-    return next();
+  if (req.path && req.path.startsWith("/api")) {
+    return next(); // lascia passare le API
   }
 
   try {

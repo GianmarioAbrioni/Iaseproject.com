@@ -44,12 +44,19 @@ export async function setupVite(app: Express, server: Server) {
   app.use(async (req, res, next) => {
   const url = req.originalUrl;
 
-  // Lascio passare tutte le API o healthcheck
-  if (
-    url.startsWith("/api") ||
-    url.startsWith("/health") ||
-    url.startsWith("/admin")
-  ) {
+  const allowedApiRoutes = [
+    "/api/by-wallet/",
+    "/api/check-staked-nft",
+    "/api/get-staked-nfts",
+    "/api/health",
+    "/api/stake",
+    "/api/unstake",
+    "/api/mark-claimed",
+    "/api/rewards/"
+  ];
+
+  // Se l'URL inizia con una delle rotte consentite, lascialo passare
+  if (allowedApiRoutes.some((route) => url.startsWith(route))) {
     return next();
   }
 

@@ -44,8 +44,13 @@ export async function setupVite(app: Express, server: Server) {
   app.use(async (req, res, next) => {
   const url = req.originalUrl;
 
-  if (req.path && req.path.startsWith("/api")) {
-    return next(); // lascia passare le API
+  // Lascio passare tutte le API o healthcheck
+  if (
+    url.startsWith("/api") ||
+    url.startsWith("/health") ||
+    url.startsWith("/admin")
+  ) {
+    return next();
   }
 
   try {
@@ -56,6 +61,7 @@ export async function setupVite(app: Express, server: Server) {
       "index.html"
     );
     let template = await fs.promises.readFile(clientTemplate, "utf-8");
+
     template = template.replace(
       `src="/src/main.tsx"`,
       `src="/src/main.tsx?v=${nanoid()}"`

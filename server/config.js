@@ -6,7 +6,8 @@
  */
 
 // Determina se utilizzare il database in memoria anziché PostgreSQL
-export const USE_MEMORY_DB = process.env.USE_MEMORY_DB === "false";
+// Forziamo l'uso di PostgreSQL impostando a false
+export const USE_MEMORY_DB = false;
 
 // Configura l'ambiente (development, production)
 const ENV = process.env.NODE_ENV || "development";

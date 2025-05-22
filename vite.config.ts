@@ -1,52 +1,36 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import express from 'express';
-import path from 'path';
-
-// importa la funzione che registra le rotte
-import { registerRoutes } from './routes.js';
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import express from 'express'
+import { registerRoutes } from './routes'    // il tuo routes.js / routes.ts
 
 export default defineConfig({
   plugins: [
-    react(),
+    vue(),
+
+    // plugin custom per montare Express
     {
-      name: 'vite:express-api',
-      // questo hook ci dà accesso all'istanza di Connect dietro Vite
+      name: 'mount-express-api',
+      // questo gira **solo** in dev
       configureServer(server) {
-        // crea una mini-app Express
-        const apiApp = express();
+        // 1) crea una nuova istanza di Express
+        const api = express()
 
-        // monta body parser (stesse impostazioni di routes.js)
-        apiApp.use(express.json());
-        apiApp.use(express.urlencoded({ extended: true }));
+        // 2) monta body-parser (o usa express.json())
+        api.use(express.json())
+        api.use(express.urlencoded({ extended: true }))
 
-        // registra tutte le tue rotte /api/... su questa app
-        registerRoutes(apiApp);
+        // 3) registra qui TUTTE le tue API
+        registerRoutes(api)
 
-        // ORDINE IMPORTANTE:
-        // monta 'apiApp' **prima** del resto dei middleware di Vite
-        // in modo che /api/* venga gestito da Express
-        server.middlewares.use((req, res, next) => {
-          if (req.url.startsWith('/api')) {
-            return apiApp(req, res, next);
-          }
-          next();
-        });
+        // 4) monta Express sui path /api/*
+        //    * PRIMA * che Vite serva il fallback a index.html
+        server.middlewares.use('/api', api)
       }
     }
   ],
 
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'client/src'),
-      '@shared': path.resolve(__dirname, 'shared'),
-      '@assets': path.resolve(__dirname, 'attached_assets')
-    }
-  },
-
-  root: path.resolve(__dirname, 'client'),
-  build: {
-    outDir: path.resolve(__dirname, 'dist/public'),
-    emptyOutDir: true
+  server: {
+    // attiva il middleware mode, così non c’è un server statico a parte
+    middlewareMode: 'ssr'
   }
-});
+})

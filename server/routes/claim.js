@@ -111,14 +111,8 @@ router.get('/rewards/:walletAddress', async (req, res) => {
 
       console.log(`Trovati ${activeStakes.length} stake attivi per wallet: ${normalizedAddress}`);
 
-      // Calcola le ricompense per ogni stake
+      // Ottieni tutte le rewards dai record effettivi nel database
       const rewards = await Promise.all(activeStakes.map(async (stake) => {
-        // Calcola i giorni di stake
-        const startDate = new Date(stake.startTime);
-        const now = new Date();
-        const stakeDurationMs = now.getTime() - startDate.getTime();
-        const stakeDuration = Math.floor(stakeDurationMs / (1000 * 60 * 60 * 24)); // Converti millisecondi in giorni
-
         // Determina il reward giornaliero in base alla rarità
         let dailyReward = 33.33; // Default per Standard
 
@@ -130,23 +124,47 @@ router.get('/rewards/:walletAddress', async (req, res) => {
           dailyReward = 83.33;
         }
 
-        // Calcola il reward totale
-        const totalReward = parseFloat((dailyReward * stakeDuration).toFixed(2));
+        // Calcola i giorni di stake attivo
+        const startDate = new Date(stake.startTime);
+        const now = new Date();
+        const stakeDurationMs = now.getTime() - startDate.getTime();
+        const stakeDuration = Math.floor(stakeDurationMs / (1000 * 60 * 60 * 24)); // Converti millisecondi in giorni
 
-        // Controlla se ci sono claim precedenti
-        const claimedRewards = await storage.getClaimedRewardsByStakeId(stake.id);
+        // Ottieni tutte le rewards registrate nel database per questo stake
+        const stakingRewards = await storage.getRewardsByStakeId(stake.id);
+        
+        // Calcola la somma delle rewards non ancora richieste (claimed=false)
+        const unclaimedRewards = stakingRewards
+          .filter(reward => reward.claimed === false)
+          .reduce((sum, reward) => sum + parseFloat(reward.amount), 0);
 
-        // Potremmo avere molteplici claim in futuro, per ora assumiamo uno solo
-        const lastClaimDate = claimedRewards.length > 0 ?
-          claimedRewards[claimedRewards.length - 1].createdAt : null;
+        // Calcola la somma totale di tutte le rewards per questo stake
+        const totalHistoricalRewards = stakingRewards
+          .reduce((sum, reward) => sum + parseFloat(reward.amount), 0);
+        
+        // Ottieni data dell'ultimo claim se esiste
+        const claimedRewards = stakingRewards.filter(reward => reward.claimed === true);
+        const lastClaimDate = claimedRewards.length > 0 ? 
+          new Date(Math.max(...claimedRewards.map(r => new Date(r.rewardDate).getTime()))) : null;
 
+        // Formatta i risultati
         return {
           stakeId: stake.id.toString(),
           tokenId: stake.nftId,
-          dailyReward,
+          nftId: stake.nftId,
+          nftMetadata: stake.metadata || null,
+          dailyReward: parseFloat(dailyReward.toFixed(2)),
           stakeDuration,
-          totalReward,
-          lastClaimDate
+          stakeDurationDays: stakeDuration,
+          stakeDateIso: startDate.toISOString(),
+          stakeDate: startDate.toLocaleDateString(),
+          unclaimedRewards: parseFloat(unclaimedRewards.toFixed(2)),
+          totalRewards: parseFloat(totalHistoricalRewards.toFixed(2)),
+          totalReward: parseFloat(totalHistoricalRewards.toFixed(2)), // Per compatibilità
+          lastClaimDate: lastClaimDate ? lastClaimDate.toISOString() : null,
+          rewardCount: stakingRewards.length,
+          rarityTier: stake.rarityTier || 'Standard',
+          claimableAmount: parseFloat(unclaimedRewards.toFixed(2))
         };
       }));
 

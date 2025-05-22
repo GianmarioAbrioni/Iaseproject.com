@@ -342,6 +342,36 @@ class DatabaseStorage {
     }
   }
   
+  async markRewardsAsClaimedByWallet(walletAddress, amount) {
+    try {
+      // Prima ottiene gli stake attivi per quell'indirizzo
+      const stakes = await this.getActiveNftStakesByWallet(walletAddress);
+      
+      if (!stakes || stakes.length === 0) {
+        console.warn(`⚠️ Nessuno stake attivo trovato per wallet ${walletAddress}`);
+        return [];
+      }
+      
+      // Ottiene gli ID di tutti gli stake dell'utente
+      const stakeIds = stakes.map(stake => stake.id);
+      
+      // Marca come claimed tutti i rewards non ancora reclamati per questi stake
+      const result = await pool.query(
+        `UPDATE staking_rewards 
+         SET "claimed" = true, "claimTxHash" = 'claimed_wallet_' || NOW(), "updatedAt" = NOW() 
+         WHERE "stakeId" = ANY($1) AND "claimed" = false
+         RETURNING *`,
+        [stakeIds]
+      );
+      
+      console.log(`✅ Marcati come claimed ${result.rowCount} rewards per wallet ${walletAddress}`);
+      return result.rows || [];
+    } catch (err) {
+      console.error(`❌ Errore nella marcatura dei rewards come claimed per wallet ${walletAddress}:`, err);
+      return [];
+    }
+  }
+  
   async getClaimedRewardsByStakeId(stakeId) {
     try {
       const result = await pool.query(
@@ -379,6 +409,39 @@ class DatabaseStorage {
     } catch (err) {
       console.error(`❌ Errore nel recupero degli stake attivi per wallet ${walletAddress}:`, err);
       return [];
+    }
+  }
+  
+  async checkNftStakeByTokenId(tokenId, walletAddress) {
+    try {
+      console.log(`🔍 Verifica se NFT #${tokenId} è in staking per ${walletAddress}`);
+      
+      // Prepara il token ID nel formato corretto
+      const formattedTokenId = tokenId.includes("_") ? tokenId : `ETH_${tokenId}`;
+      
+      // Query per verificare se esiste uno stake attivo per il token ID e l'indirizzo
+      const result = await pool.query(
+        `SELECT * FROM nft_stakes 
+         WHERE "nftId" = $1 AND "walletAddress" = $2 AND "active" = true`,
+        [formattedTokenId, walletAddress]
+      );
+      
+      // Se abbiamo risultati, l'NFT è in staking
+      const isStaked = result.rows && result.rows.length > 0;
+      
+      console.log(`✅ Verifica completata: NFT #${tokenId} ${isStaked ? 'è' : 'non è'} in staking per ${walletAddress}`);
+      
+      return {
+        isStaked,
+        stake: isStaked ? {
+          ...result.rows[0],
+          startTime: result.rows[0].startTime ? result.rows[0].startTime.toISOString() : null,
+          lastVerificationTime: result.rows[0].lastVerificationTime ? result.rows[0].lastVerificationTime.toISOString() : null
+        } : null
+      };
+    } catch (err) {
+      console.error(`❌ Errore nella verifica dello staking per NFT #${tokenId}:`, err);
+      return { isStaked: false, stake: null };
     }
   }
 

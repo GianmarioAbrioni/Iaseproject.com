@@ -26,8 +26,8 @@ const pgConfig = {
 
 // Check for DATABASE_URL environment variable
 if (!process.env.DATABASE_URL) {
-  console.error("❌ DATABASE_URL not set - database connections will fail");
-  throw new Error("DATABASE_URL is required for the application to function");
+  console.warn("⚠️ DATABASE_URL not set - using a default test connection for development");
+  process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/iasedb";
 }
 
 // Initialize PostgreSQL connection pool

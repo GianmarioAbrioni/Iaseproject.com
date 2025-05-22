@@ -378,7 +378,7 @@ app.get("/api", (req, res) => {
             }
 
             const { storage } = await import("./storage.js");
-            await storage.markRewardsAsClaimed(walletAddress.toLowerCase(), amount);
+            await storage.markRewardsAsClaimedByWallet(walletAddress.toLowerCase(), amount);
 
             res.json({
               success: true,

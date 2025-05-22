@@ -303,57 +303,24 @@ async function loadStakedNfts() {
       const formattedAddress = walletAddress.toLowerCase();
       console.log(`🔍 Verifico NFT in staking per wallet: ${formattedAddress}`);
       
-      // Endpoint principale che dovrebbe funzionare (confermato dal server)
-      // Questo endpoint è il più affidabile in base ai test
+      // Usa solo il principale endpoint per evitare chiamate multiple
       let response = null;
       let data = null;
-      let endpoints = [
-        `/api/by-wallet/${formattedAddress}`,
-        `/api/stakes/by-wallet/${formattedAddress}`,
-        `/api/stakes?wallet=${formattedAddress}`,
-        `/by-wallet/${formattedAddress}`
-      ];
+      const endpoint = `/api/by-wallet/${formattedAddress}`;
       
-      // Tenta ogni endpoint finché uno non ha successo
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`🔄 Tentativo endpoint GET: ${endpoint}`);
-          response = await fetch(endpoint);
-          if (response.ok) {
-            data = await response.json();
-            console.log(`✅ Endpoint ${endpoint} ha risposto con successo`, data);
-            break; // Esci dal ciclo se un endpoint ha successo
-          } else {
-            console.log(`⚠️ Endpoint ${endpoint} ha risposto con stato: ${response.status}`);
-          }
-        } catch (err) {
-          console.log(`⚠️ Errore con endpoint ${endpoint}:`, err.message);
+      try {
+        console.log(`🔄 Richiesta a endpoint principale: ${endpoint}`);
+        response = await fetch(endpoint);
+        if (response.ok) {
+          data = await response.json();
+          console.log(`✅ Endpoint ${endpoint} ha risposto con successo`, data);
+        } else {
+          console.log(`⚠️ Endpoint ha risposto con stato: ${response.status}`);
+          data = { stakes: [] };
         }
-      }
-      
-      // Se nessun endpoint GET ha funzionato, proviamo POST
-      if (!data) {
-        try {
-          console.log('⚠️ Tutti i tentativi GET falliti, provo con POST a /api/get-staked-nfts');
-          
-          const postResponse = await fetch('/api/get-staked-nfts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              walletAddress: formattedAddress, 
-              address: formattedAddress 
-            })
-          });
-          
-          if (postResponse.ok) {
-            data = await postResponse.json();
-            console.log('📦 Dati ricevuti da POST:', data);
-          } else {
-            console.log(`⚠️ Anche POST fallito con stato: ${postResponse.status}`);
-          }
-        } catch (postErr) {
-          console.log('⚠️ Errore con richiesta POST:', postErr.message);
-        }
+      } catch (err) {
+        console.log(`⚠️ Errore con endpoint principale:`, err.message);
+        data = { stakes: [] };
       }
       
       // Se non abbiamo dati anche dopo tutti i tentativi, creiamo un oggetto vuoto
@@ -689,11 +656,10 @@ async function confirmUnstake(nftId, stakeId, stake) {
       throw new Error('Wallet non connesso. Impossibile procedere con l\'unstake.');
     }
     
-    // Preparazione dati per la richiesta
+    // Preparazione dati per la richiesta - attenzione: il server richiede solo tokenId e address
     const unstakeData = {
       tokenId: nftId,
-      address: walletAddress,
-      stakeId: stakeId || stake.id
+      address: walletAddress
     };
     
     console.log('📤 Dati da inviare per unstake:', unstakeData);

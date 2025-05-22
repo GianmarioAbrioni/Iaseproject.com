@@ -3,9 +3,6 @@ import { createServer } from "http";
 import path from "path";
 import bodyParser from "body-parser";
 import { pool } from "./db.js";
-import { storage } from "./storage.js";
-// Importiamo il job di verifica NFT che normalmente viene eseguito dal cron job
-import { processStakingRewards } from "./services/staking-job.js";
 
 /**
  * Registra tutte le rotte necessarie per l'API
@@ -15,47 +12,9 @@ import { processStakingRewards } from "./services/staking-job.js";
 
 
 
-/**
- * Configura uno scheduler per eseguire la verifica giornaliera a mezzanotte
- */
-function scheduleStakingVerification() {
-  console.log("⏰ Configurazione scheduler verifica staking giornaliera");
-  
-  // Calcola il tempo fino alla prossima mezzanotte
-  const now = new Date();
-  const midnight = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + 1, // domani
-    0, 0, 0 // mezzanotte (00:00:00)
-  );
-  
-  const msUntilMidnight = midnight.getTime() - now.getTime();
-  const hoursUntilMidnight = Math.floor(msUntilMidnight / (1000 * 60 * 60));
-  
-  console.log(`⏰ Prossima verifica programmata tra ${hoursUntilMidnight} ore (${midnight.toISOString()})`);
-  
-  // Programma il primo job
-  const timer = setTimeout(() => {
-    // Esegui la verifica
-    console.log("🕛 È mezzanotte! Avvio verifica staking...");
-    
-    processStakingRewards()
-      .then(() => {
-        console.log("✅ Verifica staking completata con successo");
-        // Rischedula per il giorno successivo
-        scheduleStakingVerification();
-      })
-      .catch(error => {
-        console.error("❌ Errore durante la verifica dello staking:", error);
-        // Rischedula comunque per il giorno successivo, anche in caso di errore
-        scheduleStakingVerification();
-      });
-      
-  }, msUntilMidnight);
-  
-  return timer;
-}
+
+
+
 
 export function registerRoutes(app) {
   console.log("✅ Funzione registerRoutes inizializzata");

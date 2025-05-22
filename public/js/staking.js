@@ -375,37 +375,12 @@ async function loadStakedNfts() {
       // Ora elabora i dati attraverso il processore
       console.log('📦 Tentativo di elaborazione dati per NFT in staking:', data);
       
-      // Se i dati sono vuoti o non contengono NFT in staking
-      if ((!data || !data.stakes || (Array.isArray(data.stakes) && data.stakes.length === 0)) && 
-          window.ethereum?.selectedAddress) {
-        
-        console.log('⚠️ Nessun NFT trovato nei dati, provo una chiamata API diretta');
-        
-        // Chiamata diretta all'API come ultimo tentativo
-        const walletAddress = window.ethereum?.selectedAddress;
-        
-        // Chiamata asincrona all'API
-        fetch(`/api/by-wallet/${walletAddress.toLowerCase()}`)
-          .then(response => {
-            if (response.ok) {
-              return response.json();
-            } else {
-              throw new Error(`API error: ${response.status}`);
-            }
-          })
-          .then(apiData => {
-            console.log('✅ Dati ottenuti con chiamata API diretta:', apiData);
-            processStakedNfts(apiData, container);
-          })
-          .catch(apiError => {
-            console.error('❌ Errore nella chiamata API diretta:', apiError);
-            // Fallback ai dati originali
-            processStakedNfts(data, container);
-          });
-      } else {
-        // Abbiamo già dei dati, li processiamo direttamente
-        processStakedNfts(data, container);
-      }
+      // Abbiamo già provato tutti gli endpoint possibili
+      // Non facciamo chiamate API aggiuntive per evitare duplicazioni
+      console.log('📦 Processiamo i dati ottenuti dagli endpoint API:', data);
+      
+      // Elaboriamo i dati direttamente, senza chiamate API aggiuntive
+      processStakedNfts(data, container);
       
     } catch (error) {
       console.error('❌ API fetch error:', error);

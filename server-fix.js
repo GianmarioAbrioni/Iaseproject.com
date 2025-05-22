@@ -11,9 +11,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
 import { config as dotenvConfig } from 'dotenv';
+import express from "express";
 
 // Applica configurazione per variabili d'ambiente
 dotenvConfig();
+
+// Importa direttamente il server già pronto da routes.js
+
+const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Stampa informazioni di ambiente per debug
 console.log(`[ENV] NODE_ENV: ${process.env.NODE_ENV}`);
@@ -42,6 +50,7 @@ function log(level, message) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 log('info', `Directory corrente: ${__dirname}`);
+
 
 // Configurazione database
 process.env.PGHOST = process.env.PGHOST || 'dpg-d0ff45buibrs73ekrt6g-a';
@@ -130,6 +139,8 @@ if (!foundPublicPath) {
   }
 }
 
+
+
 // API health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -145,13 +156,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Importa direttamente il server già pronto da routes.js
-import express from "express";
 
-const app = express();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Import dinamico di routes.js
 import('./server/routes.js').then((module) => {

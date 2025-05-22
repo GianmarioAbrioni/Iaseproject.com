@@ -1,28 +1,22 @@
 /**
  * IASE Project - Server Entry Point
- * 
+ *
  * Questo file avvia l'applicazione IASE Project in modalità compatibile con Render.
- * Utilizza lo storage in memoria con persistenza su file per funzionare 
- * senza dipendenze PostgreSQL mantenendo i dati tra riavvii.
+ * Utilizza lo storage impostato tramite variabili d'ambiente (PostgreSQL o memoria).
  */
 
-// FIX IMPORTANTE: Imposta esplicitamente 'localhost' come host di database
-// come richiesto dall'errore in Render "please set the host to 'localhost' explicitly"
-process.env.PGHOST = 'localhost';
-process.env.PGUSER = 'localuser';
-process.env.PGDATABASE = 'localdb';
-process.env.PGPASSWORD = 'localpass';
-process.env.DATABASE_URL = 'postgresql://localuser:localpass@localhost:5432/localdb';
+// NON impostare PGHOST, PGUSER, PGDATABASE, PGPASSWORD o DATABASE_URL qui!
+// Queste vengono automaticamente fornite da Render
 
-// Imposta le variabili d'ambiente per la modalità in-memory
-process.env.USE_MEMORY_DB = "false"; // ← invece di "true"
-process.env.NODE_ENV = "production";
+// Configura solo modalità di esecuzione e debug
+process.env.USE_MEMORY_DB = process.env.USE_MEMORY_DB || "false";
+process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
-// Stampa le informazioni di avvio
+// Stampa informazioni iniziali
 console.log("🚀 Avvio IASE Project");
-console.log("⚙️ Modalità: database storage");
-console.log("🌐 Ambiente: PRODUCTION");
-console.log("📂 I dati vengono salvati sul database");
+console.log(`⚙️ Modalità: ${process.env.USE_MEMORY_DB === "true" ? "in-memory" : "database PostgreSQL"}`);
+console.log(`🌐 Ambiente: ${process.env.NODE_ENV}`);
+console.log(`📁 I dati vengono salvati su ${process.env.USE_MEMORY_DB === "true" ? "memoria" : "database PostgreSQL"}`);
 
 // Importa il server
 import("./server/index.js")

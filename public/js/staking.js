@@ -579,7 +579,7 @@ function openUnstakeModal(nftId, stake) {
         <div class="modal-footer">
           <button type="button" class="btn cancel-btn" data-dismiss="modal">Cancel</button>
           <button type="button" class="btn confirm-unstake-btn" data-nft-id="${nftId}">
-            <i class="ri-logout-box-line"></i> Unstake & Claim
+            <i class="ri-logout-box-line"></i> Unstake
           </button>
         </div>
       </div>

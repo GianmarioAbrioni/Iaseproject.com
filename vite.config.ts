@@ -24,7 +24,7 @@ export default defineConfig({
 
         // 4) monta Express sui path /api/*
         //    * PRIMA * che Vite serva il fallback a index.html
-        server.middlewares.use('/api', api)
+        server.middlewares.use(api)
       }
     }
   ],

@@ -1706,9 +1706,18 @@ if (stakedTokenIds.length > 0) {
    * @param {string} stakeId - ID dello stake nel database
    */
   async function confirmUnstakeNFT(tokenId, stakeId) {
-    console.log(`🔄 Confirming unstaking for NFT #${tokenId} (Stake ID: ${stakeId})`);
+    console.log(`🔄 Confirming unstaking for NFT #${tokenId}`);
     
     try {
+      // Utilizza la funzione globale di staking.js se disponibile
+      if (typeof window.confirmUnstake === 'function') {
+        console.log('🔄 Utilizzo funzione unstake centralizzata da staking.js');
+        return await window.confirmUnstake(tokenId, null, {});
+      }
+      
+      console.log('⚠️ Funzione centralizzata non disponibile, uso implementazione locale');
+      
+      // Fallback: codice originale se la funzione globale non è disponibile
       // Ottieni l'indirizzo del wallet
       const walletAddress = window.ethereum?.selectedAddress;
       if (!walletAddress) {
@@ -1716,16 +1725,13 @@ if (stakedTokenIds.length > 0) {
         return;
       }
       
-      // Prepara i dati per la chiamata API con la struttura corretta del database
+      // Prepara i dati per la chiamata API con formato CORRETTO
       const unstakeData = {
-        walletAddress: walletAddress,
-        tokenId: tokenId,
-        stakeId: stakeId,
-        isActive: false,
-        unstakeDate: new Date().toISOString()
+        address: walletAddress,    // Corretto! L'API cerca 'address', non 'walletAddress'
+        tokenId: tokenId           // Questo è corretto
       };
       
-      // Effettua la chiamata API per registrare l'unstaking direttamente nel database PostgreSQL
+      // Effettua la chiamata API 
       const response = await fetch(`/api/unstake`, {
         method: 'POST',
         headers: {

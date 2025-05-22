@@ -6,7 +6,6 @@
  */
 
 // Importazioni standard
-import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -53,11 +52,6 @@ process.env.PGPORT = process.env.PGPORT || '5432';
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://iaseproject:GRxrehk6Isv8s3dS3KDJFQ3HMVlxc8k1@dpg-d0ff45buibrs73ekrt6g-a.oregon-postgres.render.com/iaseproject';
 process.env.USE_MEMORY_DB = process.env.USE_MEMORY_DB || "false";
 process.env.NODE_ENV = process.env.NODE_ENV || "production";
-
-// Express setup
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 
 // Verifica percorsi e serve file statici
@@ -152,31 +146,30 @@ app.get('/api/health', (req, res) => {
 });
 
 // Importa direttamente il server già pronto da routes.js
-import('./server/routes.js')
-  .then((module) => {
-    console.log('✅ Logica avanzata server caricata da server/routes.js');
+import express from "express";
 
-    // 1) registra tutte le rotte sull'app Express
+const app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Import dinamico di routes.js
+import('./server/routes.js').then((module) => {
     if (typeof module.registerRoutes === 'function') {
-      module.registerRoutes(app);
+        module.registerRoutes(app);
     } else {
-      throw new Error('registerRoutes non è una funzione esportata da routes.js');
+        throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
-    
-// definisco la porta
-const PORT = process.env.PORT || 10000;
 
-
-    // 2) avvia il server Express sulla porta definita
+    const PORT = process.env.PORT || 10000;
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
-      console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
+        console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+        console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
     });
-  })
-  .catch(err => {
+}).catch(err => {
     console.error('❌ Errore nel caricamento di server/routes.js:', err);
-  });
+});
 
 // –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 

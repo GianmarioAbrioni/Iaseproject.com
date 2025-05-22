@@ -643,7 +643,8 @@ function openUnstakeModal(nftId, stake) {
  * @param {string} stakeId - IGNORATO: L'API richiede solo tokenId e address
  * @param {Object} stake - L'oggetto stake con i dettagli dell'NFT (usato solo per log)
  */
-async function confirmUnstake(nftId, stakeId, stake) {
+// Resa globale per essere accessibile da staking.html
+window.confirmUnstake = async function(nftId, stakeId, stake) {
   console.log(`🔄 Esecuzione unstake per NFT #${nftId}`);
   
   try {

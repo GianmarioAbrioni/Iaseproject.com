@@ -3,12 +3,60 @@ import { createServer } from "http";
 import path from "path";
 import bodyParser from "body-parser";
 import { pool } from "./db.js";
+import { storage } from "./storage.js";
+// Importiamo il job di verifica NFT che normalmente viene eseguito dal cron job
+import { processStakingRewards } from "./services/staking-job.js";
 
 /**
  * Registra tutte le rotte necessarie per l'API
  * @param app L'applicazione Express
  * @returns L'HTTP server
  */
+
+
+
+/**
+ * Configura uno scheduler per eseguire la verifica giornaliera a mezzanotte
+ */
+function scheduleStakingVerification() {
+  console.log("⏰ Configurazione scheduler verifica staking giornaliera");
+  
+  // Calcola il tempo fino alla prossima mezzanotte
+  const now = new Date();
+  const midnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1, // domani
+    0, 0, 0 // mezzanotte (00:00:00)
+  );
+  
+  const msUntilMidnight = midnight.getTime() - now.getTime();
+  const hoursUntilMidnight = Math.floor(msUntilMidnight / (1000 * 60 * 60));
+  
+  console.log(`⏰ Prossima verifica programmata tra ${hoursUntilMidnight} ore (${midnight.toISOString()})`);
+  
+  // Programma il primo job
+  const timer = setTimeout(() => {
+    // Esegui la verifica
+    console.log("🕛 È mezzanotte! Avvio verifica staking...");
+    
+    processStakingRewards()
+      .then(() => {
+        console.log("✅ Verifica staking completata con successo");
+        // Rischedula per il giorno successivo
+        scheduleStakingVerification();
+      })
+      .catch(error => {
+        console.error("❌ Errore durante la verifica dello staking:", error);
+        // Rischedula comunque per il giorno successivo, anche in caso di errore
+        scheduleStakingVerification();
+      });
+      
+  }, msUntilMidnight);
+  
+  return timer;
+}
+
 export function registerRoutes(app) {
   console.log("✅ Funzione registerRoutes inizializzata");
 
@@ -132,6 +180,29 @@ if (!result.rows || result.rows.length === 0) {
                                 "✅ Dati salvati nel database con SQL diretto:",
                                 result.rows[0]
                         );
+                        
+                        // Inizializza record di reward iniziale nella tabella staking_rewards
+                        try {
+                          // Creiamo un record iniziale di rewards con amount=0
+                          const initialReward = {
+                            stakeId: result.rows[0].id,
+                            amount: 0, // Inizialmente zero, verrà aggiornato dal job di rewards
+                          };
+                          
+                          // Inserimento nella tabella staking_rewards
+                          const rewardResult = await pool.query(
+                            `INSERT INTO staking_rewards 
+                             ("stakeId", "amount", "rewardDate", "claimed") 
+                             VALUES ($1, $2, NOW(), false) 
+                             RETURNING *`,
+                            [initialReward.stakeId, initialReward.amount]
+                          );
+                          
+                          console.log("✅ Record iniziale creato in staking_rewards:", rewardResult.rows[0]);
+                        } catch (rewardError) {
+                          // Logga l'errore ma non bloccare il flusso principale
+                          console.error("⚠️ Errore durante la creazione del record iniziale in staking_rewards:", rewardError);
+                        }
 
                         // Restituisci risposta di successo con i dati salvati
                         res.status(200).json({

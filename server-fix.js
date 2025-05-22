@@ -172,27 +172,25 @@ import('./server/routes.js')
     console.error('❌ Errore nel caricamento di server/routes.js:', err);
   });
 
-   // …after registerRoutes and app.listen…
--  // Fallback per SPA
--  app.get('*', (req, res) => {
--    if (foundPublicPath && fs.existsSync(path.join(foundPublicPath, 'index.html'))) {
--      res.sendFile(path.join(foundPublicPath, 'index.html'));
--    } else {
--      res.status(404).send(`<h1>Not found</h1>`);
--    }
--  });
-+  // Fallback per SPA (solo per tutte le rotte NON /api)
-+  app.get('*', (req, res, next) => {
-+    if (req.path.startsWith('/api')) {
-+      return next();               // lascia che Express gestisca l’API
-+    }
-+    // altrimenti servi index.html
-+    const indexHtml = path.join(foundPublicPath, 'index.html');
-+    if (foundPublicPath && fs.existsSync(indexHtml)) {
-+      return res.sendFile(indexHtml);
-+    }
-+    res.status(404).send(`<h1>Page not found</h1>`);
-+  });
+   // … after registerRoutes(app) …
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+});
+
+// — SPA fallback — skip all /api routes:
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();   // passa al router /api…
+  }
+  // altrimenti servi index.html
+  const indexHtml = path.join(foundPublicPath, 'index.html');
+  if (fs.existsSync(indexHtml) {
+    return res.sendFile(indexHtml);
+  }
+  res.status(404).send('Page not found');
+});
   }
 });
 

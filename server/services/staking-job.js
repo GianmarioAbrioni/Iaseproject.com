@@ -85,12 +85,5 @@ async function processStakingRewards() {
   }
 }
 
-// Esegui il job immediatamente
-console.log("🚀 IASE Project - Staking Job Scheduler");
-processStakingRewards().then(() => {
-  console.log("✅ Job completato");
-  process.exit(0);
-}).catch(error => {
-  console.error("🚨 Errore critico:", error);
-  process.exit(1);
-});
+// Esporta la funzione per poterla utilizzare esternamente
+export { processStakingRewards };

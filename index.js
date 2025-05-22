@@ -18,12 +18,12 @@ const __dirname = path.dirname(__filename);
 
 // Configurazione server
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
- // <-- VA PRIMA di registerRoutes
+ // Configurazione middleware
 app.use(express.urlencoded({ extended: true }));
 
-registerRoutes(app); // <-- VA DOPO
+// Configurazione Express
 // Configurazione database
 const pg_config = {
   host: process.env.PGHOST || 'dpg-d0ff45buibrs73ekrt6g-a',
@@ -46,11 +46,12 @@ if (!fs.existsSync(publicPath)) {
   console.log(`✅ Percorso 'public' trovato: ${publicPath}`);
 }
 
-// Serve static files
-app.use(express.static(publicPath));
+// Configurazione middleware per parsing JSON e URL-encoded
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Health check API
+// Route API /api/health definita qui (prima di routes.js) perché è una route di base
+// e non richiede accesso al database
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -63,32 +64,42 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Fallback per single page app
-app.get('*', (req, res) => {
-  // Serve index.html per qualsiasi percorso non trovato
-  if (fs.existsSync(path.join(publicPath, 'index.html'))) {
-    res.sendFile(path.join(publicPath, 'index.html'));
-  } else {
-    res.status(404).send('Page not found');
-  }
-});
+// Nota: NON registriamo ancora il middleware per i file statici
+// Verrà registrato solo DOPO aver caricato le API
 
-// Importa e avvia la logica avanzata server da TypeScript compilato
-import('./dist/index.js')
+// PRIMA REGISTRIAMO LE API, POI I FILE STATICI
+// Questo è fondamentale per il funzionamento corretto degli endpoint API
+import('./server/routes.js')
   .then(module => {
-    console.log('✅ Logica avanzata server caricata da dist/index.js');
+    console.log('✅ Modulo routes.js caricato correttamente');
 
-    if (typeof module.default === 'function') {
-      module.default(app); // Passa l'app Express già configurata
+    if (typeof module.registerRoutes === 'function') {
+      // 1. PRIMO PASSO: Registra le rotte API (hanno priorità assoluta)
+      const server = module.registerRoutes(app);
+      console.log('✅ Routes API registrate correttamente');
+      
+      // 2. SECONDO PASSO: Servi i file statici (solo DOPO aver registrato le API)
+      app.use(express.static(publicPath));
+      
+      // 3. TERZO PASSO: Fallback per SPA (ultimo middleware registrato)
+      app.get('*', (req, res) => {
+        if (fs.existsSync(path.join(publicPath, 'index.html'))) {
+          res.sendFile(path.join(publicPath, 'index.html'));
+        } else {
+          res.status(404).send('Page not found');
+        }
+      });
+      
+      // 4. Avvia il server
+      server.listen(PORT, '0.0.0.0', () => {
+        console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+        console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
+      });
+    } else {
+      throw new Error('La funzione registerRoutes non è stata trovata nel modulo');
     }
-
-    // Avvia server SOLO dopo il caricamento riuscito
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
-      console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
-    });
   })
   .catch(err => {
-    console.error('❌ Errore nel caricamento di dist/index.js:', err);
+    console.error('❌ Errore nel caricamento di server/routes.js:', err);
   });

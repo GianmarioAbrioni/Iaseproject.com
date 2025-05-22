@@ -495,7 +495,7 @@ function processStakedNfts(data, container) {
         </div>
         
         <div class="nft-card-actions">
-          <button class="btn unstake-btn" data-nft-id="${tokenId}" data-stake-id="${stake.id}">
+          <button class="btn unstake-btn" data-nft-id="${tokenId}">
             <i class="ri-logout-box-line"></i> Unstake
           </button>
           <button class="btn claim-btn" data-nft-id="${tokenId}" data-stake-id="${stake.id}">
@@ -513,8 +513,7 @@ function processStakedNfts(data, container) {
     if (unstakeBtn) {
       unstakeBtn.addEventListener('click', function() {
         const nftId = this.getAttribute('data-nft-id');
-        const stakeId = this.getAttribute('data-stake-id') || stake.id || stake.stakeId;
-        console.log(`🔄 Tentativo di unstake per NFT #${nftId}, stake ID: ${stakeId}`);
+        console.log(`🔄 Tentativo di unstake per NFT #${nftId}`);
         openUnstakeModal(nftId, stake);
       });
     }
@@ -579,7 +578,7 @@ function openUnstakeModal(nftId, stake) {
         </div>
         <div class="modal-footer">
           <button type="button" class="btn cancel-btn" data-dismiss="modal">Cancel</button>
-          <button type="button" class="btn confirm-unstake-btn" data-nft-id="${nftId}" data-stake-id="${stake.id || ''}">
+          <button type="button" class="btn confirm-unstake-btn" data-nft-id="${nftId}">
             <i class="ri-logout-box-line"></i> Unstake & Claim
           </button>
         </div>
@@ -626,12 +625,11 @@ function openUnstakeModal(nftId, stake) {
   if (confirmButton) {
     confirmButton.addEventListener('click', function() {
       const nftId = this.getAttribute('data-nft-id');
-      const stakeId = this.getAttribute('data-stake-id') || stake.id;
       
-      console.log(`🔄 Confermato unstake per NFT #${nftId}, stake ID: ${stakeId}`);
+      console.log(`🔄 Confermato unstake per NFT #${nftId}`);
       
-      // Chiamata alla funzione di unstake
-      confirmUnstake(nftId, stakeId, stake);
+      // Chiamata alla funzione di unstake - passa solo nftId
+      confirmUnstake(nftId, null, stake);
       
       // Nascondi la modale
       modalContainer.classList.remove('show');
@@ -642,11 +640,11 @@ function openUnstakeModal(nftId, stake) {
 /**
  * Conferma l'unstaking di un NFT
  * @param {string} nftId - L'ID dell'NFT da unstakare
- * @param {string} stakeId - L'ID dello stake nel database
- * @param {Object} stake - L'oggetto stake con i dettagli dell'NFT
+ * @param {string} stakeId - IGNORATO: L'API richiede solo tokenId e address
+ * @param {Object} stake - L'oggetto stake con i dettagli dell'NFT (usato solo per log)
  */
 async function confirmUnstake(nftId, stakeId, stake) {
-  console.log(`🔄 Esecuzione unstake per NFT #${nftId}, stake ID: ${stakeId}`);
+  console.log(`🔄 Esecuzione unstake per NFT #${nftId}`);
   
   try {
     // Ottieni l'indirizzo del wallet connesso
@@ -656,7 +654,7 @@ async function confirmUnstake(nftId, stakeId, stake) {
       throw new Error('Wallet non connesso. Impossibile procedere con l\'unstake.');
     }
     
-    // Preparazione dati per la richiesta - attenzione: il server richiede solo tokenId e address
+    // Preparazione dati per la richiesta - NOTA: l'API richiede SOLO tokenId e address
     const unstakeData = {
       tokenId: nftId,
       address: walletAddress

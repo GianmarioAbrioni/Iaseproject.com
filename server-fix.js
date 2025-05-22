@@ -164,7 +164,7 @@ import('./server/routes.js')
     }
 
     // 2) avvia il server Express sulla porta definita
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '10000', () => {
       console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
       console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
       console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);

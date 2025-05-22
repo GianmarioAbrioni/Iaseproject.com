@@ -162,9 +162,18 @@ import('./server/routes.js')
     } else {
       throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
+    
+// definisco la porta
+const PORT = process.env.PORT || 10000;
 
+// lancio il server una sola volta
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+  console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Database: ${process.env.USE_MEMORY_DB==='true'?'In-Memory':'PostgreSQL'}`);
+});
     // 2) avvia il server Express sulla porta definita
-    app.listen(PORT, '10000', () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
       console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
       console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);

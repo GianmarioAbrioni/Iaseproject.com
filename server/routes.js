@@ -29,13 +29,13 @@ export function registerRoutes(app) {
     next();
   });
 
-  // API Routes prefix check
-  app.use("/api", (req, res, next) => {
-    if (!req.path.startsWith("/api")) {
-      req.url = "/api" + req.url;
-    }
-    next();
-  });
+  // Eliminiamo il prefix check, non è necessario e può causare problemi
+  // app.use("/api", (req, res, next) => {
+  //   if (!req.path.startsWith("/api")) {
+  //     req.url = "/api" + req.url;
+  //   }
+  //   next();
+  // });
         // IMPLEMENTAZIONE DIRETTA DELLE API NECESSARIE PER LO STAKING
         // Nota: Utilizziamo un approccio diretto (senza router) per evitare problemi con i path
         // 1. API per lo staking - /api/stake

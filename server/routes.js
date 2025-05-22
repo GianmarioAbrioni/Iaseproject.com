@@ -195,14 +195,26 @@ if (!result.rows || result.rows.length === 0) {
 
                                 // Trova lo stake specifico dell'NFT
                                 // I dati ritornati dal database hanno nomi di campo coerenti con il database
+                                console.log("Stakes trovati:", JSON.stringify(stakes, null, 2));
+                                console.log("TokenId da cercare:", tokenId);
+                                
                                 const targetStake = stakes.find((stake) => {
-                                        // Utilizziamo la sintassi con indice per permettere l'accesso a proprietà dinamiche
-                                        return (
-                                                stake &&
-                                                ((stake["nftId"] &&
-                                                        stake["nftId"].includes(tokenId)) ||
-                                                        (stake.nftId && stake.nftId.includes(tokenId)))
-                                        );
+                                        // Normalizza i valori di ID per il confronto
+                                        const nftIdFromDB = stake.nftId || '';
+                                        const searchTokenId = tokenId.toString();
+                                        
+                                        // Se l'ID nel DB contiene già il prefisso (ETH_)
+                                        if (nftIdFromDB.includes('_')) {
+                                            // Confronta sia con il valore completo che solo con l'ID numerico
+                                            const dbNumericPart = nftIdFromDB.split('_')[1];
+                                            return nftIdFromDB.includes(searchTokenId) || 
+                                                   dbNumericPart === searchTokenId ||
+                                                   nftIdFromDB === `ETH_${searchTokenId}`;
+                                        } else {
+                                            // Confronto diretto
+                                            return nftIdFromDB === searchTokenId || 
+                                                   nftIdFromDB.includes(searchTokenId);
+                                        }
                                 });
 
                                 if (!targetStake) {

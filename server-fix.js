@@ -163,14 +163,19 @@ import('./server/routes.js')
       throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
 
+    // 2) avvia il server Express sulla porta definita
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+      console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ Database: ${process.env.USE_MEMORY_DB === 'true' ? 'In-Memory' : 'PostgreSQL'}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Errore nel caricamento di server/routes.js:', err);
+  });
+
 // –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-// Dopo che routes.js ha fatto il suo lavoro, assicurati comunque
-// di avere un listener di fallback sulla porta di deploy
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`✅ Server IASE ancora in esecuzione sulla porta ${PORT}`);
-});
 
 // – SPA fallback – skip all /api routes:
 app.get('*', (req, res, next) => {
@@ -184,4 +189,3 @@ app.get('*', (req, res, next) => {
   }
   res.status(404).send('Page not found');
 });
-

@@ -156,12 +156,14 @@ import('./server/routes.js')
   .then((module) => {
     console.log('✅ Logica avanzata server caricata da server/routes.js');
 
+    // 1) registra tutte le rotte sull'app Express
     if (typeof module.registerRoutes === 'function') {
-      module.registerRoutes(app); // Registra tutte le rotte sull'app Express
+      module.registerRoutes(app);
     } else {
       throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
 
+    // 2) avvia il server Express sulla porta definita
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
       console.log(`✅ Modalità: ${process.env.NODE_ENV || 'development'}`);
@@ -172,21 +174,23 @@ import('./server/routes.js')
     console.error('❌ Errore nel caricamento di server/routes.js:', err);
   });
 
-   // … after registerRoutes(app) …
+// –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
+// Dopo che routes.js ha fatto il suo lavoro, assicurati comunque
+// di avere un listener di fallback sulla porta di deploy
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`✅ Server IASE in esecuzione sulla porta ${PORT}`);
+  console.log(`✅ Server IASE ancora in esecuzione sulla porta ${PORT}`);
 });
 
-// — SPA fallback — skip all /api routes:
+// – SPA fallback – skip all /api routes:
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
-    return next();   // passa al router /api…
+    return next();          // passa al router /api/...
   }
-  // altrimenti servi index.html
+  // altrimenti serviamo l’index.html della SPA
   const indexHtml = path.join(foundPublicPath, 'index.html');
-  if (fs.existsSync(indexHtml) {
+  if (fs.existsSync(indexHtml)) {
     return res.sendFile(indexHtml);
   }
   res.status(404).send('Page not found');

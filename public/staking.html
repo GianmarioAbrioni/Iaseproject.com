@@ -657,7 +657,7 @@
               <strong id="unstakeNftStakingTime">--</strong>
             </div>
           </div>
-          <p class="note">Warning: Unstaking will claim all accumulated rewards automatically.</p>
+          <!-- Messaggio di avviso rimosso perché unstake e claim sono operazioni separate -->
         </div>
         
         <div class="modal-actions">
@@ -1752,8 +1752,8 @@ if (stakedTokenIds.length > 0) {
         unstakeModal.style.display = 'none';
       }
       
-      // Mostra notifica di successo
-      alert(`NFT #${tokenId} successfully removed from staking! You received ${result.claimedAmount || '0.00'} IASE tokens as reward.`);
+      // Mostra notifica di successo solo per l'unstake
+      alert(`NFT #${tokenId} successfully removed from staking!`);
       
       // IMPORTANTE: Pulisci completamente la cache per forzare un reload dal database
       // Questo risolve il problema degli NFT che apparivano ancora in staking dopo l'unstaking

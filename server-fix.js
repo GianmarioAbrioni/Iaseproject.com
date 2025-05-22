@@ -58,7 +58,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || "production";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const PORT = process.env.PORT || 3000;
+
 
 // Verifica percorsi e serve file statici
 const publicPaths = [

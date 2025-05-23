@@ -1029,22 +1029,41 @@ if (!result?.nfts || !Array.isArray(result.nfts)) {
 let availableNfts = result.nfts || [];
 let errorCount = 0;
 
+// Prima rimuoviamo gli NFT duplicati
+const uniqueNftIds = new Set();
+availableNfts = availableNfts.filter(nft => {
+  const nftIdAsString = nft.id?.toString();
+  
+  // Salta gli NFT con ID non valido
+  if (!nftIdAsString) {
+    errorCount++;
+    console.warn("⚠️ NFT con ID non valido:", nft);
+    return false;
+  }
+  
+  // Se questo ID è già stato visto, è un duplicato
+  if (uniqueNftIds.has(nftIdAsString)) {
+    console.log(`⚠️ NFT duplicato #${nftIdAsString} trovato - lo rimuovo`);
+    return false;
+  }
+  
+  // Altrimenti, aggiungi l'ID al set e mantieni questo NFT
+  uniqueNftIds.add(nftIdAsString);
+  return true;
+});
+
+console.log(`✅ Dopo rimozione duplicati: ${availableNfts.length} NFT unici rimasti`);
+
+// Poi rimuoviamo gli NFT già in staking
 if (stakedTokenIds.length > 0) {
   availableNfts = availableNfts.filter(nft => {
     const nftIdAsString = nft.id?.toString();
-
     const isStaked = stakedTokenIds.includes(nftIdAsString);
 
     if (isStaked) {
       console.log(`❌ NFT #${nftIdAsString} è già in staking: lo rimuovo`);
     } else {
       console.log(`✅ NFT #${nftIdAsString} è disponibile`);
-    }
-
-    // Loga errore se ID non è definito
-    if (!nftIdAsString) {
-      errorCount++;
-      console.warn("⚠️ NFT con ID non valido:", nft);
     }
 
     return !isStaked;
@@ -1202,8 +1221,20 @@ if (stakedTokenIds.length > 0) {
       const allNftsResult = await loadAllIASENFTs();
       const allNfts = allNftsResult.nfts || [];
       
-      // Render each staked NFT
+      // Usa un Set per tracciare gli NFT già renderizzati e prevenire duplicati
+      const renderedNftIds = new Set();
+      
+      // Render each staked NFT (evitando duplicati)
       for (const stakedNft of myStakedNfts) {
+        // Verifica se l'NFT è già stato renderizzato per prevenire duplicati
+        if (renderedNftIds.has(stakedNft.nftId)) {
+          console.log(`Skipping duplicate staked NFT #${stakedNft.nftId}`);
+          continue;
+        }
+        
+        // Aggiungi l'ID NFT ai già renderizzati
+        renderedNftIds.add(stakedNft.nftId);
+        
         // Find reward for this NFT
         const reward = rewards.find(r => r.stakeId === stakedNft.id);
         const accumulatedReward = reward ? reward.totalReward : 0;
@@ -1421,7 +1452,27 @@ if (stakedTokenIds.length > 0) {
   }
   
   // Funzione per aprire il modal di staking
-  function openStakeModal(tokenId) {
+  async function openStakeModal(tokenId) {
+    console.log(`🔍 Verifico NFT #${tokenId} prima di aprire il modal...`);
+    
+    try {
+      // Prima verifico se l'NFT è già in staking
+      const response = await fetch(`/api/check-staked-nft?nftId=${tokenId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.isStaked) {
+          console.warn(`⚠️ NFT #${tokenId} è già in staking!`);
+          alert('This NFT is already staked and cannot be staked again');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Errore nella verifica dello staking:`, error);
+      // Continuiamo comunque per non bloccare l'utente
+    }
+    
     console.log(`🔄 Apertura modal staking per NFT #${tokenId}`);
     
     // Ottieni il modal
@@ -1581,9 +1632,6 @@ if (stakedTokenIds.length > 0) {
       window.stakedNftsData = null;
       window.stakedNftIds = [];
       
-      // Mostra notifica di successo in inglese
-      alert(`NFT #${tokenId} successfully staked! You will earn ${rewardValue} IASE tokens per day.`);
-      
       // Resetta completamente lo stato delle cache
       console.log("🔄 Resetto le cache e i dati memorizzati per forzare un refresh completo...");
       window.stakedNfts = [];
@@ -1591,21 +1639,21 @@ if (stakedTokenIds.length > 0) {
       window.availableNftIds = [];
       window.nftMetadataCache = {};
       
-      // Aggiungiamo un ritardo prima di aggiornare l'interfaccia
-      // per garantire che il database abbia il tempo di aggiornare i dati
-      setTimeout(() => {
-        console.log("🔄 Aggiornamento dell'interfaccia dopo staking...");
-        
-        // Prima aggiorniamo gli NFT in staking
-        renderStakedNFTs().then(() => {
-          // Poi aggiorniamo gli NFT disponibili
-          renderAvailableNFTs().then(() => {
-            // Infine aggiorniamo le statistiche del dashboard
-            updateDashboardStats();
-            console.log(`✅ Staking completato e UI aggiornata per NFT #${tokenId}`);
-          });
+      // Mostra notifica di successo in inglese
+      alert(`NFT #${tokenId} successfully staked! You will earn ${rewardValue} IASE tokens per day.`);
+      
+      // Dopo che l'utente ha cliccato OK sull'alert, aggiorna immediatamente l'interfaccia
+      console.log("🔄 Aggiornamento dell'interfaccia dopo staking...");
+      
+      // Prima aggiorniamo gli NFT in staking
+      renderStakedNFTs().then(() => {
+        // Poi aggiorniamo gli NFT disponibili
+        renderAvailableNFTs().then(() => {
+          // Infine aggiorniamo le statistiche del dashboard
+          updateDashboardStats();
+          console.log(`✅ Staking completato e UI aggiornata per NFT #${tokenId}`);
         });
-      }, 1000);
+      });
     } catch (error) {
       console.error('❌ Errore durante lo staking:', error);
       alert(`Staking error: ${error.message}`);
@@ -1833,6 +1881,231 @@ if (stakedTokenIds.length > 0) {
       alert(`Claim error: ${error.message}`);
     }
   }
+
+  /**
+   * Inizializza gli event listener per la tab Rewards e il pulsante Claim All
+   */
+  function initRewardsTab() {
+    console.log("🔄 Initializing rewards tab and claim functionality");
+    
+    // Ottieni il pulsante claimAllBtn
+    const claimAllBtn = document.getElementById('claimAllBtn');
+    if (!claimAllBtn) {
+      console.error("❌ Claim all button not found");
+      return;
+    }
+    
+    // Cerca le rewards pending per il wallet corrente
+    async function updatePendingRewards() {
+      try {
+        const walletAddress = window.ethereum?.selectedAddress;
+        if (!walletAddress) {
+          // Se il wallet non è connesso, disabilita il pulsante
+          claimAllBtn.disabled = true;
+          return;
+        }
+        
+        // Ottieni le rewards dal server
+        const response = await fetch(`/api/rewards/${walletAddress}`);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const rewards = await response.json();
+        
+        // Calcola il totale delle rewards non reclamate
+        let totalPending = 0;
+        let hasUnclaimedRewards = false;
+        
+        rewards.forEach(reward => {
+          if (!reward.claimed) {
+            totalPending += reward.totalReward;
+            hasUnclaimedRewards = true;
+          }
+        });
+        
+        // Aggiorna l'UI
+        const pendingRewardsElement = document.getElementById('pendingRewards');
+        if (pendingRewardsElement) {
+          pendingRewardsElement.textContent = `${totalPending.toFixed(2)} IASE`;
+        }
+        
+        // Abilita/disabilita il pulsante in base alla presenza di rewards
+        claimAllBtn.disabled = !hasUnclaimedRewards;
+      } catch (error) {
+        console.error("❌ Errore nell'aggiornamento delle pending rewards:", error);
+      }
+    }
+    
+    // Aggiungi l'event listener al pulsante claim all
+    claimAllBtn.addEventListener('click', async function() {
+      try {
+        const walletAddress = window.ethereum?.selectedAddress;
+        if (!walletAddress) {
+          alert('Please connect your wallet to claim rewards');
+          return;
+        }
+        
+        // Verifica rete BSC (chainId: 56)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        
+        if (chainId !== '0x38') { // 0x38 è l'ID della BSC Mainnet
+          const switchConfirm = confirm('You need to switch to Binance Smart Chain to claim rewards. Do you want to switch networks?');
+          if (!switchConfirm) return;
+          
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x38' }],
+            });
+          } catch (switchError) {
+            // Rete non configurata, aggiungiamola
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0x38',
+                  chainName: 'Binance Smart Chain',
+                  nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+                  rpcUrls: ['https://bsc-dataseed.binance.org/'],
+                  blockExplorerUrls: ['https://bscscan.com/']
+                }]
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
+        
+        // Ottieni le rewards disponibili
+        const response = await fetch(`/api/claim/rewards/${walletAddress}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        
+        const rewards = await response.json();
+        
+        // Calcola totale claim e stake IDs
+        let totalToClaim = 0;
+        const stakeIds = [];
+        
+        rewards.forEach(reward => {
+          if (!reward.claimed) {
+            totalToClaim += reward.totalReward;
+            stakeIds.push(reward.stakeId);
+          }
+        });
+        
+        if (totalToClaim <= 0) {
+          alert('No rewards available to claim');
+          return;
+        }
+        
+        // Chiedi conferma
+        const confirmClaim = confirm(`You are about to claim ${totalToClaim.toFixed(2)} IASE tokens. Continue?`);
+        if (!confirmClaim) return;
+        
+        // Ottieni configurazione contratto
+        const { rewardContractAddress } = getClaimConfig();
+        
+        // Crea istanza Web3
+        const web3 = new Web3(window.ethereum);
+        
+        // ABI minimo per claimReward
+        const rewardAbi = [
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+              }
+            ],
+            "name": "claimReward",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ];
+        
+        // Crea istanza contratto
+        const rewardContract = new web3.eth.Contract(
+          rewardAbi,
+          rewardContractAddress
+        );
+        
+        // Converti importo in wei (18 decimali)
+        const amountWei = web3.utils.toWei(totalToClaim.toString());
+        
+        console.log(`🔄 Chiamata contratto per claim di ${totalToClaim} IASE tokens...`);
+        
+        // Disable button during transaction
+        claimAllBtn.disabled = true;
+        claimAllBtn.textContent = 'Processing...';
+        
+        // Esegui la transazione
+        const tx = await rewardContract.methods.claimReward(walletAddress, amountWei).send({
+          from: walletAddress
+        });
+        
+        console.log('✅ Transazione completata:', tx.transactionHash);
+        
+        // Marca rewards come claimed sul database
+        for (const stakeId of stakeIds) {
+          try {
+            await fetch('/api/mark-claimed', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                stakeId: stakeId,
+                address: walletAddress,
+                txHash: tx.transactionHash
+              })
+            });
+          } catch (markError) {
+            console.error(`❌ Errore nel marcare stakeId ${stakeId} come claimed:`, markError);
+          }
+        }
+        
+        // Mostra conferma all'utente
+        alert(`Successfully claimed ${totalToClaim.toFixed(2)} IASE tokens!`);
+        
+        // Aggiorna UI
+        updatePendingRewards();
+        renderNFTs();
+        
+        // Reset button
+        claimAllBtn.textContent = 'Claim All Rewards';
+      } catch (error) {
+        console.error('❌ Errore durante claim all rewards:', error);
+        alert(`Error claiming rewards: ${error.message}`);
+        
+        // Reset button on error
+        claimAllBtn.disabled = false;
+        claimAllBtn.textContent = 'Claim All Rewards';
+      }
+    });
+    
+    // Aggiorna rewards quando cambia tab
+    document.querySelectorAll('.tab-btn').forEach(tab => {
+      tab.addEventListener('click', function() {
+        if (this.getAttribute('data-tab') === 'rewards') {
+          updatePendingRewards();
+        }
+      });
+    });
+    
+    // Iniziale aggiornamento rewards
+    updatePendingRewards();
+  }
+
+  // Inizializza rewards tab quando il DOM è caricato
+  document.addEventListener('DOMContentLoaded', function() {
+    initRewardsTab();
+  });
 </script>
 </body>
 </html>

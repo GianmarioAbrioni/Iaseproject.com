@@ -366,13 +366,16 @@ async function loadStakedNfts() {
       const formattedAddress = walletAddress.toLowerCase();
       console.log(`🔍 Verifico NFT in staking per wallet: ${formattedAddress}`);
       
-      // Usa solo il principale endpoint per evitare chiamate multiple
+      // CORREZIONE: Utilizziamo due metodi per recuperare gli NFT in staking
+      // per avere ridondanza e massimizzare la probabilità di ottenere tutti i dati
       let response = null;
       let data = null;
+      
+      // Primo tentativo: endpoint principale /api/by-wallet
       const endpoint = `/api/by-wallet/${formattedAddress}`;
+      console.log(`🔄 Richiesta a endpoint principale: ${endpoint}`);
       
       try {
-        console.log(`🔄 Richiesta a endpoint principale: ${endpoint}`);
         response = await fetch(endpoint);
         if (response.ok) {
           data = await response.json();
@@ -384,6 +387,35 @@ async function loadStakedNfts() {
       } catch (err) {
         console.log(`⚠️ Errore con endpoint principale:`, err.message);
         data = { stakes: [] };
+      }
+      
+      // Se il primo tentativo non ha restituito dati, proviamo con l'endpoint secondario
+      if (!data || !data.stakes || data.stakes.length === 0) {
+        console.log(`ℹ️ Nessun dato dall'endpoint principale, provo con endpoint secondario`);
+        const secondaryEndpoint = `/api/get-staked-nfts`;
+        
+        try {
+          const response2 = await fetch(secondaryEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: formattedAddress })
+          });
+          
+          if (response2.ok) {
+            const data2 = await response2.json();
+            console.log(`✅ Endpoint secondario ha risposto con successo`, data2);
+            
+            // Se il secondo endpoint ha restituito dati, li usiamo
+            if (data2 && Array.isArray(data2.stakes) && data2.stakes.length > 0) {
+              console.log(`✅ Utilizzo dati dall'endpoint secondario (${data2.stakes.length} NFT trovati)`);
+              data = data2;
+            }
+          } else {
+            console.log(`⚠️ Endpoint secondario ha risposto con stato: ${response2.status}`);
+          }
+        } catch (err2) {
+          console.log(`⚠️ Errore con endpoint secondario:`, err2.message);
+        }
       }
       
       // Se non abbiamo dati anche dopo tutti i tentativi, creiamo un oggetto vuoto
@@ -457,17 +489,43 @@ function processStakedNfts(data, container) {
   
   let stakedNfts = [];
   
-  // Gestione di tutti i possibili formati di risposta API
-  if (Array.isArray(data)) {
+  // CORREZIONE: Migliore gestione per il formato specifico dell'API /api/by-wallet/:address
+  // Questa API restituisce oggetti con formato {stakes: [{tokenId: "123"}, ...]}
+  if (data && data.stakes && Array.isArray(data.stakes)) {
+    console.log('📋 Formato dati standard API: Oggetto con stakes');
+    
+    // CORREZIONE: Assicurati che l'oggetto stake contenga tutte le proprietà necessarie
+    stakedNfts = data.stakes.map(stake => {
+      // Estrai il token ID nel formato corretto
+      let tokenId = stake.tokenId || stake.token_id;
+      
+      // Normalizzo nftId dal database (es. "ETH_123" -> "123")
+      if (!tokenId && stake.nftId) {
+        tokenId = stake.nftId.includes('_') ? stake.nftId.split('_')[1] : stake.nftId;
+      }
+      
+      // Debug: Stampa il tokenId estratto
+      console.log(`🔑 TokenID estratto per stake:`, tokenId);
+      
+      // Ottieni informazioni complete sullo stake dal database
+      return {
+        ...stake,
+        tokenId: tokenId,
+        // Proprietà standard che devono essere presenti
+        id: stake.id || null,
+        stakeDate: stake.startTime || stake.stakeDate || stake.createdAt || new Date().toISOString(),
+        rarityName: stake.rarityTier || stake.rarity || 'Standard',
+        dailyReward: stake.dailyReward || getFixedDailyReward(stake.rarityTier || 'Standard'),
+        rewardAmount: stake.rewardAmount || 0
+      };
+    });
+  } else if (Array.isArray(data)) {
     // Caso 1: risposta diretta come array
     console.log('📋 Formato dati: Array diretto');
     stakedNfts = data;
   } else if (data && typeof data === 'object') {
-    // Caso 2: risposta in formato {stakes: [...]}
-    console.log('📋 Formato dati: Oggetto con stakes');
-    if (data.stakes && Array.isArray(data.stakes)) {
-      stakedNfts = data.stakes;
-    } else if (data.data && data.data.stakes && Array.isArray(data.data.stakes)) {
+    // Altri casi come prima, ma con migliori verifiche
+    if (data.data && data.data.stakes && Array.isArray(data.data.stakes)) {
       // Caso 3: risposta in formato {data: {stakes: [...]}}
       stakedNfts = data.data.stakes;
     } else if (data.data && Array.isArray(data.data)) {
@@ -485,7 +543,7 @@ function processStakedNfts(data, container) {
       }
       
       // Caso 6: potrebbe essere un singolo oggetto stake
-      if (stakedNfts.length === 0 && (data.tokenId || data.token_id || data.nft_id)) {
+      if (stakedNfts.length === 0 && (data.tokenId || data.token_id || data.nftId)) {
         console.log('🔍 Trovato singolo oggetto stake, lo uso direttamente');
         stakedNfts = [data]; // Trasforma in array
       }
@@ -512,9 +570,12 @@ function processStakedNfts(data, container) {
     return;
   }
   
-  // Tieni traccia delle ricompense totali e giornaliere
+  // CORREZIONE: Reset dei contatori globali
   let totalRewards = 0;
   let dailyRewards = 0;
+  
+  // DEBUG: Indicatore visibile dell'inizio dell'elaborazione degli NFT
+  console.log('🚀 INIZIO ELABORAZIONE NFT IN STAKING - Numero totale:', stakedNfts.length);
   
   // Utilizzo un Set per impedire duplicati basati sull'ID del token
   const processedTokens = new Set();
@@ -527,22 +588,48 @@ function processStakedNfts(data, container) {
     return dateB - dateA; // Ordine decrescente (più recenti prima)
   });
   
+  // DEBUG: Mostra tutti gli NFT in staking prima di elaborarli
+  console.log('⚠️ NFT in staking da elaborare:', JSON.stringify(stakedNfts, null, 2));
+  
+  // CORREZIONE: Diagnostica completa sui dati degli NFT per debug
+  console.table(stakedNfts.map(stake => {
+    // Estrai informazioni chiave per ogni stake
+    const tokenId = stake.tokenId || stake.token_id || 
+      (stake.nftId ? (stake.nftId.includes('_') ? stake.nftId.split('_')[1] : stake.nftId) : 'Unknown');
+    return {
+      tokenId: tokenId,
+      rarity: stake.rarityTier || stake.rarityName || stake.rarity || 'Standard',
+      dailyReward: stake.dailyReward || getFixedDailyReward(stake.rarityTier || 'Standard'),
+      stakeDate: stake.startTime || stake.stakeDate || stake.createdAt || 'Unknown'
+    };
+  }));
+  
   // Per ogni NFT in staking, crea un elemento visuale
   for (const stake of stakedNfts) {
-    // Estrai il token ID, con compatibilità per vari formati
-    let tokenId = stake.tokenId || stake.token_id;
-    if (stake.nft_id && stake.nft_id.includes('_')) {
-      // Formato 'ETH_123'
-      tokenId = stake.nft_id.split('_')[1];
+    // CORREZIONE: Migliore estrazione del token ID, considerando tutti i possibili formati
+    let tokenId = null;
+    
+    // Cerca tokenId in diversi campi possibili
+    if (stake.tokenId) {
+      tokenId = stake.tokenId;
+    } else if (stake.token_id) {
+      tokenId = stake.token_id;
+    } else if (stake.nftId) {
+      // Formato 'ETH_123' o numerico semplice
+      tokenId = stake.nftId.includes('_') ? stake.nftId.split('_')[1] : stake.nftId;
+    } else if (stake.nft_id) {
+      tokenId = stake.nft_id.includes('_') ? stake.nft_id.split('_')[1] : stake.nft_id;
     }
     
     if (!tokenId) {
-      console.error('❌ Impossibile determinare tokenId per:', stake);
+      console.error('❌ Impossibile determinare tokenId per:', JSON.stringify(stake, null, 2));
       continue;
     }
     
     // Converti tokenId a stringa per consistenza nei confronti
     tokenId = tokenId.toString();
+    
+    console.log(`🔍 Elaborazione NFT #${tokenId} - Dati completi:`, stake);
     
     // Verifica se questo token è già stato processato (elimina duplicati)
     if (processedTokens.has(tokenId)) {
@@ -558,6 +645,29 @@ function processStakedNfts(data, container) {
     nftElement.classList.add('nft-card');
     nftElement.classList.add('staked');
     
+    // CORREZIONE: Inizializza i valori dalle proprietà corrette dello stake
+    const rarityName = stake.rarityTier || stake.rarityName || stake.rarity || 'Standard';
+    const dailyRewardValue = stake.dailyReward || getFixedDailyReward(rarityName);
+    const stakeDate = stake.startTime || stake.stakeDate || stake.createdAt;
+    
+    // Determina colore badge in base alla rarità
+    let rarityClass = 'standard';
+    if (rarityName.toLowerCase().includes('advanced')) rarityClass = 'advanced';
+    if (rarityName.toLowerCase().includes('elite')) rarityClass = 'elite';
+    if (rarityName.toLowerCase().includes('prototype')) rarityClass = 'prototype';
+    
+    console.log(`🎯 NFT #${tokenId} - Rarità: ${rarityName}, Daily: ${dailyRewardValue}, Data: ${stakeDate}`);
+    
+    // CORREZIONE: Aggiungi ai contatori globali per la dashboard
+    // Importante: incremento esplicito per evitare NaN
+    dailyRewards += parseFloat(dailyRewardValue) || 0;
+    
+    // Calcola i rewards accumulati
+    const accumulatedRewards = calculateRewards(stake);
+    totalRewards += parseFloat(accumulatedRewards) || 0;
+    
+    console.log(`💰 Contatori aggiornati - Totale Daily: ${dailyRewards.toFixed(2)}, Totale Rewards: ${totalRewards.toFixed(2)}`);
+    
     // Imposta HTML con i dati dell'NFT
     nftElement.innerHTML = `
       <div class="nft-image">
@@ -567,20 +677,20 @@ function processStakedNfts(data, container) {
       <div class="nft-details">
         <h3 class="nft-title">IASE Unit #${tokenId}</h3>
         <div class="nft-id">Token ID: ${tokenId}</div>
-        <div class="rarity-badge" id="rarityBadge_${tokenId}">Loading...</div>
+        <div class="rarity-badge ${rarityClass}" id="rarityBadge_${tokenId}">${rarityName.toUpperCase()}</div>
         
         <div class="staking-info">
           <div class="staking-duration">
             <span class="info-label">Staked For:</span>
-            <span class="info-value">${calculateStakingDuration(stake.stakeDate || stake.stake_date)}</span>
+            <span class="info-value">${calculateStakingDuration(stakeDate)}</span>
           </div>
           <div class="reward-rate">
             <span class="info-label">Daily Rate:</span>
-            <span class="info-value" id="dailyRate_${tokenId}">${calculateDailyRate(stake.rarityName || stake.rarity || 'Standard')} IASE/day</span>
+            <span class="info-value" id="dailyRate_${tokenId}">${dailyRewardValue.toFixed(2)} IASE/day</span>
           </div>
           <div class="reward-info">
             <span class="info-label">Rewards:</span>
-            <span class="info-value" id="rewardValue_${tokenId}">${calculateRewards(stake)} IASE</span>
+            <span class="info-value" id="rewardValue_${tokenId}">${accumulatedRewards} IASE</span>
           </div>
         </div>
         
@@ -607,7 +717,34 @@ function processStakedNfts(data, container) {
         openUnstakeModal(nftId, stake);
       });
     }
+    
+    // Aggiungi event listener per il pulsante claim rewards
+    const claimBtn = nftElement.querySelector('.claim-btn');
+    if (claimBtn) {
+      claimBtn.addEventListener('click', function() {
+        const nftId = this.getAttribute('data-nft-id');
+        const stakeId = this.getAttribute('data-stake-id');
+        console.log(`🔄 Tentativo di claim rewards per NFT #${nftId}, stakeId: ${stakeId}`);
+        handleClaimReward(tokenId, stakeId);
+      });
+    }
   }
+  
+  // CORREZIONE: Aggiorna i contatori nella dashboard
+  console.log(`💰 Aggiornamento contatori dashboard: Daily: ${dailyRewards.toFixed(2)}, Total: ${totalRewards.toFixed(2)}`);
+  
+  // Aggiorna i contatori nella dashboard
+  if (domElements.totalRewards) {
+    domElements.totalRewards.textContent = `${totalRewards.toFixed(2)} IASE`;
+  }
+  
+  if (domElements.dailyRewards) {
+    domElements.dailyRewards.textContent = `${dailyRewards.toFixed(2)} IASE`;
+  }
+  
+  // Salva anche nelle variabili globali per riferimento
+  window.totalRewards = totalRewards;
+  window.dailyRewards = dailyRewards;
 
 /**
  * Apre la modale di unstake per confermare l'operazione

@@ -76,6 +76,69 @@ function getDailyReward(metadata) {
   return getFixedDailyReward(rarity);
 }
 
+/**
+ * Calcola la durata dello staking in formato leggibile
+ * @param {string|Date} stakeDate - La data di inizio staking
+ * @returns {string} La durata formattata
+ */
+function calculateStakingDuration(stakeDate) {
+  if (!stakeDate) return 'Unknown';
+  
+  const startDate = new Date(stakeDate);
+  const now = new Date();
+  const daysPassed = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+  
+  if (daysPassed === 0) return 'Today';
+  if (daysPassed === 1) return '1 day';
+  return `${daysPassed} days`;
+}
+
+/**
+ * Calcola il tasso giornaliero di ricompensa basato sulla rarità
+ * @param {string} rarityName - La rarità dell'NFT
+ * @returns {string} Il tasso formattato
+ */
+function calculateDailyRate(rarityName) {
+  const rarityLower = rarityName.toLowerCase();
+  let rate = BASE_DAILY_REWARD; // Default standard
+  
+  if (rarityLower.includes('advanced')) {
+    rate = ADVANCED_DAILY_REWARD;
+  } else if (rarityLower.includes('elite')) {
+    rate = ELITE_DAILY_REWARD;
+  } else if (rarityLower.includes('prototype')) {
+    rate = PROTOTYPE_DAILY_REWARD;
+  }
+  
+  return rate.toFixed(2);
+}
+
+/**
+ * Calcola le ricompense totali per uno stake
+ * @param {Object} stake - L'oggetto stake
+ * @returns {string} Le ricompense formattate
+ */
+function calculateRewards(stake) {
+  // Verifica se abbiamo dati sulle ricompense dal database
+  if (stake.rewards && Array.isArray(stake.rewards)) {
+    // Somma tutte le ricompense non rivendicate
+    const totalRewards = stake.rewards
+      .filter(reward => !reward.claimed)
+      .reduce((sum, reward) => sum + (parseFloat(reward.amount) || 0), 0);
+    return totalRewards.toFixed(2);
+  }
+  
+  // Altrimenti, stima in base ai giorni di staking e alla rarità
+  const stakeDate = new Date(stake.stakeDate || stake.stake_date || Date.now());
+  const now = new Date();
+  const daysPassed = Math.floor((now - stakeDate) / (1000 * 60 * 60 * 24));
+  
+  const rarityName = stake.rarityName || stake.rarity || 'Standard';
+  const dailyRate = parseFloat(calculateDailyRate(rarityName));
+  
+  return (dailyRate * daysPassed).toFixed(2);
+}
+
 // Utilizzo delle funzioni globali caricate da nftReader.js
 // Le funzioni sono disponibili globalmente tramite window
 const getUserNFTs = window.getUserNFTs;
@@ -453,6 +516,17 @@ function processStakedNfts(data, container) {
   let totalRewards = 0;
   let dailyRewards = 0;
   
+  // Utilizzo un Set per impedire duplicati basati sull'ID del token
+  const processedTokens = new Set();
+  
+  // Ordina gli stake in modo che quelli più recenti vengano processati prima
+  // Questo garantisce che in caso di duplicati, verrà mostrato lo stake più recente
+  stakedNfts.sort((a, b) => {
+    const dateA = new Date(a.stakeDate || a.stake_date || 0);
+    const dateB = new Date(b.stakeDate || b.stake_date || 0);
+    return dateB - dateA; // Ordine decrescente (più recenti prima)
+  });
+  
   // Per ogni NFT in staking, crea un elemento visuale
   for (const stake of stakedNfts) {
     // Estrai il token ID, con compatibilità per vari formati
@@ -466,6 +540,18 @@ function processStakedNfts(data, container) {
       console.error('❌ Impossibile determinare tokenId per:', stake);
       continue;
     }
+    
+    // Converti tokenId a stringa per consistenza nei confronti
+    tokenId = tokenId.toString();
+    
+    // Verifica se questo token è già stato processato (elimina duplicati)
+    if (processedTokens.has(tokenId)) {
+      console.log(`⚠️ NFT #${tokenId} già mostrato, ignoro duplicato`);
+      continue;
+    }
+    
+    // Aggiungi questo token al set dei processati
+    processedTokens.add(tokenId);
     
     // Crea elemento per l'NFT
     const nftElement = document.createElement('div');
@@ -485,16 +571,16 @@ function processStakedNfts(data, container) {
         
         <div class="staking-info">
           <div class="staking-duration">
-            <span class="info-label">Staked Since:</span>
-            <span class="info-value">${new Date(stake.stakeDate || stake.stake_date || Date.now()).toLocaleDateString()}</span>
+            <span class="info-label">Staked For:</span>
+            <span class="info-value">${calculateStakingDuration(stake.stakeDate || stake.stake_date)}</span>
           </div>
           <div class="reward-rate">
             <span class="info-label">Daily Rate:</span>
-            <span class="info-value" id="dailyRate_${tokenId}">Calculating...</span>
+            <span class="info-value" id="dailyRate_${tokenId}">${calculateDailyRate(stake.rarityName || stake.rarity || 'Standard')} IASE/day</span>
           </div>
           <div class="reward-info">
-            <span class="info-label">Total Rewards:</span>
-            <span class="info-value" id="rewardValue_${tokenId}">Calculating...</span>
+            <span class="info-label">Rewards:</span>
+            <span class="info-value" id="rewardValue_${tokenId}">${calculateRewards(stake)} IASE</span>
           </div>
         </div>
         
@@ -1478,7 +1564,8 @@ async function loadAvailableNfts() {
         const stakeBtn = nftElement.querySelector('.stake-btn');
         if (stakeBtn) {
           stakeBtn.addEventListener('click', function() {
-            openStakeModal(tokenId);
+            // Prima di aprire la modale, verifica che l'NFT non sia già in staking
+            checkAndOpenStakeModal(tokenId);
           });
         }
       } catch (error) {
@@ -1520,6 +1607,12 @@ async function loadAvailableNfts() {
     }
   }
 }
+
+// Le funzioni duplicate sono state rimosse poiché le funzionalità
+// sono già implementate nel file HTML principale
+// - checkAndOpenStakeModal è sostituita dalla verifica diretta in openStakeModal
+// - submitStakeRequest è sostituita da confirmStakeNFT
+// - refreshStakingLists è già gestita nel codice di aggiornamento esistente
 
 /**
  * Funzione di fallback per caricare gli NFT con un metodo alternativo
@@ -1607,7 +1700,8 @@ async function tryFallbackNftLoading() {
       const stakeBtn = nftElement.querySelector('.stake-btn');
       if (stakeBtn) {
         stakeBtn.addEventListener('click', function() {
-          openStakeModal(tokenId);
+          // Prima di aprire la modale, verifica che l'NFT non sia già in staking
+          checkAndOpenStakeModal(tokenId);
         });
       }
     }

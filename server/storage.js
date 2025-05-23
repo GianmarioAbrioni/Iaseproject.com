@@ -324,17 +324,20 @@ class DatabaseStorage {
     }
   }
   
-  async markRewardsAsClaimed(stakeId) {
+  async markRewardsAsClaimed(stakeId, txHash) {
     try {
+      // Usa l'hash della transazione se fornito, altrimenti genera un valore
+      const claimTxValue = txHash ? txHash : 'claimed_' + Date.now();
+      
       const result = await pool.query(
         `UPDATE staking_rewards 
-         SET "claimed" = true, "claimTxHash" = 'claimed_' || NOW(), "updatedAt" = NOW() 
-         WHERE "stakeId" = $1 AND "claimed" = false
+         SET "claimed" = true, "claimTxHash" = $1, "updatedAt" = NOW() 
+         WHERE "stakeId" = $2 AND "claimed" = false
          RETURNING *`,
-        [stakeId]
+        [claimTxValue, stakeId]
       );
       
-      console.log(`✅ Marcati come claimed ${result.rowCount} rewards per stakeId ${stakeId}`);
+      console.log(`✅ Marcati come claimed ${result.rowCount} rewards per stakeId ${stakeId} con txHash: ${claimTxValue}`);
       return result.rows || [];
     } catch (err) {
       console.error(`❌ Errore nella marcatura dei rewards come claimed per stakeId ${stakeId}:`, err);

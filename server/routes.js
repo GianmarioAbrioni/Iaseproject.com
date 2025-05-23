@@ -411,20 +411,52 @@ app.get("/api", (req, res) => {
         // Aggiungi endpoint mark-claimed
         app.post("/api/mark-claimed", async (req, res) => {
           try {
-            const { walletAddress, amount } = req.body;
-            if (!walletAddress || !amount) {
+            const { stakeId, address, txHash } = req.body;
+            
+            // Validazione dei dati in ingresso
+            if (!stakeId) {
               return res.status(400).json({
                 success: false,
-                error: "WalletAddress and amount are required"
+                error: "StakeId is required"
               });
             }
 
+            console.log(`Richiesta di mark claimed ricevuta per stakeId: ${stakeId}`, txHash ? `con txHash: ${txHash}` : '');
+            
             const { storage } = await import("./storage.js");
-            await storage.markRewardsAsClaimedByWallet(walletAddress.toLowerCase(), amount);
-
+            
+            // Se è fornito un indirizzo specifico, verifica che lo stake appartenga a quel wallet
+            if (address) {
+              const stake = await storage.getNftStakeById(parseInt(stakeId));
+              if (!stake) {
+                return res.status(404).json({
+                  success: false,
+                  error: `Nessuno stake trovato con ID ${stakeId}`
+                });
+              }
+              
+              // Verifica che lo stake appartenga al wallet specificato
+              if (stake.walletAddress.toLowerCase() !== address.toLowerCase()) {
+                return res.status(403).json({
+                  success: false,
+                  error: `Lo stake specificato non appartiene al wallet ${address}`
+                });
+              }
+            }
+            
+            // Utilizza il nuovo metodo che supporta txHash
+            const result = await storage.markRewardsAsClaimed(parseInt(stakeId), txHash);
+            
+            console.log(`✅ Rewards marcate come reclamate per stakeId: ${stakeId}`);
+            
             res.json({
               success: true,
-              message: "Rewards marked as claimed"
+              message: "Rewards marked as claimed",
+              data: {
+                stakeId,
+                claimedCount: result.length,
+                txHash: txHash || 'claimed'
+              }
             });
           } catch (error) {
             console.error("❌ Error marking rewards as claimed:", error);

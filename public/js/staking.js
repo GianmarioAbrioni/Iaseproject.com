@@ -495,7 +495,15 @@ async function loadStakedNfts() {
  * @param {HTMLElement} container - Container dove mostrare gli NFT
  */
 function processStakedNfts(data, container) {
-  logDebug('📊 Elaborazione dati degli NFT in staking:', data);
+  // CORREZIONE IMPORTANTE: Assicuriamoci di mostrare tutti gli NFT
+  console.log('📊 DATI COMPLETI NFT RICEVUTI:', data);
+  
+  // Reset dei contatori
+  window.totalRewards = 0;
+  window.dailyRewards = 0;
+  
+  // Mostra messaggio di debug chiaro
+  console.log('🚨 FUNZIONE PROCESSSTAKEDNTFS INIZIATA - CONTAINER:', container);
   
   // Controllo extra per assicurarsi che il container esista ancora
   if (!container || !container.parentNode) {
@@ -504,15 +512,16 @@ function processStakedNfts(data, container) {
   }
   
   // Estrai gli NFT in staking dalla struttura di risposta
-  // Gestiamo vari formati di dati possibili per massima compatibilità
-  console.log('⚙️ Formato dati ricevuti:', data);
+  console.log('⚙️ Formato dati ricevuti (DETTAGLIATO):', JSON.stringify(data, null, 2));
   
   let stakedNfts = [];
   
-  // CORREZIONE: Migliore gestione per il formato specifico dell'API /api/by-wallet/:address
-  // Questa API restituisce oggetti con formato {stakes: [{tokenId: "123"}, ...]}
+  // CORREZIONE CRUCIALE: Gestione robusta della risposta API
   if (data && data.stakes && Array.isArray(data.stakes)) {
-    console.log('📋 Formato dati standard API: Oggetto con stakes');
+    console.log(`📋 TROVATI ${data.stakes.length} NFT IN STAKING!`);
+    
+    // Usa direttamente l'array di stakes senza filtraggi
+    stakedNfts = data.stakes;
     
     // CORREZIONE: Assicurati che l'oggetto stake contenga tutte le proprietà necessarie
     stakedNfts = data.stakes.map(stake => {
@@ -597,16 +606,9 @@ function processStakedNfts(data, container) {
   // DEBUG: Indicatore visibile dell'inizio dell'elaborazione degli NFT
   console.log('🚀 INIZIO ELABORAZIONE NFT IN STAKING - Numero totale:', stakedNfts.length);
   
-  // Utilizzo un Set per impedire duplicati basati sull'ID del token
+  // Utilizza un Set per impedire veri duplicati basati sulla combinazione unica di tokenId E stakeId
+  // Questo garantisce che non ci siano duplicati reali ma permette NFT diversi con lo stesso ID
   const processedTokens = new Set();
-  
-  // Ordina gli stake in modo che quelli più recenti vengano processati prima
-  // Questo garantisce che in caso di duplicati, verrà mostrato lo stake più recente
-  stakedNfts.sort((a, b) => {
-    const dateA = new Date(a.stakeDate || a.stake_date || 0);
-    const dateB = new Date(b.stakeDate || b.stake_date || 0);
-    return dateB - dateA; // Ordine decrescente (più recenti prima)
-  });
   
   // DEBUG: Mostra tutti gli NFT in staking prima di elaborarli
   console.log('⚠️ NFT in staking da elaborare:', JSON.stringify(stakedNfts, null, 2));
@@ -651,19 +653,22 @@ function processStakedNfts(data, container) {
     
     console.log(`🔍 Elaborazione NFT #${tokenId} - Dati completi:`, stake);
     
-    // CORREZIONE IMPORTANTE: Non filtrare duplicati basati solo su tokenId
-    // Utilizza stakeId come identificatore unico se disponibile
-    const stakeId = stake.id || null;
-    const uniqueKey = stakeId ? `${tokenId}_${stakeId}` : tokenId;
+    // CORREZIONE CRUCIALE: Usa una chiave univoca basata su tokenId E stakeId
+    const stakeId = stake.id || 'null';
+    const uniqueKey = `${tokenId}_${stakeId}`;
     
+    // Verifica se abbiamo già processato questa combinazione esatta di tokenId e stakeId
     if (processedTokens.has(uniqueKey)) {
-      console.log(`⚠️ NFT #${tokenId} (StakeID: ${stakeId}) già mostrato, ignoro duplicato`);
+      console.log(`⚠️ Duplicato trovato (chiave: ${uniqueKey}), ignorato`);
       continue;
     }
     
-    // Aggiungi una chiave unica tokenId_stakeId al set dei processati
+    // Aggiungi al set dei processati solo questa combinazione specifica
     processedTokens.add(uniqueKey);
-    console.log(`✅ Mostro NFT #${tokenId} (StakeID: ${stakeId}), chiave unica: ${uniqueKey}`);
+    console.log(`✅ NFT mostrato (chiave: ${uniqueKey})`);
+    
+    // Diagnostica dettagliata
+    console.log(`📊 Dettagli: TokenID #${tokenId}, StakeID: ${stakeId}, Rarità: ${stake.rarityTier || 'N/A'}, Reward: ${stake.dailyReward || 'N/A'}`);
     
     // Crea elemento per l'NFT
     const nftElement = document.createElement('div');

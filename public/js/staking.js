@@ -160,6 +160,27 @@ const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
 const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
 const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
+/**
+ * Restituisce il valore fisso di reward giornaliero in base alla rarità
+ * @param {string} rarityName - Il nome della rarità
+ * @returns {number} - Il valore di reward giornaliero
+ */
+function getFixedDailyReward(rarityName) {
+  if (!rarityName) return BASE_DAILY_REWARD;
+  
+  const rarityLower = rarityName.toLowerCase();
+  
+  if (rarityLower.includes('advanced')) {
+    return ADVANCED_DAILY_REWARD;
+  } else if (rarityLower.includes('elite')) {
+    return ELITE_DAILY_REWARD;
+  } else if (rarityLower.includes('prototype')) {
+    return PROTOTYPE_DAILY_REWARD;
+  }
+  
+  return BASE_DAILY_REWARD;
+}
+
 // Elementi DOM 
 const domElements = {
   availableNftsContainer: document.getElementById('availableNftsContainer'),
@@ -369,7 +390,6 @@ async function loadStakedNfts() {
       // CORREZIONE: Utilizziamo due metodi per recuperare gli NFT in staking
       // per avere ridondanza e massimizzare la probabilità di ottenere tutti i dati
       let response = null;
-      let data = null;
       
       // Primo tentativo: endpoint principale /api/by-wallet
       const endpoint = `/api/by-wallet/${formattedAddress}`;

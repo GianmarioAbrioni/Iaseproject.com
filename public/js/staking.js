@@ -651,14 +651,19 @@ function processStakedNfts(data, container) {
     
     console.log(`🔍 Elaborazione NFT #${tokenId} - Dati completi:`, stake);
     
-    // Verifica se questo token è già stato processato (elimina duplicati)
-    if (processedTokens.has(tokenId)) {
-      console.log(`⚠️ NFT #${tokenId} già mostrato, ignoro duplicato`);
+    // CORREZIONE IMPORTANTE: Non filtrare duplicati basati solo su tokenId
+    // Utilizza stakeId come identificatore unico se disponibile
+    const stakeId = stake.id || null;
+    const uniqueKey = stakeId ? `${tokenId}_${stakeId}` : tokenId;
+    
+    if (processedTokens.has(uniqueKey)) {
+      console.log(`⚠️ NFT #${tokenId} (StakeID: ${stakeId}) già mostrato, ignoro duplicato`);
       continue;
     }
     
-    // Aggiungi questo token al set dei processati
-    processedTokens.add(tokenId);
+    // Aggiungi una chiave unica tokenId_stakeId al set dei processati
+    processedTokens.add(uniqueKey);
+    console.log(`✅ Mostro NFT #${tokenId} (StakeID: ${stakeId}), chiave unica: ${uniqueKey}`);
     
     // Crea elemento per l'NFT
     const nftElement = document.createElement('div');

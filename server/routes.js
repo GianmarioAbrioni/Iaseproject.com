@@ -305,12 +305,27 @@ if (!result.rows || result.rows.length === 0) {
                         const { storage } = await import("./storage.js"); // Assuming .js extension for ES modules
                         const stakes = await storage.getNftStakesByWallet(walletAddress);
 
-                        // Restituisci i dati con la struttura attesa dai client
+                        // CORREZIONE: Restituisci dati completi per ogni stake
+                        console.log('Database - Trovati', stakes?.length || 0, 'NFT in staking');
+                        
                         res.json({ stakes: (stakes || []).map(s => {
-  const rawId = s.nftId || s.tokenId || s.id;
-  const tokenId = rawId?.includes("_") ? rawId.split("_")[1] : rawId;
-  return { tokenId: tokenId?.toString() };
-}) });
+                          // Estrai il token ID nel formato corretto
+                          const rawId = s.nftId || s.tokenId || s.id;
+                          const tokenId = rawId?.includes("_") ? rawId.split("_")[1] : rawId;
+                          
+                          // Restituisci un oggetto completo con i nomi dei campi esatti come nel DB
+                          return {
+                            // Informazioni principali
+                            tokenId: tokenId?.toString(),
+                            id: s.id, // ID dello stake nel database
+                            // Informazioni sul tempo di staking usando i nomi di colonna esatti
+                            stakeDate: s.startTime || s.createdAt,
+                            // Informazioni di rarità usando i nomi di colonna esatti
+                            rarityTier: s.rarityTier || 'Standard',
+                            rarityMultiplier: s.rarityMultiplier || 1.0,
+                            dailyReward: s.dailyReward || null
+                          };
+                        }) });
                 } catch (error) {
                         console.error("Errore nell'endpoint personalizzato:", error);
                         res.status(500).json({
@@ -341,14 +356,108 @@ if (!result.rows || result.rows.length === 0) {
                         const { storage } = await import("./storage.js"); // Assuming .js extension for ES modules
                         const stakes = await storage.getNftStakesByWallet(walletAddress);
 
-                        // Restituisci i dati con la struttura attesa dai client
-                        res.json({ stakes: stakes || [] });
+                        // CORREZIONE: Restituisci dati completi per ogni stake 
+                        console.log('Database - Trovati', stakes?.length || 0, 'NFT in staking per call POST');
+                        
+                        res.json({ stakes: (stakes || []).map(s => {
+                          // Estrai il token ID nel formato corretto
+                          const rawId = s.nftId || s.tokenId || s.id;
+                          const tokenId = rawId?.includes("_") ? rawId.split("_")[1] : rawId;
+                          
+                          // Restituisci un oggetto completo con i nomi di colonna esatti come nel DB
+                          return {
+                            tokenId: tokenId?.toString(),
+                            id: s.id,
+                            stakeId: s.id, // per compatibilità con frontend che potrebbe usare stakeId
+                            stakeDate: s.startTime || s.createdAt,
+                            rarityTier: s.rarityTier || 'Standard',
+                            rarityMultiplier: s.rarityMultiplier || 1.0,
+                            dailyReward: s.dailyReward || null
+                          };
+                        }) });
                 } catch (error) {
                         console.error("Errore nell'endpoint personalizzato:", error);
                         res.status(500).json({
                                 error: "Errore interno",
                                 message:
                                         "Si è verificato un errore durante il recupero degli stake",
+                        });
+                }
+        });
+
+        // Endpoint per ottenere le ricompense per un wallet
+        app.get("/api/rewards/:walletAddress", async (req, res) => {
+                try {
+                        const { walletAddress } = req.params;
+                        
+                        if (!walletAddress) {
+                                return res.status(400).json({
+                                        success: false,
+                                        error: "Indirizzo wallet mancante"
+                                });
+                        }
+                        
+                        const normalizedAddress = walletAddress.toLowerCase();
+                        console.log(`Richiesta ricompense per wallet: ${normalizedAddress}`);
+                        
+                        // Importa lo storage e il pool per leggere dal database
+                        const { storage } = await import("./storage.js");
+                        const { pool } = await import("./db.js");
+                        
+                        // Ottieni tutti gli stake attivi per questo wallet usando la query diretta per testare
+                        const result = await pool.query(
+                          `SELECT * FROM nft_stakes WHERE LOWER("walletAddress") = LOWER($1) AND active = true`,
+                          [normalizedAddress]
+                        );
+
+                        // Formatta i risultati
+                        const activeStakes = result.rows.map(row => ({
+                          ...row,
+                          startTime: row.startTime ? row.startTime.toISOString() : null
+                        }));
+                        
+                        console.log(`✅ Recuperati ${activeStakes.length} stake attivi per wallet ${normalizedAddress}`);
+                        
+                        if (!activeStakes || activeStakes.length === 0) {
+                                return res.json({
+                                        success: true,
+                                        rewards: []
+                                });
+                        }
+                        
+                        // Recuperiamo le ricompense dal database
+                        const rewards = await storage.getRewardsByWalletAddress(normalizedAddress);
+                        
+                        // Formatta e aggrega i risultati
+                        const formattedRewards = activeStakes.map(stake => {
+                                // Filtra le ricompense per questo stake
+                                const stakeRewards = rewards.filter(r => r.stakeId === stake.id);
+                                
+                                // Calcola il totale delle ricompense
+                                const totalReward = stakeRewards.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+                                
+                                // Verifica se sono già state rivendicate
+                                const claimed = stakeRewards.some(r => r.claimed);
+                                
+                                return {
+                                        stakeId: stake.id,
+                                        tokenId: stake.nftId,
+                                        totalReward: parseFloat(totalReward.toFixed(2)),
+                                        claimed,
+                                        rarityTier: stake.rarityTier || 'Standard',
+                                        dailyReward: parseFloat(stake.dailyReward || 0)
+                                };
+                        });
+                        
+                        res.json({
+                                success: true,
+                                rewards: formattedRewards
+                        });
+                } catch (error) {
+                        console.error("Errore durante il recupero delle ricompense:", error);
+                        res.status(500).json({
+                                success: false,
+                                error: "Errore durante il recupero delle ricompense"
                         });
                 }
         });

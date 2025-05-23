@@ -32,6 +32,7 @@ class DatabaseStorage {
       const client = await pool.connect();
       await client.query('SELECT 1');
       client.release();
+      console.log('Database connection test successful:', new Date().toISOString());
       return true;
     } catch (error) {
       console.error('Database connection test failed:', error);
@@ -151,8 +152,9 @@ class DatabaseStorage {
     try {
       console.log(`Database - Cercando NFT in staking per wallet: ${walletAddress}`);
       
+      // Uso LOWER per rendere il confronto case-insensitive
       const result = await pool.query(
-        `SELECT * FROM nft_stakes WHERE "walletAddress" = $1 AND "active" = true`,
+        `SELECT * FROM nft_stakes WHERE LOWER("walletAddress") = LOWER($1) AND active = true`,
         [walletAddress]
       );
       
@@ -168,6 +170,72 @@ class DatabaseStorage {
       return formattedRows;
     } catch (error) {
       console.error("Errore nel recupero degli stake dal database:", error);
+      return [];
+    }
+  }
+  
+  // Alias per mantenere compatibilità con diverse parti del codice
+  async getActiveNftStakesByWallet(walletAddress) {
+    console.log(`getActiveNftStakesByWallet chiamato per wallet: ${walletAddress}`);
+    
+    try {
+      // Esegui la stessa query di getNftStakesByWallet ma con più debugging
+      const result = await pool.query(
+        `SELECT * FROM nft_stakes WHERE LOWER("walletAddress") = LOWER($1) AND active = true`,
+        [walletAddress]
+      );
+      
+      console.log(`getActiveNftStakesByWallet: Trovati ${result.rows.length} NFT in staking`);
+      
+      // Converte le date in formato stringa ISO per la serializzazione JSON
+      const formattedRows = (result.rows || []).map(row => ({
+        ...row,
+        startTime: row.startTime ? row.startTime.toISOString() : null,
+        lastVerificationTime: row.lastVerificationTime ? row.lastVerificationTime.toISOString() : null
+      }));
+      
+      return formattedRows;
+    } catch (error) {
+      console.error("Errore in getActiveNftStakesByWallet:", error);
+      return [];
+    }
+  }
+  
+  // Recupera le ricompense per un wallet
+  async getRewardsByWalletAddress(walletAddress) {
+    try {
+      console.log(`Cercando ricompense per wallet: ${walletAddress}`);
+      
+      // Prima otteniamo tutti gli stake attivi per il wallet
+      const stakes = await this.getNftStakesByWallet(walletAddress);
+      
+      if (!stakes || stakes.length === 0) {
+        console.log(`Nessuno stake trovato per wallet ${walletAddress}, non ci sono ricompense`);
+        return [];
+      }
+      
+      // Otteniamo gli ID degli stake
+      const stakeIds = stakes.map(stake => stake.id);
+      
+      // Recuperiamo tutte le ricompense per gli stake
+      const result = await pool.query(
+        `SELECT * FROM staking_rewards WHERE "stakeId" = ANY($1)`,
+        [stakeIds]
+      );
+      
+      console.log(`Recuperate ${result.rows.length} ricompense per wallet ${walletAddress}`);
+      
+      // Formatta le date
+      const rewards = result.rows.map(row => ({
+        ...row,
+        rewardDate: row.rewardDate ? row.rewardDate.toISOString() : null,
+        createdAt: row.createdAt ? row.createdAt.toISOString() : null,
+        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null
+      }));
+      
+      return rewards;
+    } catch (error) {
+      console.error(`Errore nel recupero delle ricompense per wallet ${walletAddress}:`, error);
       return [];
     }
   }

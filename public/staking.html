@@ -1280,31 +1280,7 @@ if (stakedTokenIds.length > 0) {
           nftImage = `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stakedNft.tokenId}.png`;
         }
         
-        nftElement.innerHTML = `
-          <div class="nft-image">
-            <img src="${nftImage}" alt="NFT #${stakedNft.tokenId}" loading="lazy" 
-                 onerror="this.onerror=null; this.src='https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stakedNft.tokenId}.png';">
-            <div class="staked-badge">STAKED</div>
-          </div>
-          <div class="nft-details">
-            <h3 class="nft-title">NFT #${stakedNft.tokenId}</h3>
-            <div class="nft-id">Token ID: ${stakedNft.tokenId}</div>
-            <div class="rarity-badge ${rarityClass}">${rarityName}</div>
-            
-            <div class="staking-info">
-              <div class="staking-duration">
-                <span class="info-label">Staked For:</span>
-                <span class="info-value">${stakingDays}d ${stakingHours}h</span>
-              </div>
-              <div class="reward-info">
-                <span class="info-label">Rewards:</span>
-                <span class="info-value">${accumulatedReward.toFixed(2)} IASE</span>
-              </div>
-              <div class="daily-rate">
-                <span class="info-label">Daily Rate:</span>
-                <span class="info-value">${stakedNft.dailyReward} IASE/day</span>
-              </div>
-            </div>
+        
             
             <div class="nft-card-actions">
               <button class="btn unstake-btn primary-btn" data-token-id="${stakedNft.tokenId}" data-stake-id="${stakedNft.id}">

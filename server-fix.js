@@ -159,11 +159,27 @@ app.get('/api/health', (req, res) => {
 
 
 // Import dinamico di routes.js
-import('./server/routes.js').then((module) => {
+import('./server/routes.js').then(async (module) => {
     if (typeof module.registerRoutes === 'function') {
         module.registerRoutes(app);
     } else {
         throw new Error('registerRoutes non è una funzione esportata da routes.js');
+    }
+
+    // Import e configurazione del job di verifica staking
+    try {
+        // Importa il modulo per la verifica dello staking
+        const stakingJob = await import('./server/services/staking-job.js');
+        
+        if (typeof stakingJob.setupStakingVerification === 'function') {
+            // Inizializza il job di verifica staking
+            stakingJob.setupStakingVerification();
+            console.log('⏰ Job di verifica staking configurato con successo');
+        } else {
+            console.warn('⚠️ setupStakingVerification non è disponibile nel modulo staking-job');
+        }
+    } catch (stakingJobError) {
+        console.error('❌ Errore durante l\'importazione o l\'inizializzazione del job di staking:', stakingJobError);
     }
 
     const PORT = process.env.PORT || 10000;

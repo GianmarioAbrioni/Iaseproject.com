@@ -514,10 +514,10 @@
         console.log(`📈 TOTALI FINALI: ${dailyRewards.toFixed(2)}/giorno, Accumulato=${totalRewards.toFixed(2)}`);
       }
       
-      // Imposta HTML con i dati dell'NFT - stesso approccio usato per NFT disponibili
+      // Imposta HTML con i dati dell'NFT - utilizziamo il formato corretto dell'immagine
       nftElement.innerHTML = `
         <div class="nft-image">
-          <img src="${stake.nft?.image || stake.image}" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
+          <img src="/images/nft/iase-unit-${tokenId}.png" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
           <div class="staked-badge">Staked</div>
         </div>
         <div class="nft-details">
@@ -536,7 +536,7 @@
             </div>
             <div class="reward-info">
               <span class="info-label">Rewards:</span>
-              <span class="info-value" id="rewardValue_${tokenId}">${accumulatedRewards} IASE</span>
+              <span class="info-value" id="rewardValue_${tokenId}">${stake.totalRewards || 0} IASE</span>
             </div>
           </div>
           

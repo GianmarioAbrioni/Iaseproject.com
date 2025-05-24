@@ -1140,13 +1140,40 @@ if (stakedTokenIds.length > 0) {
    * Fetch data directly from the API instead of using localStorage
    */
   async function renderStakedNFTs() {
-    // IMPORTANTE: Questa funzione è stata modificata per evitare conflitti con staking.js
-    // staking.js gestisce la visualizzazione degli NFT già in staking
-    console.log("ℹ️ La visualizzazione degli NFT staked è delegata a staking.js");
+    const container = document.getElementById('stakedNftsContainer');
+    if (!container) {
+      console.error("❌ Staked NFTs container not found");
+      return;
+    }
     
-    // Non facciamo altro qui per evitare conflitti
-    // Le immagini NFT sono già gestite correttamente in staking.js
-    return;
+    console.log("🔄 Loading staked NFTs directly from API...");
+    container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading staked NFTs...</p></div>';
+    
+    try {
+      // Get wallet address
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-wallet-3-line"></i>
+            <h3>Wallet Not Connected</h3>
+            <p>Connect your wallet to view your staked NFTs.</p>
+          </div>`;
+        return;
+      }
+      
+      // Usa lo stesso metodo di staking.js per l'API
+      const apiBase = `${window.location.origin}/api`;
+      const url = `${apiBase}/by-wallet/${walletAddress}`;
+      console.log(`🌐 Fetching staked NFTs from API: ${url}`);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`❌ API error: ${response.status} ${response.statusText}`);
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="ri-error-warning-line"></i>
+            <h3>Error Loading Staked NFTs</h3>
             <p>Could not fetch your staked NFTs from the server. Please try again later.</p>
           </div>`;
         return;

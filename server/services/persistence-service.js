@@ -45,20 +45,21 @@ export class PersistenceService {
     this.loadData();
     
     // Configura il salvataggio automatico periodico
-    this.saveInterval = setInterval(() => {
-      this.saveData();
+    const self = this; // Preserva il riferimento a this
+    this.saveInterval = setInterval(function() {
+      self.saveData();
     }, SAVE_INTERVAL);
     
     // Configura salvataggio su uscita dell'app
-    process.on('SIGINT', () => {
+    process.on('SIGINT', function() {
       console.log('📥 Salvataggio dati prima della chiusura...');
-      this.saveData();
+      self.saveData();
       process.exit(0);
     });
     
-    process.on('SIGTERM', () => {
+    process.on('SIGTERM', function() {
       console.log('📥 Salvataggio dati prima della chiusura...');
-      this.saveData();
+      self.saveData();
       process.exit(0);
     });
     

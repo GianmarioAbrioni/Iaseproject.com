@@ -145,8 +145,18 @@ async function setupStakingVerification() {
 // Esporta le funzioni per poterle utilizzare esternamente
 export { processStakingRewards };
 
+// Gli import devono essere in cima al file per ESM
+import { fileURLToPath } from 'url';
+
 // Avvio diretto della funzione se eseguita come modulo principale
-if (typeof require !== 'undefined' && require.main === module) {
+// In ESM non esiste require.main, usiamo un approccio diverso
+
+// Verifica se questo file è stato eseguito direttamente
+const isMainModule = import.meta.url === (typeof document === 'undefined' ? 
+  process.argv[1] && new URL(process.argv[1], 'file://').href : 
+  document.currentScript && document.currentScript.src);
+
+if (isMainModule) {
   console.log('🔄 Avvio diretto del job di staking...');
   processStakingRewards()
     .then(() => console.log('✅ Job completato con successo'))

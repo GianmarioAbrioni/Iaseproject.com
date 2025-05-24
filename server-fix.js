@@ -166,65 +166,56 @@ import('./server/routes.js').then(async (module) => {
         throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
 
-    // Import e configurazione del job di verifica staking
-    try {
-        // Importa direttamente la funzione processStakingRewards
-        import { processStakingRewards } from './server/services/staking-job.js';
-        
-        // Imposta un timer di 24 ore per l'esecuzione periodica
-        const HOURS_24 = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
-        
-        // Funzione per eseguire il job immediatamente e pianificare il prossimo
-        const runAndScheduleJob = () => {
-            console.log('🔄 Avvio verifica e distribuzione ricompense staking...');
-            
-            // Esegui la funzione
-            processStakingRewards()
-                .then(() => {
-                    console.log('✅ Verifica staking completata con successo');
-                })
-                .catch(error => {
-                    console.error("❌ Errore durante la verifica staking:", error);
-                });
-        };
-        
-        // Pianifica l'esecuzione ogni 24 ore
-        const jobInterval = setInterval(runAndScheduleJob, HOURS_24);
-        
-        // Calcola l'ora della prossima esecuzione (mezzanotte)
-        const now = new Date();
-        const midnight = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate() + 1,
-            0, 0, 0 // mezzanotte 00:00:00
-        );
-        const msToMidnight = midnight.getTime() - now.getTime();
-        const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
-        
-        // Prima esecuzione alla prossima mezzanotte
-        const initialTimer = setTimeout(() => {
-            runAndScheduleJob();
-            // Dopo la prima esecuzione, continua con l'intervallo regolare
-        }, msToMidnight);
-        
-        console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
-        console.log('⏰ Scheduler verifica staking configurato con successo');
-        
-        // Esegui anche un controllo di test subito per verificare se la funzione funziona
-        // Solo in ambiente di sviluppo
-        if (process.env.NODE_ENV !== 'production') {
-            // In development, esegui un test rapido tra 30 secondi
-            setTimeout(() => {
-                console.log('🧪 Esecuzione di test del job di staking (solo in development)');
-                processStakingRewards()
-                    .then(() => console.log('✅ Test del job completato con successo'))
-                    .catch(err => console.error('❌ Errore durante il test del job:', err));
-            }, 30000); // 30 secondi
-        }
-    } catch (stakingJobError) {
-        console.error('❌ Errore durante l\'importazione o l\'inizializzazione del job di staking:', stakingJobError);
-    }
+    // Import dinamico del job di staking
+    import('./server/services/staking-job.js')
+        .then(stakingJob => {
+            // Verifica se la funzione è disponibile
+            if (typeof stakingJob.processStakingRewards === 'function') {
+                // Costanti per la pianificazione
+                const HOURS_24 = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
+                
+                // Funzione per eseguire il job
+                const runStakingJob = () => {
+                    console.log('🔄 Avvio verifica e distribuzione ricompense staking...');
+                    stakingJob.processStakingRewards()
+                        .then(() => console.log('✅ Verifica staking completata con successo'))
+                        .catch(error => console.error('❌ Errore durante la verifica staking:', error));
+                };
+                
+                // Pianifica l'esecuzione quotidiana
+                const now = new Date();
+                const midnight = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate() + 1,
+                    0, 0, 0 // mezzanotte 00:00:00
+                );
+                const msToMidnight = midnight.getTime() - now.getTime();
+                const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
+                
+                // Prima esecuzione alla prossima mezzanotte
+                setTimeout(runStakingJob, msToMidnight);
+                
+                // Pianifica le esecuzioni successive ogni 24 ore
+                setInterval(runStakingJob, HOURS_24);
+                
+                console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
+                console.log('⏰ Scheduler verifica staking configurato con successo');
+                
+                // Esecuzione di test in ambiente di sviluppo
+                if (process.env.NODE_ENV !== 'production') {
+                    setTimeout(() => {
+                        console.log('🧪 Esecuzione di test del job di staking (solo in development)');
+                        runStakingJob();
+                    }, 30000); // 30 secondi
+                }
+            } else {
+                console.warn('⚠️ processStakingRewards non è una funzione disponibile nel modulo staking-job');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Errore durante l\'importazione del modulo staking-job:', error);
+        });
 
     const PORT = process.env.PORT || 10000;
     app.listen(PORT, '0.0.0.0', () => {

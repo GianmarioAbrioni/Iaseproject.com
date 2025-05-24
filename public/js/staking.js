@@ -516,10 +516,10 @@
         console.log(`📈 TOTALI FINALI: ${dailyRewards.toFixed(2)}/giorno, Accumulato=${totalRewards.toFixed(2)}`);
       }
       
-      // Imposta HTML con i dati dell'NFT - usiamo l'URL IPFS con nftId dalla tabella nft_stakes
+      // Imposta HTML con i dati dell'NFT - stesso approccio usato per NFT disponibili
       nftElement.innerHTML = `
         <div class="nft-image">
-          <img src="https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stake.nftId || tokenId}.png" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
+          <img src="${stake.nft?.image || stake.image || `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png`}" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy" onerror="this.src='https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png'">
           <div class="staked-badge">Staked</div>
         </div>
         <div class="nft-details">

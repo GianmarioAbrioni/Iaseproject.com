@@ -519,7 +519,7 @@
       // Imposta HTML con i dati dell'NFT - usiamo l'URL IPFS esattamente uguale a quella in staking.html
       nftElement.innerHTML = `
         <div class="nft-image">
-          <img src="https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stake.tokenId}.png" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
+          <img src="https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
           <div class="staked-badge">Staked</div>
         </div>
         <div class="nft-details">

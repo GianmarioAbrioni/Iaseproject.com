@@ -12,23 +12,14 @@
  */
 
 import { ethers } from 'ethers';
-import { storage } from '../storage';
 import fetch from 'node-fetch';
+import { storage } from '../storage.js';
 
-// Prova a importare la configurazione in modo sicuro, altrimenti usa le variabili d'ambiente
-let CONFIG;
-try {
-  // config.js è nella cartella server
-  const configModule = require('../config.js');
-  CONFIG = configModule.CONFIG;
-  console.log('Configurazione caricata dal file config.js');
-} catch (error) {
-  console.log('Utilizzo configurazione da variabili d\'ambiente');
-  CONFIG = {
-    ETH_NETWORK_URL: process.env.ETH_NETWORK_URL,
-    NFT_CONTRACT_ADDRESS: process.env.NFT_CONTRACT_ADDRESS
-  };
-}
+// Configurazone diretta basata su variabili d'ambiente
+const CONFIG = {
+  ETH_NETWORK_URL: process.env.ETH_NETWORK_URL,
+  NFT_CONTRACT_ADDRESS: process.env.NFT_CONTRACT_ADDRESS
+};
 
 /**
  * @typedef {Object} NftTrait

@@ -514,10 +514,10 @@
         console.log(`📈 TOTALI FINALI: ${dailyRewards.toFixed(2)}/giorno, Accumulato=${totalRewards.toFixed(2)}`);
       }
       
-      // Imposta HTML con i dati dell'NFT
+      // Imposta HTML con i dati dell'NFT - stesso approccio usato per NFT disponibili
       nftElement.innerHTML = `
         <div class="nft-image">
-          <img src="${stake.image || `images/nft-${tokenId}.jpg`}" alt="NFT #${tokenId}" id="nftImage_${tokenId}">
+          <img src="${stake.nft?.image || stake.image}" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
           <div class="staked-badge">Staked</div>
         </div>
         <div class="nft-details">
@@ -541,7 +541,7 @@
           </div>
           
           <div class="nft-card-actions">
-            <button class="btn unstake-btn" data-nft-id="${tokenId}">
+            <button class="btn stake-btn unstake-btn" data-nft-id="${tokenId}">
               <i class="ri-logout-box-line"></i> Unstake
             </button>
           </div>
@@ -568,11 +568,50 @@
       console.log(`   - Ricompense accumulate: ${totalRewards.toFixed(2)} IASE`);
     }
     
-    // Aggiorna gli elementi UI
-    if (domElements.totalRewards) {
-      domElements.totalRewards.textContent = `${totalRewards.toFixed(2)} IASE`;
+    // Ottieni i dati delle ricompense autentiche dal database
+    async function updateRewardsFromDatabase() {
+      try {
+        const walletAddress = window.ethereum?.selectedAddress;
+        if (!walletAddress) return;
+        
+        // Ottieni le rewards dal database per aggiornare la dashboard
+        const response = await fetch(`/api/rewards/${walletAddress}`);
+        
+        if (response.ok) {
+          const rewards = await response.json();
+          let dbTotalRewards = 0;
+          
+          // Calcola il totale dal database
+          rewards.forEach(reward => {
+            dbTotalRewards += reward.totalReward || 0;
+          });
+          
+          console.log(`💰 Ricompense dal database: ${dbTotalRewards.toFixed(2)} IASE`);
+          console.log(`📊 Ricompense calcolate dal frontend: ${totalRewards.toFixed(2)} IASE`);
+          
+          // Salviamo sia i valori dal database che quelli calcolati dal frontend
+          window.dbTotalRewards = dbTotalRewards;
+          window.totalRewards = totalRewards;
+          window.dailyRewards = dailyRewards;
+          
+          // Aggiorniamo gli elementi UI con i dati dal database
+          if (domElements.totalRewards) {
+            domElements.totalRewards.textContent = `${dbTotalRewards.toFixed(2)} IASE`;
+          }
+        } else {
+          // Se non possiamo ottenere i dati dal database, mostriamo i calcoli frontend ma con una nota
+          console.warn("⚠️ Impossibile ottenere dati dal database, usando calcoli frontend");
+          
+          if (domElements.totalRewards) {
+            domElements.totalRewards.textContent = `${totalRewards.toFixed(2)} IASE*`;
+          }
+        }
+      } catch (error) {
+        console.error("❌ Errore nel recupero delle ricompense dal database:", error);
+      }
     }
     
+    // Aggiorna elementi UI che non richiedono dati dal database
     if (domElements.dailyRewards) {
       domElements.dailyRewards.textContent = `${dailyRewards.toFixed(2)} IASE`;
     }
@@ -581,9 +620,8 @@
       domElements.totalStakedNfts.textContent = displayedNftIds.length;
     }
     
-    // Salva i valori nelle variabili globali per riferimento
-    window.totalRewards = totalRewards;
-    window.dailyRewards = dailyRewards;
+    // Avvia aggiornamento da database
+    updateRewardsFromDatabase();
   }
 
   /**

@@ -32,8 +32,9 @@
     connectWalletBtn: document.getElementById('connectWalletBtn'),
     stakingPanel: document.getElementById('stakingPanel'),
     walletDisplay: document.getElementById('connectedWallet'),
-    totalRewards: document.getElementById('totalRewardsAccumulated'),
-    dailyRewards: document.getElementById('dailyRewardsTotal'),
+    totalRewards: document.getElementById('totalRewards'),
+    dailyRewards: document.getElementById('dailyRewards'),
+    totalStakedNfts: document.getElementById('totalStakedNfts'),
     stakingForm: document.getElementById('stakingForm'),
     loadingIndicator: document.getElementById('loadingIndicator'),
     errorContainer: document.getElementById('errorContainer')
@@ -516,7 +517,7 @@
       // Imposta HTML con i dati dell'NFT
       nftElement.innerHTML = `
         <div class="nft-image">
-          <img src="images/placeholder-nft.jpg" alt="NFT #${tokenId}" id="nftImage_${tokenId}">
+          <img src="${stake.image || `images/nft-${tokenId}.jpg`}" alt="NFT #${tokenId}" id="nftImage_${tokenId}">
           <div class="staked-badge">Staked</div>
         </div>
         <div class="nft-details">
@@ -543,9 +544,6 @@
             <button class="btn unstake-btn" data-nft-id="${tokenId}">
               <i class="ri-logout-box-line"></i> Unstake
             </button>
-            <button class="btn claim-btn" data-nft-id="${tokenId}" data-stake-id="${stake.id}">
-              <i class="ri-coins-line"></i> Claim Rewards
-            </button>
           </div>
         </div>
       `;
@@ -558,13 +556,6 @@
       if (unstakeBtn) {
         unstakeBtn.addEventListener('click', function() {
           openUnstakeModal(tokenId, stake);
-        });
-      }
-      
-      const claimBtn = nftElement.querySelector('.claim-btn');
-      if (claimBtn) {
-        claimBtn.addEventListener('click', function() {
-          openClaimModal(tokenId, stake, accumulatedRewards);
         });
       }
     }
@@ -584,6 +575,10 @@
     
     if (domElements.dailyRewards) {
       domElements.dailyRewards.textContent = `${dailyRewards.toFixed(2)} IASE`;
+    }
+    
+    if (domElements.totalStakedNfts) {
+      domElements.totalStakedNfts.textContent = displayedNftIds.length;
     }
     
     // Salva i valori nelle variabili globali per riferimento

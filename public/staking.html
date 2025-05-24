@@ -1100,7 +1100,7 @@ if (stakedTokenIds.length > 0) {
               </div>
               <div class="reward-rate">
                 <span class="reward-label">Daily Reward:</span>
-                <span id="daily-reward-${nft.id}" class="reward-value"></span>
+                <span id="daily-reward-${nft.id}" class="reward-value">${getRewardRateByRarity(nft.rarity || 'Standard')} IASE/day</span>
               </div>
             </div>
             
@@ -1337,6 +1337,19 @@ if (stakedTokenIds.length > 0) {
           <p>An error occurred while loading your staked NFTs. Please try again later.</p>
         </div>`;
     }
+  }
+  
+  /**
+   * Restituisce il tasso di ricompensa giornaliera in base alla rarità
+   * @param {string} rarityTier - Il livello di rarità dell'NFT
+   * @returns {number} - Il tasso di ricompensa giornaliera
+   */
+  function getRewardRateByRarity(rarityTier) {
+    const rarity = rarityTier.toLowerCase();
+    if (rarity.includes('elite')) return 66.67;
+    if (rarity.includes('advanced')) return 50.00;
+    if (rarity.includes('prototype')) return 83.33;
+    return 33.33; // Standard come default
   }
   
   /**

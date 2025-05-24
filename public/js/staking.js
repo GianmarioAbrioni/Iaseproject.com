@@ -406,17 +406,8 @@
       displayedNftIds.push(stake._uniqueId);
       
       // 3. Assicurazione dei valori corretti per rarità e reward
-      // Mappatura token ID → rarità corretta
-      if (tokenId === "123") {
-        stake.rarityTier = "Standard";
-        stake.dailyReward = "33.33";
-      } else if (tokenId === "456") {
-        stake.rarityTier = "Elite";
-        stake.dailyReward = "66.67";
-      } else if (tokenId === "789") {
-        stake.rarityTier = "Advanced";
-        stake.dailyReward = "50.00";
-      }
+      // Utilizziamo i valori provenienti direttamente dal backend
+      // o il meccanismo di fallback in caso di dati mancanti
       
       // Garanzia di ricompensa giornaliera valida
       if (!stake.dailyReward || parseFloat(stake.dailyReward) <= 0) {

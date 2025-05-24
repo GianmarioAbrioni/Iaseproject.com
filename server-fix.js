@@ -166,56 +166,137 @@ import('./server/routes.js').then(async (module) => {
         throw new Error('registerRoutes non è una funzione esportata da routes.js');
     }
 
-    // Import dinamico del job di staking
-    import('./server/services/staking-job.js')
-        .then(stakingJob => {
-            // Verifica se la funzione è disponibile
-            if (typeof stakingJob.processStakingRewards === 'function') {
-                // Costanti per la pianificazione
-                const HOURS_24 = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
+    // Importa i moduli necessari per il job di staking
+    import('./server/storage.js').then(storageModule => {
+        const storage = storageModule.storage;
+        
+        import('./server/services/nft-verification.js').then(verificationModule => {
+            const verifyNftOwnership = verificationModule.verifyNftOwnership;
+            
+            // Costanti globali per i valori fissi dei reward
+            const BASE_DAILY_REWARD = 33.33; // Standard (1.0x)
+            const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
+            const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
+            const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
+            
+            // Funzione principale per elaborare le ricompense di staking
+            async function processStakingRewards() {
+                console.log("🔄 Verifica stake NFT e distribuzione ricompense avviata");
                 
-                // Funzione per eseguire il job
-                function runStakingJob() {
-                    console.log('🔄 Avvio verifica e distribuzione ricompense staking...');
-                    stakingJob.processStakingRewards()
-                        .then(() => console.log('✅ Verifica staking completata con successo'))
-                        .catch(error => console.error('❌ Errore durante la verifica staking:', error));
+                try {
+                    // Ottieni tutti gli stake attivi
+                    const activeStakes = await storage.getAllActiveStakes();
+                    console.log(`📊 Trovati ${activeStakes.length} stake NFT attivi`);
+                    
+                    let verifiedCount = 0;
+                    let failedCount = 0;
+                    
+                    for (const stake of activeStakes) {
+                        try {
+                            // Verifica proprietà NFT
+                            console.log(`🔍 Verifica NFT ID ${stake.nftId} per wallet ${stake.walletAddress}`);
+                            const isVerified = await verifyNftOwnership(stake.walletAddress, stake.nftId);
+                            
+                            if (isVerified) {
+                                // Aggiorna lo stake come verificato
+                                await storage.updateNftStakeVerification(stake.id);
+                                
+                                // Usa valori fissi per le ricompense in base alla rarità
+                                let rewardAmount = BASE_DAILY_REWARD;
+                                let rarityName = "Standard";
+                                
+                                if (stake.rarityTier) {
+                                    const rarityLower = stake.rarityTier.toLowerCase();
+                                    
+                                    if (rarityLower.includes('advanced')) {
+                                        rewardAmount = ADVANCED_DAILY_REWARD;
+                                        rarityName = "Advanced";
+                                    } else if (rarityLower.includes('elite')) {
+                                        rewardAmount = ELITE_DAILY_REWARD;
+                                        rarityName = "Elite";
+                                    } else if (rarityLower.includes('prototype')) {
+                                        rewardAmount = PROTOTYPE_DAILY_REWARD;
+                                        rarityName = "Prototype";
+                                    }
+                                }
+                                
+                                // Crea record ricompensa usando esattamente la struttura dal database reale
+                                const reward = {
+                                    stakeId: stake.id,
+                                    amount: rewardAmount,
+                                    rewardDate: new Date(),
+                                    claimed: false,
+                                    claimTxHash: null
+                                };
+                                
+                                await storage.createStakingReward(reward);
+                                
+                                console.log(`✅ Ricompensa di ${rewardAmount.toFixed(2)} IASE tokens (${rarityName}) assegnata per NFT ${stake.nftId}`);
+                                verifiedCount++;
+                            } else {
+                                console.log(`❌ Verifica fallita per NFT ${stake.nftId}: non più di proprietà di ${stake.walletAddress}`);
+                                // Termina lo stake
+                                await storage.endNftStake(stake.id);
+                                failedCount++;
+                            }
+                        } catch (error) {
+                            console.error(`⚠️ Errore durante la verifica dello stake ${stake.id}:`, error);
+                            failedCount++;
+                        }
+                    }
+                    
+                    console.log(`🏁 Processo completato: ${verifiedCount} stake verificati, ${failedCount} falliti`);
+                    return { verifiedCount, failedCount };
+                } catch (error) {
+                    console.error("🚨 Errore durante l'elaborazione degli stake:", error);
+                    throw error;
                 }
-                
-                // Pianifica l'esecuzione quotidiana
-                const now = new Date();
-                const midnight = new Date(
-                    now.getFullYear(),
-                    now.getMonth(),
-                    now.getDate() + 1,
-                    0, 0, 0 // mezzanotte 00:00:00
-                );
-                const msToMidnight = midnight.getTime() - now.getTime();
-                const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
-                
-                // Prima esecuzione alla prossima mezzanotte
-                setTimeout(function() { runStakingJob(); }, msToMidnight);
-                
-                // Pianifica le esecuzioni successive ogni 24 ore
-                setInterval(function() { runStakingJob(); }, HOURS_24);
-                
-                console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
-                console.log('⏰ Scheduler verifica staking configurato con successo');
-                
-                // Esecuzione di test in ambiente di sviluppo
-                if (process.env.NODE_ENV !== 'production') {
-                    setTimeout(function() { 
-                        console.log('🧪 Esecuzione di test del job di staking (solo in development)');
-                        runStakingJob();
-                    }, 30000); // 30 secondi
-                }
-            } else {
-                console.warn('⚠️ processStakingRewards non è una funzione disponibile nel modulo staking-job');
             }
-        })
-        .catch(error => {
-            console.error('❌ Errore durante l\'importazione del modulo staking-job:', error);
+            
+            // Costanti per la pianificazione
+            const HOURS_24 = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
+            
+            // Funzione per eseguire il job
+            function runStakingJob() {
+                console.log('🔄 Avvio verifica e distribuzione ricompense staking...');
+                processStakingRewards()
+                    .then(() => console.log('✅ Verifica staking completata con successo'))
+                    .catch(error => console.error('❌ Errore durante la verifica staking:', error));
+            }
+            
+            // Pianifica l'esecuzione quotidiana
+            const now = new Date();
+            const midnight = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate() + 1,
+                0, 0, 0 // mezzanotte 00:00:00
+            );
+            const msToMidnight = midnight.getTime() - now.getTime();
+            const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
+            
+            // Prima esecuzione alla prossima mezzanotte
+            setTimeout(function() { runStakingJob(); }, msToMidnight);
+            
+            // Pianifica le esecuzioni successive ogni 24 ore
+            setInterval(function() { runStakingJob(); }, HOURS_24);
+            
+            console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
+            console.log('⏰ Scheduler verifica staking configurato con successo');
+            
+            // Esecuzione di test in ambiente di sviluppo
+            if (process.env.NODE_ENV !== 'production') {
+                setTimeout(function() { 
+                    console.log('🧪 Esecuzione di test del job di staking (solo in development)');
+                    runStakingJob();
+                }, 30000); // 30 secondi
+            }
+        }).catch(error => {
+            console.error('❌ Errore durante l\'importazione del modulo nft-verification:', error);
         });
+    }).catch(error => {
+        console.error('❌ Errore durante l\'importazione del modulo storage:', error);
+    });
 
     const PORT = process.env.PORT || 10000;
     app.listen(PORT, '0.0.0.0', () => {

@@ -175,12 +175,12 @@ import('./server/routes.js').then(async (module) => {
                 const HOURS_24 = 24 * 60 * 60 * 1000; // 24 ore in millisecondi
                 
                 // Funzione per eseguire il job
-                const runStakingJob = () => {
+                function runStakingJob() {
                     console.log('🔄 Avvio verifica e distribuzione ricompense staking...');
                     stakingJob.processStakingRewards()
                         .then(() => console.log('✅ Verifica staking completata con successo'))
                         .catch(error => console.error('❌ Errore durante la verifica staking:', error));
-                };
+                }
                 
                 // Pianifica l'esecuzione quotidiana
                 const now = new Date();
@@ -194,17 +194,17 @@ import('./server/routes.js').then(async (module) => {
                 const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
                 
                 // Prima esecuzione alla prossima mezzanotte
-                setTimeout(runStakingJob, msToMidnight);
+                setTimeout(function() { runStakingJob(); }, msToMidnight);
                 
                 // Pianifica le esecuzioni successive ogni 24 ore
-                setInterval(runStakingJob, HOURS_24);
+                setInterval(function() { runStakingJob(); }, HOURS_24);
                 
                 console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
                 console.log('⏰ Scheduler verifica staking configurato con successo');
                 
                 // Esecuzione di test in ambiente di sviluppo
                 if (process.env.NODE_ENV !== 'production') {
-                    setTimeout(() => {
+                    setTimeout(function() { 
                         console.log('🧪 Esecuzione di test del job di staking (solo in development)');
                         runStakingJob();
                     }, 30000); // 30 secondi

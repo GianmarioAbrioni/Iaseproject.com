@@ -489,6 +489,8 @@
       if (rarityName.toLowerCase().includes('elite')) rarityClass = 'elite';
       if (rarityName.toLowerCase().includes('prototype')) rarityClass = 'prototype';
       
+      // Rimuoviamo questa parte perché usiamo direttamente l'URL IPFS
+      
       if (config.enableLogging) {
         console.log(`🎯 NFT #${tokenId} - Rarità: ${rarityName}, Daily: ${dailyRewardValue}, Data: ${stakeDate}`);
       }
@@ -514,10 +516,10 @@
         console.log(`📈 TOTALI FINALI: ${dailyRewards.toFixed(2)}/giorno, Accumulato=${totalRewards.toFixed(2)}`);
       }
       
-      // Imposta HTML con i dati dell'NFT - utilizziamo il formato corretto dell'immagine
+      // Imposta HTML con i dati dell'NFT - usiamo l'URL IPFS esattamente uguale a quella in staking.html
       nftElement.innerHTML = `
         <div class="nft-image">
-          <img src="/images/nft/iase-unit-${tokenId}.png" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
+          <img src="https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${stake.tokenId}.png" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy">
           <div class="staked-badge">Staked</div>
         </div>
         <div class="nft-details">

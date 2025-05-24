@@ -120,8 +120,57 @@
    */
   function calculateRewards(stake) {
     // 1. Ottieni la data di staking corretta con fallback
-    const stakeDate = new Date(stake.stakeDate || stake.startTime || stake.createdAt || Date.now());
+    let stakeTimestamp = stake.stakeDate || stake.startTime || stake.createdAt;
+    
+    // Log di debug per verificare il valore della data
+    if (config.enableLogging) {
+      console.log(`📅 Data di staking originale per NFT: ${JSON.stringify(stakeTimestamp)}`);
+    }
+    
+    // Se la data è in formato stringa ISO, è probabilmente corretta
     const now = new Date();
+    let stakeDate;
+    
+    // Verifica formato e validità della data
+    if (stakeTimestamp && typeof stakeTimestamp === 'string') {
+      // Prova a interpretare la data
+      stakeDate = new Date(stakeTimestamp);
+      
+      // Se la data non è valida, verifica formati alternativi
+      if (isNaN(stakeDate.getTime())) {
+        // Prova con format "YYYY-MM-DD"
+        if (/^\d{4}-\d{2}-\d{2}/.test(stakeTimestamp)) {
+          stakeDate = new Date(stakeTimestamp + 'T00:00:00Z');
+        } 
+        // Prova con timestamp numerico
+        else if (/^\d+$/.test(stakeTimestamp)) {
+          stakeDate = new Date(parseInt(stakeTimestamp));
+        }
+      }
+    } else if (stakeTimestamp && typeof stakeTimestamp === 'number') {
+      // Se è un timestamp numerico
+      stakeDate = new Date(stakeTimestamp);
+    } else {
+      // Fallback: usa un timestamp di test (1 mese fa)
+      stakeDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      console.warn("⚠️ Nessuna data di staking valida trovata, uso data di fallback");
+    }
+    
+    // Ultima verifica validità
+    if (isNaN(stakeDate.getTime())) {
+      console.error(`❌ Data di staking ancora non valida dopo i tentativi di parsing: ${stakeTimestamp}`);
+      stakeDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 giorni fa come fallback
+    }
+    
+    // Validazione aggiuntiva: se la data è nel futuro, usa la data corrente
+    if (stakeDate > now) {
+      console.warn("⚠️ Data di staking nel futuro, correggo con data corrente");
+      stakeDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000); // Impostiamo a ieri per avere almeno un giorno di staking
+    }
+    
+    if (config.enableLogging) {
+      console.log(`📅 Data di staking utilizzata: ${stakeDate.toISOString()}`);
+    }
     
     // 2. Calcola il tempo trascorso in giorni (con precisione a 2 decimali)
     const millisPassed = now - stakeDate;
@@ -960,6 +1009,32 @@
     
     // Inizializza l'interfaccia
     updateUIState();
+    
+    // Aggiungi event listener per l'evento personalizzato staking:loadNFTs da staking.html
+    document.addEventListener('staking:loadNFTs', function() {
+      if (config.enableLogging) {
+        console.log('📋 Ricevuto evento staking:loadNFTs da staking.html');
+      }
+      
+      // Se il wallet è connesso, carica gli NFT in staking
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        loadStakedNFTs(window.ethereum.selectedAddress);
+      } else {
+        console.log('⚠️ Wallet non connesso, impossibile caricare gli NFT in staking');
+      }
+    });
+    
+    // Event listener per l'evento di aggiornamento (refresh)
+    document.addEventListener('staking:refresh', function() {
+      if (config.enableLogging) {
+        console.log('📋 Ricevuto evento staking:refresh da staking.html');
+      }
+      
+      // Se il wallet è connesso, aggiorna gli NFT in staking
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        loadStakedNFTs(window.ethereum.selectedAddress);
+      }
+    });
     
     if (config.enableLogging) {
       console.log('✅ Inizializzazione staking completata');

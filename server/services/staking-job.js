@@ -143,4 +143,12 @@ async function setupStakingVerification() {
 }
 
 // Esporta le funzioni per poterle utilizzare esternamente
-export { processStakingRewards, setupStakingVerification };
+export { processStakingRewards };
+
+// Avvio diretto della funzione se eseguita come modulo principale
+if (typeof require !== 'undefined' && require.main === module) {
+  console.log('🔄 Avvio diretto del job di staking...');
+  processStakingRewards()
+    .then(() => console.log('✅ Job completato con successo'))
+    .catch(err => console.error('❌ Errore durante l\'esecuzione:', err));
+}

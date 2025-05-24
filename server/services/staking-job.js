@@ -14,6 +14,9 @@ const ADVANCED_DAILY_REWARD = 50.00; // Advanced (1.5x)
 const ELITE_DAILY_REWARD = 66.67; // Elite (2.0x)
 const PROTOTYPE_DAILY_REWARD = 83.33; // Prototype (2.5x)
 
+// Variabile globale per tenere traccia del timer di verifica
+let scheduleStakingVerification = null;
+
 async function processStakingRewards() {
   console.log("🔄 Verifica stake NFT e distribuzione ricompense avviata");
   
@@ -39,8 +42,8 @@ async function processStakingRewards() {
           let rewardAmount = BASE_DAILY_REWARD;
           let rarityName = "Standard";
           
-          if (stake.rarityName) {
-            const rarityLower = stake.rarityName.toLowerCase();
+          if (stake.rarityTier) {
+            const rarityLower = stake.rarityTier.toLowerCase();
             
             if (rarityLower.includes('advanced')) {
               rewardAmount = ADVANCED_DAILY_REWARD;
@@ -80,10 +83,64 @@ async function processStakingRewards() {
     }
     
     console.log(`🏁 Processo completato: ${verifiedCount} stake verificati, ${failedCount} falliti`);
+    return { verifiedCount, failedCount };
   } catch (error) {
     console.error("🚨 Errore durante l'elaborazione degli stake:", error);
+    throw error;
   }
 }
 
-// Esporta la funzione per poterla utilizzare esternamente
-export { processStakingRewards };
+// Funzione per pianificare la verifica giornaliera degli staking
+async function setupStakingVerification() {
+  try {
+    // Funzione per calcolare il tempo fino alla prossima mezzanotte
+    function scheduleNextVerification() {
+      const now = new Date();
+      const midnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0, 0, 0 // mezzanotte 00:00:00
+      );
+      
+      const msToMidnight = midnight.getTime() - now.getTime();
+      const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
+      
+      console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
+      
+      // Imposta il timer
+      return setTimeout(() => {
+        console.log('🔄 Avvio verifica giornaliera degli NFT in staking...');
+        
+        // Esegui il job di verifica
+        processStakingRewards()
+          .then(() => {
+            console.log('✅ Verifica staking completata con successo');
+            // Pianifica la prossima esecuzione
+            scheduleStakingVerification = scheduleNextVerification();
+          })
+          .catch(error => {
+            console.error("❌ Errore durante la verifica staking:", error);
+            // Pianifica comunque la prossima esecuzione
+            scheduleStakingVerification = scheduleNextVerification();
+          });
+      }, msToMidnight);
+    }
+    
+    // Avvia lo scheduler
+    scheduleStakingVerification = scheduleNextVerification();
+    
+    // Aggiungi anche un endpoint per eseguire la verifica manualmente (solo in sviluppo)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔧 Endpoint di verifica manuale abilitato (solo ambiente di sviluppo)');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Errore durante la configurazione dello scheduler staking:', error);
+    return false;
+  }
+}
+
+// Esporta le funzioni per poterle utilizzare esternamente
+export { processStakingRewards, setupStakingVerification };

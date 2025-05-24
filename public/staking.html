@@ -1855,6 +1855,16 @@ if (stakedTokenIds.length > 0) {
           }
         });
         
+        // Mostriamo solo le ricompense effettivamente presenti nel database
+        // Questo garantisce che l'utente veda solo ciò che può effettivamente reclamare
+        console.log("📊 Rewards dal database:", totalPending);
+        
+        // Informazione per l'utente sulle ricompense calcolate dal frontend (solo per debug)
+        if (totalPending === 0 && window.totalRewards > 0) {
+          console.log("ℹ️ Nota: Ci sono ricompense calcolate dal frontend (" + window.totalRewards.toFixed(2) + 
+                     " IASE) ma non ancora registrate nel database. Saranno disponibili dopo il prossimo aggiornamento del sistema.");
+        }
+        
         // Aggiorna l'UI
         const pendingRewardsElement = document.getElementById('pendingRewards');
         if (pendingRewardsElement) {

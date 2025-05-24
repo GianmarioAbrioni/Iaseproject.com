@@ -169,15 +169,47 @@ import('./server/routes.js').then(async (module) => {
     // Import e configurazione del job di verifica staking
     try {
         // Importa il modulo per la verifica dello staking
+        // Nota: verifyAndDistributeRewards è la funzione disponibile in staking-job.ts
         const stakingJob = await import('./server/services/staking-job.js');
         
-        if (typeof stakingJob.setupStakingVerification === 'function') {
-            // Inizializza il job di verifica staking
-            stakingJob.setupStakingVerification();
-            console.log('⏰ Job di verifica staking configurato con successo');
-        } else {
-            console.warn('⚠️ setupStakingVerification non è disponibile nel modulo staking-job');
-        }
+        // Imposta un timer giornaliero per eseguire la funzione di verifica
+        const scheduleNextVerification = () => {
+            const now = new Date();
+            const midnight = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate() + 1,
+                0, 0, 0 // mezzanotte 00:00:00
+            );
+            
+            const msToMidnight = midnight.getTime() - now.getTime();
+            const hoursToMidnight = Math.floor(msToMidnight / (1000 * 60 * 60));
+            
+            console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
+            
+            return setTimeout(() => {
+                console.log('🔄 Avvio verifica giornaliera degli NFT in staking...');
+                
+                // Esegui la funzione di verifica e assegnazione ricompense
+                if (typeof stakingJob.processStakingRewards === 'function') {
+                    stakingJob.processStakingRewards()
+                        .then(() => {
+                            console.log('✅ Verifica staking completata con successo');
+                            // Pianifica la prossima esecuzione
+                            scheduleNextVerification();
+                        })
+                        .catch(error => {
+                            console.error("❌ Errore durante la verifica staking:", error);
+                            // Pianifica comunque la prossima esecuzione
+                            scheduleNextVerification();
+                        });
+                }
+            }, msToMidnight);
+        };
+        
+        // Avvia lo scheduler
+        scheduleNextVerification();
+        console.log('⏰ Scheduler verifica staking configurato con successo');
     } catch (stakingJobError) {
         console.error('❌ Errore durante l\'importazione o l\'inizializzazione del job di staking:', stakingJobError);
     }

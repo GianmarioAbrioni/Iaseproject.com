@@ -787,6 +787,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('stakedNFTsDataReady', function(event) {
       console.log('📊 Ricevuti dati NFT staking da staking.js:', event.detail?.length || 0, 'NFT');
       window.currentStakedNFTs = event.detail || [];
+      
+      // Aggiorna i contatori della dashboard
+      const totalStakedNftsElement = document.getElementById('totalStakedNfts');
+      if (totalStakedNftsElement) {
+        console.log(`Aggiorno contatore NFT staking: ${window.currentStakedNFTs.length}`);
+        totalStakedNftsElement.textContent = window.currentStakedNFTs.length;
+      }
+      
       // Forza il rendering degli NFT in staking
       renderStakedNFTs();
     });
@@ -1240,10 +1248,11 @@ if (stakedTokenIds.length > 0) {
       const allNftsResult = await loadAllIASENFTs();
       const allNfts = allNftsResult.nfts || [];
       
-      // Usa un Set per tracciare gli NFT già renderizzati e prevenire duplicati
-      const renderedNftIds = new Set();
+      // Filtriamo gli NFT duplicati prima del rendering
+      // Usa un Map per tracciare gli NFT e tenere solo la prima istanza di ogni ID
+      const uniqueNFTs = new Map();
       
-      // Render each staked NFT (evitando duplicati)
+      // Deduplica gli NFT conservando solo il primo con ogni ID
       for (const stakedNft of stakedNfts) {
         // Estrai tokenId in modo robusto, accettando diversi formati
         let tokenId = stakedNft.tokenId || stakedNft.token_id || stakedNft.nftId;
@@ -1255,15 +1264,24 @@ if (stakedTokenIds.length > 0) {
         // Converti sempre a stringa
         tokenId = tokenId.toString();
         
-        // Verifica se l'NFT è già stato renderizzato per prevenire duplicati
-        if (renderedNftIds.has(tokenId)) {
-          console.log(`Skipping duplicate staked NFT #${tokenId}`);
-          continue;
+        // Se questo NFT non è ancora nella mappa, aggiungilo
+        if (!uniqueNFTs.has(tokenId)) {
+          uniqueNFTs.set(tokenId, stakedNft);
+          console.log(`NFT #${tokenId} aggiunto alla lista di rendering`);
+        } else {
+          console.log(`NFT duplicato #${tokenId} saltato`);
         }
-        
-        // Aggiungi l'ID NFT ai già renderizzati
-        renderedNftIds.add(tokenId);
-        
+      }
+      
+      // Sostituisci l'array originale con quello deduplicato
+      const deduplicatedNFTs = Array.from(uniqueNFTs.values());
+      console.log(`Rendering di ${deduplicatedNFTs.length} NFT unici su ${stakedNfts.length} totali`);
+      
+      // Sostituisci l'array originale
+      stakedNfts = deduplicatedNFTs;
+      
+      // Ora procedi con il rendering degli NFT deduplicati
+      for (const stakedNft of stakedNfts) {
         // Find reward for this NFT
         const reward = rewards.find(r => r.stakeId === stakedNft.id);
         const accumulatedReward = reward ? reward.totalReward : 0;
@@ -1663,9 +1681,18 @@ if (stakedTokenIds.length > 0) {
     }
     
     // Formatta la data di staking
-    if (unstakeNftStakingTime && stakeInfo.stakeDate) {
-      const stakeDate = new Date(stakeInfo.stakeDate);
-      unstakeNftStakingTime.textContent = stakeDate.toLocaleDateString();
+    if (unstakeNftStakingTime) {
+      if (stakeInfo.stakeDate) {
+        const stakeDate = new Date(stakeInfo.stakeDate);
+        // Formato più dettagliato: giorno/mese/anno e ore:minuti
+        const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        unstakeNftStakingTime.textContent = stakeDate.toLocaleDateString(undefined, options);
+        console.log(`Data di staking formattata: ${unstakeNftStakingTime.textContent} (da ${stakeInfo.stakeDate})`);
+      } else {
+        // Se non abbiamo la data di staking, mostriamo l'ora attuale (aggiornato ora)
+        console.warn("⚠️ Data di staking mancante, utilizzo data corrente");
+        unstakeNftStakingTime.textContent = new Date().toLocaleDateString();
+      }
     }
     
     // Carica l'immagine dell'NFT (se disponibile)

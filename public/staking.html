@@ -740,6 +740,7 @@
     };
   </script>
   
+  
   <!-- Script di staking caricato in modo tradizionale per massima compatibilità -->
   <script src="js/staking.js"></script>
   <script>
@@ -1095,7 +1096,11 @@ if (stakedTokenIds.length > 0) {
               </div>
               <div class="reward-rate">
                 <span class="reward-label">Daily Reward:</span>
-                <span id="daily-reward-${nft.id}" class="reward-value"></span>
+                <span id="daily-reward-${nft.id}" class="reward-value">
+                  ${nft.rarity?.toLowerCase().includes('elite') ? '66.67' : 
+                   nft.rarity?.toLowerCase().includes('advanced') ? '50.00' : 
+                   nft.rarity?.toLowerCase().includes('prototype') ? '83.33' : '33.33'} IASE
+                </span>
               </div>
             </div>
             

@@ -488,35 +488,36 @@
       
       // 5. Popolamento HTML dell'elemento NFT
       nftElement.innerHTML = `
-        <div class="nft-image-container">
-          <div class="rarity-badge">${rarityTier}</div>
-          <img src="${imageUrl}" alt="NFT #${tokenId}" class="nft-image" 
+        <div class="nft-image">
+          <img src="${imageUrl}" alt="NFT #${tokenId}" loading="lazy" 
                onerror="this.onerror=null; this.src='https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png';">
+          <div class="staked-badge">STAKED</div>
         </div>
         <div class="nft-details">
-          <h3 class="nft-id">IASE #${tokenId}</h3>
-          <div class="stake-info">
-            <div class="info-row">
-              <span class="label">Staked:</span>
-              <span class="value">${formatDate(stakeDate)}</span>
+          <h3 class="nft-title">NFT #${tokenId}</h3>
+          <div class="nft-id">Token ID: ${tokenId}</div>
+          <div class="rarity-badge ${rarityTier.toLowerCase()}">${rarityTier}</div>
+          
+          <div class="reward-details">
+            <div class="reward-rate">
+              <span>Daily Rate:</span>
+              <span class="rate-value">
+                ${dailyReward.toFixed(2)} IASE
+              </span>
             </div>
-            <div class="info-row">
-              <span class="label">Duration:</span>
-              <span class="value">${stakingDuration}</span>
+            <div class="staking-info">
+              <span>Staked For:</span>
+              <span class="duration-value">${stakingDuration}</span>
             </div>
-            <div class="info-row">
-              <span class="label">Daily:</span>
-              <span class="value">${dailyReward.toFixed(2)} IASE</span>
-            </div>
-            <div class="info-row rewards">
-              <span class="label">Rewards:</span>
-              <span class="value">${rewards} IASE</span>
+            <div class="reward-info">
+              <span>Rewards:</span>
+              <span class="reward-value">${rewards} IASE</span>
             </div>
           </div>
-          <div class="nft-actions">
-            <button class="unstake-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}">Unstake</button>
-            <button class="claim-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}" data-rewards="${rewards}">
-              Claim Rewards
+          
+          <div class="nft-card-actions">
+            <button class="btn stake-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}">
+              <i class="ri-logout-box-line"></i> Unstake
             </button>
           </div>
         </div>
@@ -525,8 +526,8 @@
       // Aggiungi l'elemento al container
       container.appendChild(nftElement);
       
-      // Aggiungi event listener per i pulsanti
-      const unstakeBtn = nftElement.querySelector('.unstake-btn');
+      // Aggiungi event listener per il pulsante Unstake
+      const unstakeBtn = nftElement.querySelector('.stake-btn');
       if (unstakeBtn) {
         unstakeBtn.addEventListener('click', function() {
           if (typeof window.openUnstakeModal === 'function') {
@@ -535,22 +536,6 @@
             console.error('La funzione window.openUnstakeModal non esiste a livello globale');
             showMessage('Errore: impossibile aprire la modale di unstake');
           }
-        });
-      }
-      
-      // Aggiungi listener per il pulsante claim
-      const claimBtn = nftElement.querySelector('.claim-btn');
-      if (claimBtn) {
-        claimBtn.addEventListener('click', function() {
-          // Verifica se ci sono ricompense da riscattare
-          const rewardsAmount = this.getAttribute('data-rewards');
-          if (parseFloat(rewardsAmount) <= 0) {
-            showMessage('Non ci sono ricompense da riscattare per questo NFT.');
-            return;
-          }
-          
-          // Apri la modale di claim
-          openClaimModal(tokenId, stake, rewardsAmount);
         });
       }
     }

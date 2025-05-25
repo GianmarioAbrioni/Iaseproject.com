@@ -1431,7 +1431,24 @@ if (stakedTokenIds.length > 0) {
   // Aggiungi listener per l'evento wallet:connected
   document.addEventListener('wallet:connected', (event) => {
     console.log("Wallet connected:", event.detail?.address);
-    renderNFTs(); // Critical!
+    
+    // Forza un caricamento completo direttamente da staking.js
+    // Questo attiverà il caricamento immediato dei dati dal database
+    if (window.loadStakedNFTs && typeof window.loadStakedNFTs === 'function') {
+      console.log("🔄 Richiedo caricamento dati diretti dal database via staking.js");
+      
+      // Carica i dati da staking.js
+      const walletAddress = event.detail?.address || window.ethereum?.selectedAddress;
+      if (walletAddress) {
+        // Questa funzione è in staking.js e caricherà i dati dal database
+        window.loadStakedNFTs(walletAddress);
+      }
+    } else {
+      console.log("⚠️ Funzione loadStakedNFTs non disponibile, fallback a renderNFTs");
+    }
+    
+    // Esegui comunque renderNFTs per sicurezza
+    renderNFTs();
   });
   
   // Add listener for manual:loadNFTs event

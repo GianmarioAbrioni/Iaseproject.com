@@ -548,6 +548,7 @@
     
     // Esporta funzioni pubbliche
     window.refreshStakingData = () => loadStakedNFTs(currentWalletAddress);
+    window.loadStakedNFTs = loadStakedNFTs; // Espone la funzione direttamente per staking.html
     window.calculateRewards = calculateRewards;
     window.closeClaimModal = closeClaimModal;
     window.confirmClaim = confirmClaim;

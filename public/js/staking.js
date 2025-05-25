@@ -1082,6 +1082,14 @@
   window.confirmUnstake = confirmUnstake;
   window.confirmClaim = confirmClaim;
   window.loadStakedNFTs = loadStakedNFTs;
-  window.closeUnstakeModal = function() {};
+  window.closeUnstakeModal = function(safeId) {
+    const modalElement = document.getElementById(`unstakeModal_${safeId}`);
+    if (modalElement) {
+      const modalContainer = modalElement.parentElement;
+      if (modalContainer) {
+        modalContainer.innerHTML = ''; // Rimuove la modal
+      }
+    }
+  };
   window.closeClaimModal = function() {};
 })();

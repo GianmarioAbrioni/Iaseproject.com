@@ -555,20 +555,14 @@
       }
     }
     
-    // Aggiornamento contatori nella dashboard
-    if (domElements.totalRewards) {
-      domElements.totalRewards.textContent = totalRewards.toFixed(2);
-    }
-    
-    if (domElements.dailyRewards) {
-      domElements.dailyRewards.textContent = dailyRewards.toFixed(2);
-    }
+    // Questi contatori verranno aggiornati dalla funzione updateRewardsFromDatabase che legge i dati reali dal database
+    // Solo i conteggi che non dipendono dalle ricompense vengono aggiornati qui
     
     if (domElements.totalStakedNfts) {
       domElements.totalStakedNfts.textContent = displayedNftIds.length;
     }
     
-    // Avvia aggiornamento da database
+    // Avvia aggiornamento da database per ottenere i valori reali delle ricompense
     updateRewardsFromDatabase();
   }
 
@@ -782,12 +776,37 @@
       }
       
       // Aggiorna i contatori con i dati ricevuti
-      if (data.totalRewards !== undefined && domElements.totalRewards) {
-        domElements.totalRewards.textContent = parseFloat(data.totalRewards).toFixed(2);
+      if (domElements.totalRewards) {
+        // Verifica se i dati contengono il totalRewards
+        if (data.totalRewards !== undefined) {
+          // Mostra solo se i rewards sono stati effettivamente distribuiti
+          if (parseFloat(data.totalRewards) > 0) {
+            domElements.totalRewards.textContent = parseFloat(data.totalRewards).toFixed(2);
+          } else {
+            domElements.totalRewards.textContent = '0.00';
+          }
+        } 
+        // Se i rewards sono forniti come array, calcola la somma
+        else if (data.rewards && Array.isArray(data.rewards) && data.rewards.length > 0) {
+          const totalRewardsSum = data.rewards.reduce((sum, reward) => sum + (parseFloat(reward.totalReward) || 0), 0);
+          domElements.totalRewards.textContent = totalRewardsSum.toFixed(2);
+        } else {
+          domElements.totalRewards.textContent = '0.00';
+        }
       }
       
-      if (data.dailyRewards !== undefined && domElements.dailyRewards) {
-        domElements.dailyRewards.textContent = parseFloat(data.dailyRewards).toFixed(2);
+      if (domElements.dailyRewards) {
+        // Verifica se i dati contengono il dailyRewards
+        if (data.dailyRewards !== undefined) {
+          domElements.dailyRewards.textContent = parseFloat(data.dailyRewards).toFixed(2);
+        }
+        // Se i rewards sono forniti come array, calcola la somma giornaliera
+        else if (data.rewards && Array.isArray(data.rewards) && data.rewards.length > 0) {
+          const dailyRewardsSum = data.rewards.reduce((sum, reward) => sum + (parseFloat(reward.dailyReward) || 0), 0);
+          domElements.dailyRewards.textContent = dailyRewardsSum.toFixed(2);
+        } else {
+          domElements.dailyRewards.textContent = '0.00';
+        }
       }
       
     } catch (error) {

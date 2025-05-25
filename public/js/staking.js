@@ -916,6 +916,48 @@
     window.calculateRewards = calculateRewards;
     window.closeClaimModal = closeClaimModal;
     window.confirmClaim = confirmClaim;
+    
+    // Funzione per gestire l'unstake e aggiornare la UI
+    window.confirmUnstake = async (tokenId) => {
+      try {
+        // Ottieni l'indirizzo del wallet
+        const walletAddress = currentWalletAddress;
+        if (!walletAddress) {
+          showMessage('Wallet non connesso. Connetti il wallet prima di procedere.', true);
+          return false;
+        }
+        
+        // Prepara i dati per la chiamata API
+        const unstakeData = {
+          address: walletAddress,
+          tokenId: tokenId
+        };
+        
+        // Effettua la chiamata API
+        const response = await fetch(`${config.apiBaseUrl}/api/unstake`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(unstakeData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Errore API: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Aggiorna immediatamente l'UI dopo l'unstake
+        loadStakedNFTs(currentWalletAddress);
+        
+        return true;
+      } catch (error) {
+        console.error('❌ Errore durante l\'unstaking:', error);
+        showMessage(`Errore durante l'unstake: ${error.message}`, true);
+        return false;
+      }
+    };
   }
 
   // Avvia inizializzazione quando DOM è pronto

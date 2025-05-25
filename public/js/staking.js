@@ -1012,7 +1012,33 @@
         );
         
         if (stake) {
-          openUnstakeModal(tokenId, stake);
+          // Verifica se esiste la funzione openUnstakeModal in staking.html
+          if (typeof window.openUnstakeModal === 'function') {
+            window.openUnstakeModal(tokenId, stake);
+          } else {
+            // Se non è definita globalmente, cerca il modale HTML fisso
+            const unstakeModal = document.getElementById('unstakeModal');
+            if (unstakeModal) {
+              // Utilizza direttamente il modale HTML fisso
+              unstakeModal.setAttribute('data-token-id', tokenId);
+              unstakeModal.setAttribute('data-stake-id', stake.id || '');
+              
+              // Aggiorna elementi UI nel modal
+              const unstakeNftTitle = document.getElementById('unstakeNftTitle');
+              const unstakeNftId = document.getElementById('unstakeNftId');
+              const unstakeNftRewards = document.getElementById('unstakeNftRewards');
+              
+              if (unstakeNftTitle) unstakeNftTitle.textContent = `IASE Unit #${tokenId}`;
+              if (unstakeNftId) unstakeNftId.textContent = `Token ID: ${tokenId}`;
+              if (unstakeNftRewards) unstakeNftRewards.textContent = `${calculateRewards(stake)} IASE`;
+              
+              // Mostra il modal
+              unstakeModal.style.display = 'block';
+            } else {
+              // Se non esiste neanche il modale HTML, usa quello definito in questo file
+              openUnstakeModal(tokenId, stake);
+            }
+          }
         } else {
           showMessage('NFT non trovato negli NFT in staking');
         }

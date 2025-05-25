@@ -449,9 +449,17 @@ if (!result.rows || result.rows.length === 0) {
                                 };
                         });
                         
+                        // Calcola il totale delle ricompense sommando quelle di tutti gli NFT di questo wallet
+                        const totalRewards = formattedRewards.reduce((sum, reward) => sum + reward.totalReward, 0);
+                        const dailyRewards = formattedRewards.reduce((sum, reward) => sum + reward.dailyReward, 0);
+                        
+                        console.log(`Wallet ${normalizedAddress}: Calcolato totalRewards = ${totalRewards} da ${formattedRewards.length} NFT in staking`);
+                        
                         res.json({
                                 success: true,
-                                rewards: formattedRewards
+                                rewards: formattedRewards,
+                                totalRewards,
+                                dailyRewards
                         });
                 } catch (error) {
                         console.error("Errore durante il recupero delle ricompense:", error);
@@ -577,32 +585,8 @@ app.get("/api", (req, res) => {
           }
         });
 
-        // Aggiungi endpoint rewards
-        app.get("/api/rewards/:walletAddress", async (req, res) => {
-          try {
-            const walletAddress = req.params.walletAddress.toLowerCase();
-            const { storage } = await import("./storage.js");
-            const activeStakes = await storage.getActiveNftStakesByWallet(walletAddress);
-
-            const rewards = activeStakes.map(stake => ({
-              nftId: stake.nftId,
-              dailyReward: stake.dailyReward,
-              totalReward: stake.dailyReward * Math.floor((Date.now() - new Date(stake.startTime).getTime()) / (24 * 60 * 60 * 1000))
-            }));
-
-            res.json({
-              success: true,
-              rewards
-            });
-          } catch (error) {
-            console.error("❌ Error getting rewards:", error);
-            res.status(500).json({
-              success: false,
-              error: "Error getting rewards",
-              message: error.message
-            });
-          }
-        });
+        // Questo endpoint è stato rimosso perché duplicato e calcolava i rewards in modo teorico
+        // La versione corretta dell'endpoint che legge i dati reali dal database è sopra
 
         // Logging delle rotte registrate per debug
         console.log("📊 Rotte API registrate:");

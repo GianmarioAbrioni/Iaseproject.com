@@ -516,7 +516,7 @@
           </div>
           
           <div class="nft-card-actions">
-            <button class="btn unstake-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}">
+            <button class="btn unstake-btn" style="background: #ff3b30; color: #fff; font-weight: bold; border: 1px solid #cc2e26;" data-token-id="${tokenId}" data-stake-id="${stakeId}">
               <i class="ri-logout-box-line"></i> Unstake
             </button>
           </div>

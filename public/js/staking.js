@@ -516,7 +516,7 @@
           </div>
           
           <div class="nft-card-actions">
-            <button class="btn stake-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}">
+            <button class="btn unstake-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}">
               <i class="ri-logout-box-line"></i> Unstake
             </button>
           </div>
@@ -527,7 +527,7 @@
       container.appendChild(nftElement);
       
       // Aggiungi event listener per il pulsante Unstake
-      const unstakeBtn = nftElement.querySelector('.stake-btn');
+      const unstakeBtn = nftElement.querySelector('.unstake-btn');
       if (unstakeBtn) {
         unstakeBtn.addEventListener('click', function() {
           if (typeof window.openUnstakeModal === 'function') {
@@ -891,6 +891,18 @@
     if (domElements.stakingForm) {
       domElements.stakingForm.addEventListener('submit', submitStakeForm);
     }
+    
+    // Aggiungi event listener per l'evento wallet:connected
+    document.addEventListener('wallet:connected', function(event) {
+      console.log('Evento wallet:connected ricevuto:', event.detail);
+      if (event.detail && event.detail.address) {
+        walletConnected = true;
+        currentWalletAddress = event.detail.address;
+        updateUIState();
+        // Carica immediatamente gli NFT in staking dopo la connessione
+        loadStakedNFTs(currentWalletAddress);
+      }
+    });
     
     // Controlla se il wallet è già connesso (utile in caso di refresh)
     if (window.ethereum && window.ethereum.selectedAddress) {

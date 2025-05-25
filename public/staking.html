@@ -1245,14 +1245,24 @@ if (stakedTokenIds.length > 0) {
       
       // Render each staked NFT (evitando duplicati)
       for (const stakedNft of stakedNfts) {
+        // Estrai tokenId in modo robusto, accettando diversi formati
+        let tokenId = stakedNft.tokenId || stakedNft.token_id || stakedNft.nftId;
+        if (!tokenId) {
+          console.warn('NFT senza ID trovato, salto...', stakedNft);
+          continue;
+        }
+        
+        // Converti sempre a stringa
+        tokenId = tokenId.toString();
+        
         // Verifica se l'NFT è già stato renderizzato per prevenire duplicati
-        if (renderedNftIds.has(stakedNft.nftId)) {
-          console.log(`Skipping duplicate staked NFT #${stakedNft.nftId}`);
+        if (renderedNftIds.has(tokenId)) {
+          console.log(`Skipping duplicate staked NFT #${tokenId}`);
           continue;
         }
         
         // Aggiungi l'ID NFT ai già renderizzati
-        renderedNftIds.add(stakedNft.nftId);
+        renderedNftIds.add(tokenId);
         
         // Find reward for this NFT
         const reward = rewards.find(r => r.stakeId === stakedNft.id);
@@ -1267,9 +1277,24 @@ if (stakedTokenIds.length > 0) {
         const stakingDays = Math.floor((now - stakingStartDate) / (1000 * 60 * 60 * 24));
         const stakingHours = Math.floor((now - stakingStartDate) / (1000 * 60 * 60)) % 24;
         
+        // Estrai tokenId in modo robusto, accettando diversi formati
+        let stakedTokenId = stakedNft.tokenId || stakedNft.token_id || stakedNft.nftId;
+        if (stakedTokenId) stakedTokenId = stakedTokenId.toString();
+        
         // Try to find the corresponding NFT in all NFTs to get image and metadata
-        const matchingNft = allNfts.find(nft => nft.id.toString() === stakedNft.tokenId.toString());
-        let nftImage = stakedNft.image; // Use image from staked NFT data
+        // Cerca confrontando con TUTTI i possibili campi ID
+        const matchingNft = allNfts.find(nft => {
+          const nftId = nft.id ? nft.id.toString() : '';
+          const nftTokenId = nft.tokenId ? nft.tokenId.toString() : '';
+          const nftToken_id = nft.token_id ? nft.token_id.toString() : '';
+          
+          return stakedTokenId && (nftId === stakedTokenId || nftTokenId === stakedTokenId || nftToken_id === stakedTokenId);
+        });
+        
+        // Log per debug
+        console.log(`NFT staking #${stakedTokenId} - Match trovato: ${matchingNft ? 'Sì' : 'No'}`);
+        
+        let nftImage = stakedNft.image || (matchingNft ? matchingNft.image : null); // Use image from staked NFT or matching NFT
         
         // Get the correct rarity from matching NFT
         let rarityName = 'Standard';
@@ -1593,18 +1618,11 @@ if (stakedTokenIds.length > 0) {
       // Mostra notifica di successo in inglese
       alert(`NFT #${tokenId} successfully staked! You will earn ${rewardValue} IASE tokens per day.`);
       
-      // Dopo che l'utente ha cliccato OK sull'alert, aggiorna immediatamente l'interfaccia
-      console.log("🔄 Aggiornamento dell'interfaccia dopo staking...");
+      // Dopo che l'utente ha cliccato OK sull'alert, ricarica completamente la pagina
+      console.log("🔄 Ricarico completamente la pagina per aggiornare tutti i dati...");
       
-      // Prima aggiorniamo gli NFT in staking
-      renderStakedNFTs().then(() => {
-        // Poi aggiorniamo gli NFT disponibili
-        renderAvailableNFTs().then(() => {
-          // Infine aggiorniamo le statistiche del dashboard
-          updateDashboardStats();
-          console.log(`✅ Staking completato e UI aggiornata per NFT #${tokenId}`);
-        });
-      });
+      // Ricarica la pagina per un refresh completo
+      window.location.reload();
     } catch (error) {
       console.error('❌ Errore durante lo staking:', error);
       alert(`Staking error: ${error.message}`);
@@ -1759,13 +1777,9 @@ if (stakedTokenIds.length > 0) {
       window.stakedNftsData = null;
       window.stakedNftIds = [];
       
-      // Aggiungi un ritardo prima di ricaricare gli NFT per garantire che il database sia aggiornato
-      setTimeout(() => {
-        // Aggiorna la UI dopo l'unstaking
-        renderNFTs();
-        
-        console.log(`✅ Unstaking completato per NFT #${tokenId}`);
-      }, 500);
+      // Ricarica completamente la pagina per aggiornare tutto
+      console.log(`🔄 Ricarico completamente la pagina per aggiornare tutti i dati...`);
+      window.location.reload();
     } catch (error) {
       console.error('❌ Errore durante l\'unstaking:', error);
       alert(`Unstaking error: ${error.message}`);

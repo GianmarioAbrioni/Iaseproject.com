@@ -453,98 +453,70 @@
       
       // 2. Assegnazione ID univoco per evitare conflitti
       stake._uniqueId = `${i}_${tokenId}_${stakeId}`;
-      displayedNftIds.push(stake._uniqueId);
+      displayedNftIds.push(tokenId);
       
-      // 3. Assicurazione dei valori corretti per rarità e reward
-      // Utilizziamo i valori provenienti direttamente dal backend
-      // o il meccanismo di fallback in caso di dati mancanti
+      // 3. Estrazione dati per visualizzazione
+      // ==========================================
+      // a. Rarità dell'NFT
+      const rarityTier = stake.rarityTier || 'Standard';
       
-      // Garanzia di ricompensa giornaliera valida
-      if (!stake.dailyReward || parseFloat(stake.dailyReward) <= 0) {
-        stake.dailyReward = getFixedDailyReward(stake.rarityTier || "Standard").toString();
-      }
+      // b. Calcolo ricompense
+      const rewards = calculateRewards(stake);
+      totalRewards += parseFloat(rewards);
       
-      // Log per debug
-      if (config.enableLogging) {
-        console.log(`✅ NFT #${i+1}: ID=${tokenId}, Rarità=${stake.rarityTier}, Reward=${stake.dailyReward}/giorno`);
-      }
+      // c. Ricompensa giornaliera
+      const dailyReward = parseFloat(stake.dailyReward) || getFixedDailyReward(rarityTier);
+      dailyRewards += dailyReward;
       
-      // NFT pronto per essere visualizzato nell'interfaccia
+      // d. Data di staking e durata
+      const stakeDate = stake.stakeDate || stake.startTime || stake.createdAt || new Date();
+      const stakingDuration = calculateStakingDuration(stakeDate);
       
-      // Crea elemento per l'NFT
+      // e. Generazione URL immagine usando lo stesso formato IPFS di staking.html
+      let imageUrl = `https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png`;
+      
+      // 4. Creazione elemento HTML per l'NFT
       const nftElement = document.createElement('div');
-      nftElement.classList.add('nft-card');
-      nftElement.classList.add('staked');
+      nftElement.className = 'staked-nft-card';
+      nftElement.dataset.tokenId = tokenId;
+      nftElement.dataset.stakeId = stakeId;
+      nftElement.dataset.rarityTier = rarityTier.toLowerCase();
       
-      // Estrazione dei valori necessari per la visualizzazione
-      const rarityName = stake.rarityTier || stake.rarityName || stake.rarity || 'Standard';
-      const dailyRewardValue = stake.dailyReward || getFixedDailyReward(rarityName);
-      const stakeDate = stake.startTime || stake.stakeDate || stake.createdAt;
+      // Classe aggiuntiva basata sulla rarità
+      const rarityClass = 'rarity-' + rarityTier.toLowerCase().replace(/\s+/g, '-');
+      nftElement.classList.add(rarityClass);
       
-      // Determinazione classe CSS in base alla rarità
-      let rarityClass = 'standard'; // Default per qualsiasi NFT
-      
-      // Applicazione classe corretta per ogni rarità
-      if (rarityName.toLowerCase().includes('advanced')) rarityClass = 'advanced';
-      if (rarityName.toLowerCase().includes('elite')) rarityClass = 'elite';
-      if (rarityName.toLowerCase().includes('prototype')) rarityClass = 'prototype';
-      
-      // Rimuoviamo questa parte perché usiamo direttamente l'URL IPFS
-      
-      if (config.enableLogging) {
-        console.log(`🎯 NFT #${tokenId} - Rarità: ${rarityName}, Daily: ${dailyRewardValue}, Data: ${stakeDate}`);
-      }
-      
-      // Calcolo ricompense con gestione robusta degli errori
-      
-      // 1. Ricompensa giornaliera (conversione sicura a numero)
-      const dailyRewardNumeric = parseFloat(dailyRewardValue) || 0;
-      dailyRewards += dailyRewardNumeric;
-      
-      // 2. Ricompense accumulate
-      const accumulatedRewards = calculateRewards(stake);
-      const accumulatedNumeric = parseFloat(accumulatedRewards) || 0;
-      totalRewards += accumulatedNumeric;
-      
-      // Log riassuntivo per questo NFT
-      if (config.enableLogging) {
-        console.log(`💰 NFT #${tokenId}: ${dailyRewardNumeric.toFixed(2)}/giorno, Accumulato=${accumulatedNumeric.toFixed(2)}`);
-      }
-      
-      // Log dei totali aggiornati
-      if (config.enableLogging && i === stakedNfts.length - 1) {
-        console.log(`📈 TOTALI FINALI: ${dailyRewards.toFixed(2)}/giorno, Accumulato=${totalRewards.toFixed(2)}`);
-      }
-      
-      // Imposta HTML con i dati dell'NFT - stesso approccio usato per NFT disponibili
+      // 5. Popolamento HTML dell'elemento NFT
       nftElement.innerHTML = `
-        <div class="nft-image">
-          <img src="${stake.nft?.image || stake.image || `/images/nft/iase-unit-${tokenId}.png`}" alt="NFT #${tokenId}" id="nftImage_${tokenId}" loading="lazy" onerror="this.onerror=null; this.src='https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png'">
-          <div class="staked-badge">Staked</div>
+        <div class="nft-image-container">
+          <div class="rarity-badge">${rarityTier}</div>
+          <img src="${imageUrl}" alt="NFT #${tokenId}" class="nft-image" 
+               onerror="this.onerror=null; this.src='https://nftstorage.link/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/${tokenId}.png';">
         </div>
         <div class="nft-details">
-          <h3 class="nft-title">IASE Unit #${tokenId}</h3>
-          <div class="nft-id">Token ID: ${tokenId}</div>
-          <div class="rarity-badge ${rarityClass}" id="rarityBadge_${tokenId}">${rarityName.toUpperCase()}</div>
-          
-          <div class="staking-info">
-            <div class="staking-duration">
-              <span class="info-label">Staked For:</span>
-              <span class="info-value">${calculateStakingDuration(stakeDate)}</span>
+          <h3 class="nft-id">IASE #${tokenId}</h3>
+          <div class="stake-info">
+            <div class="info-row">
+              <span class="label">Staked:</span>
+              <span class="value">${formatDate(stakeDate)}</span>
             </div>
-            <div class="reward-rate">
-              <span class="info-label">Daily Rate:</span>
-              <span class="info-value" id="dailyRate_${tokenId}">${dailyRewardValue} IASE/day</span>
+            <div class="info-row">
+              <span class="label">Duration:</span>
+              <span class="value">${stakingDuration}</span>
             </div>
-            <div class="reward-info">
-              <span class="info-label">Rewards:</span>
-              <span class="info-value" id="rewardValue_${tokenId}">${stake.totalRewards || 0} IASE</span>
+            <div class="info-row">
+              <span class="label">Daily:</span>
+              <span class="value">${dailyReward.toFixed(2)} IASE</span>
+            </div>
+            <div class="info-row rewards">
+              <span class="label">Rewards:</span>
+              <span class="value">${rewards} IASE</span>
             </div>
           </div>
-          
-          <div class="nft-card-actions">
-            <button class="btn stake-btn unstake-btn" data-nft-id="${tokenId}">
-              <i class="ri-logout-box-line"></i> Unstake
+          <div class="nft-actions">
+            <button class="unstake-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}">Unstake</button>
+            <button class="claim-btn" data-token-id="${tokenId}" data-stake-id="${stakeId}" data-rewards="${rewards}">
+              Claim Rewards
             </button>
           </div>
         </div>
@@ -557,65 +529,39 @@
       const unstakeBtn = nftElement.querySelector('.unstake-btn');
       if (unstakeBtn) {
         unstakeBtn.addEventListener('click', function() {
-          openUnstakeModal(tokenId, stake);
+          if (typeof window.openUnstakeModal === 'function') {
+            window.openUnstakeModal(tokenId, stake);
+          } else {
+            console.error('La funzione window.openUnstakeModal non esiste a livello globale');
+            showMessage('Errore: impossibile aprire la modale di unstake');
+          }
+        });
+      }
+      
+      // Aggiungi listener per il pulsante claim
+      const claimBtn = nftElement.querySelector('.claim-btn');
+      if (claimBtn) {
+        claimBtn.addEventListener('click', function() {
+          // Verifica se ci sono ricompense da riscattare
+          const rewardsAmount = this.getAttribute('data-rewards');
+          if (parseFloat(rewardsAmount) <= 0) {
+            showMessage('Non ci sono ricompense da riscattare per questo NFT.');
+            return;
+          }
+          
+          // Apri la modale di claim
+          openClaimModal(tokenId, stake, rewardsAmount);
         });
       }
     }
     
     // Aggiornamento contatori nella dashboard
-    if (config.enableLogging) {
-      console.log(`📊 Riepilogo finale staking:`);
-      console.log(`   - NFT visualizzati: ${displayedNftIds.length} su ${stakedNfts.length}`);
-      console.log(`   - Ricompense giornaliere: ${dailyRewards.toFixed(2)} IASE`);
-      console.log(`   - Ricompense accumulate: ${totalRewards.toFixed(2)} IASE`);
+    if (domElements.totalRewards) {
+      domElements.totalRewards.textContent = totalRewards.toFixed(2);
     }
     
-    // Ottieni i dati delle ricompense autentiche dal database
-    async function updateRewardsFromDatabase() {
-      try {
-        const walletAddress = window.ethereum?.selectedAddress;
-        if (!walletAddress) return;
-        
-        // Ottieni le rewards dal database per aggiornare la dashboard
-        const response = await fetch(`/api/rewards/${walletAddress}`);
-        
-        if (response.ok) {
-          const rewards = await response.json();
-          let dbTotalRewards = 0;
-          
-          // Calcola il totale dal database
-          rewards.forEach(reward => {
-            dbTotalRewards += reward.totalReward || 0;
-          });
-          
-          console.log(`💰 Ricompense dal database: ${dbTotalRewards.toFixed(2)} IASE`);
-          console.log(`📊 Ricompense calcolate dal frontend: ${totalRewards.toFixed(2)} IASE`);
-          
-          // Salviamo sia i valori dal database che quelli calcolati dal frontend
-          window.dbTotalRewards = dbTotalRewards;
-          window.totalRewards = totalRewards;
-          window.dailyRewards = dailyRewards;
-          
-          // Aggiorniamo gli elementi UI con i dati dal database
-          if (domElements.totalRewards) {
-            domElements.totalRewards.textContent = `${dbTotalRewards.toFixed(2)} IASE`;
-          }
-        } else {
-          // Se non possiamo ottenere i dati dal database, mostriamo i calcoli frontend ma con una nota
-          console.warn("⚠️ Impossibile ottenere dati dal database, usando calcoli frontend");
-          
-          if (domElements.totalRewards) {
-            domElements.totalRewards.textContent = `${totalRewards.toFixed(2)} IASE*`;
-          }
-        }
-      } catch (error) {
-        console.error("❌ Errore nel recupero delle ricompense dal database:", error);
-      }
-    }
-    
-    // Aggiorna elementi UI che non richiedono dati dal database
     if (domElements.dailyRewards) {
-      domElements.dailyRewards.textContent = `${dailyRewards.toFixed(2)} IASE`;
+      domElements.dailyRewards.textContent = dailyRewards.toFixed(2);
     }
     
     if (domElements.totalStakedNfts) {
@@ -627,150 +573,6 @@
   }
 
   /**
-   * Apre la modale di unstake per confermare l'operazione
-   * @param {string} nftId - L'ID dell'NFT da unstakare
-   * @param {Object} stake - L'oggetto stake con i dettagli dell'NFT
-   */
-  function openUnstakeModal(nftId, stake) {
-    if (config.enableLogging) {
-      console.log('🔄 Apertura modale di unstake per NFT #' + nftId, stake);
-    }
-    
-    // Ottieni il container per la modale o creane uno se non esiste
-    let modalContainer = document.getElementById('unstakeModalContainer');
-    if (!modalContainer) {
-      modalContainer = document.createElement('div');
-      modalContainer.id = 'unstakeModalContainer';
-      document.body.appendChild(modalContainer);
-    }
-    
-    // Trova la rarità o usa un valore predefinito
-    let rarityValue = stake.rarityTier || stake.rarityName || stake.rarity || 'Standard';
-    
-    // Crea un ID sicuro per la modale
-    const safeId = nftId.toString().replace(/[^a-z0-9]/gi, '');
-    
-    // Crea la modale HTML
-    modalContainer.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal unstake-modal" id="unstakeModal_${safeId}">
-        <div class="modal-header">
-          <h3>Unstake NFT #${nftId}</h3>
-          <button class="modal-close" onclick="closeUnstakeModal('${safeId}')">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="unstake-details">
-            <p>Are you sure you want to unstake your <span class="highlight">${rarityValue}</span> NFT?</p>
-            <p>Token ID: <span class="highlight">${nftId}</span></p>
-            <p class="warning">Warning: Unstaking will stop reward accumulation for this NFT.</p>
-            
-            <div class="rewards-summary">
-              <p>Accumulated Rewards: <span class="highlight">${calculateRewards(stake)} IASE</span></p>
-            </div>
-            
-            <div class="unstake-options">
-              <label class="checkbox-container">
-                <input type="checkbox" id="claimRewardsCheckbox_${safeId}" checked>
-                <span class="checkmark"></span>
-                Also claim accumulated rewards
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn secondary" onclick="closeUnstakeModal('${safeId}')">Cancel</button>
-          <button class="btn primary" onclick="confirmUnstake('${nftId}', '${stake.id || ''}', '${safeId}')">Confirm Unstake</button>
-        </div>
-      </div>
-    `;
-    
-    // Aggiungi la modale alla pagina
-    document.body.classList.add('modal-open');
-    
-    // Registra la funzione globale per chiudere la modale
-    window.closeUnstakeModal = function(modalId) {
-      const modal = document.getElementById(`unstakeModal_${modalId}`);
-      if (modal && modal.parentNode) {
-        document.body.classList.remove('modal-open');
-        modalContainer.innerHTML = '';
-      }
-    };
-  }
-
-  /**
-   * Conferma l'operazione di unstake di un NFT
-   * @param {string} tokenId - L'ID del token NFT
-   * @param {string} stakeId - L'ID dello stake nel database
-   * @param {string} modalId - L'ID della modale per chiuderla dopo l'operazione
-   */
-  async function confirmUnstake(tokenId, stakeId, modalId) {
-    if (!tokenId) {
-      showMessage('Token ID mancante, impossibile procedere con l\'unstake');
-      return;
-    }
-    
-    try {
-      if (domElements.loadingIndicator) {
-        domElements.loadingIndicator.style.display = 'block';
-      }
-      
-      // Verifica se l'utente vuole anche riscattare le ricompense
-      const claimCheckbox = document.getElementById(`claimRewardsCheckbox_${modalId}`);
-      const shouldClaimRewards = claimCheckbox && claimCheckbox.checked;
-      
-      if (config.enableLogging) {
-        console.log(`🔄 Unstake confermato per NFT #${tokenId}, Stake ID: ${stakeId}, Claim: ${shouldClaimRewards}`);
-      }
-      
-      // Prepara i dati per la richiesta
-      const requestData = {
-        tokenId: tokenId,
-        stakeId: stakeId,
-        walletAddress: currentWalletAddress,
-        claimRewards: shouldClaimRewards
-      };
-      
-      // Effettua la richiesta API per unstake
-      const response = await fetch(`${config.apiBaseUrl}/api/unstake`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Errore API: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (config.enableLogging) {
-        console.log('✅ Unstake completato con successo:', result);
-      }
-      
-      // Chiudi la modale
-      window.closeUnstakeModal(modalId);
-      
-      // Mostra messaggio di successo
-      showMessage('NFT unstaked con successo!' + (shouldClaimRewards ? ' Ricompense riscattate.' : ''), false);
-      
-      // Ricarica gli NFT staked per aggiornare la vista
-      loadStakedNFTs(currentWalletAddress);
-      
-    } catch (error) {
-      console.error('Errore durante l\'unstake:', error);
-      showMessage(`Errore durante l'unstake: ${error.message || 'Errore sconosciuto'}`);
-    } finally {
-      if (domElements.loadingIndicator) {
-        domElements.loadingIndicator.style.display = 'none';
-      }
-    }
-  }
-
-  /**
-   * Apre la modale di claim per riscattare le ricompense di un NFT
    * @param {string} nftId - L'ID dell'NFT
    * @param {Object} stake - L'oggetto stake con i dettagli dell'NFT
    * @param {string} rewardsAmount - L'ammontare di ricompense da riscattare
@@ -814,42 +616,51 @@
             <p>Token ID: <span class="highlight">${nftId}</span></p>
             
             <div class="rewards-summary">
-              <p>Accumulated Rewards: <span class="highlight">${rewardsAmount} IASE</span></p>
+              <p>Available Rewards: <span class="highlight">${rewardsAmount} IASE</span></p>
             </div>
             
-            <p class="note">Rewards will be sent to your connected wallet.</p>
+            <div class="claim-options">
+              <p class="info">Rewards will be added to your wallet balance.</p>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn secondary" onclick="closeClaimModal('${safeId}')">Cancel</button>
-          <button class="btn primary" onclick="confirmClaim('${nftId}', '${stake.id || ''}', '${rewardsAmount}', '${safeId}')">Claim Rewards</button>
+          <button class="btn primary" onclick="confirmClaim('${nftId}', '${stake.id || ''}', '${rewardsAmount}', '${safeId}')">Confirm Claim</button>
         </div>
       </div>
     `;
     
     // Aggiungi la modale alla pagina
     document.body.classList.add('modal-open');
-    
-    // Registra la funzione globale per chiudere la modale
-    window.closeClaimModal = function(modalId) {
-      const modal = document.getElementById(`claimModal_${modalId}`);
-      if (modal && modal.parentNode) {
-        document.body.classList.remove('modal-open');
-        modalContainer.innerHTML = '';
-      }
-    };
   }
 
   /**
-   * Conferma l'operazione di claim delle ricompense di un NFT
-   * @param {string} tokenId - L'ID del token NFT
-   * @param {string} stakeId - L'ID dello stake nel database
+   * Chiude la modale di claim
+   * @param {string} safeId - L'ID sicuro della modale
+   */
+  function closeClaimModal(safeId) {
+    const modalElement = document.getElementById(`claimModal_${safeId}`);
+    if (modalElement) {
+      const modalContainer = modalElement.parentElement;
+      if (modalContainer) {
+        modalContainer.innerHTML = ''; // Rimuove la modal
+      }
+    }
+    
+    document.body.classList.remove('modal-open');
+  }
+
+  /**
+   * Conferma il claim delle ricompense
+   * @param {string} tokenId - L'ID del token
+   * @param {string} stakeId - L'ID dello stake
    * @param {string} rewardsAmount - L'ammontare di ricompense da riscattare
-   * @param {string} modalId - L'ID della modale per chiuderla dopo l'operazione
+   * @param {string} modalId - L'ID della modale
    */
   async function confirmClaim(tokenId, stakeId, rewardsAmount, modalId) {
-    if (!tokenId || !stakeId) {
-      showMessage('Informazioni mancanti, impossibile procedere con il claim');
+    if (!tokenId) {
+      showMessage('Token ID mancante, impossibile procedere con il claim');
       return;
     }
     
@@ -859,7 +670,7 @@
       }
       
       if (config.enableLogging) {
-        console.log(`💰 Claim confermato per NFT #${tokenId}, Stake ID: ${stakeId}, Rewards: ${rewardsAmount}`);
+        console.log(`💰 Claim confermato per NFT #${tokenId}, Rewards: ${rewardsAmount} IASE`);
       }
       
       // Prepara i dati per la richiesta
@@ -886,22 +697,18 @@
       
       const result = await response.json();
       
-      if (config.enableLogging) {
-        console.log('✅ Claim completato con successo:', result);
-      }
-      
       // Chiudi la modale
-      window.closeClaimModal(modalId);
+      closeClaimModal(modalId);
       
       // Mostra messaggio di successo
-      showMessage(`Ricompense riscattate con successo: ${rewardsAmount} IASE!`, false);
+      showMessage(`Ricompense di ${rewardsAmount} IASE reclamate con successo!`, false);
       
-      // Ricarica gli NFT staked per aggiornare la vista
+      // Aggiorna l'elenco degli NFT staked
       loadStakedNFTs(currentWalletAddress);
       
     } catch (error) {
-      console.error('Errore durante il claim delle ricompense:', error);
-      showMessage(`Errore durante il claim: ${error.message || 'Errore sconosciuto'}`);
+      console.error('Errore nel claim delle ricompense:', error);
+      showMessage(`Errore nel claim: ${error.message || 'Errore sconosciuto'}`);
     } finally {
       if (domElements.loadingIndicator) {
         domElements.loadingIndicator.style.display = 'none';
@@ -910,85 +717,8 @@
   }
 
   /**
-   * Gestisce il processo di stake di un NFT
-   * @param {Event} e - L'evento del form
-   */
-  async function handleStake(e) {
-    if (e) e.preventDefault();
-    
-    if (!walletConnected || !currentWalletAddress) {
-      showMessage('Connetti il wallet prima di procedere con lo stake');
-      return;
-    }
-    
-    // Ottieni il tokenId dal form
-    const tokenIdInput = document.getElementById('tokenIdInput');
-    if (!tokenIdInput || !tokenIdInput.value) {
-      showMessage('Inserisci un Token ID valido');
-      return;
-    }
-    
-    const tokenId = tokenIdInput.value.trim();
-    
-    try {
-      if (domElements.loadingIndicator) {
-        domElements.loadingIndicator.style.display = 'block';
-      }
-      
-      if (config.enableLogging) {
-        console.log(`🔄 Avvio processo di stake per NFT #${tokenId}`);
-      }
-      
-      // Prepara i dati per la richiesta
-      const requestData = {
-        tokenId: tokenId,
-        walletAddress: currentWalletAddress
-      };
-      
-      // Effettua la richiesta API per stake
-      const response = await fetch(`${config.apiBaseUrl}/api/stake`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Errore API: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (config.enableLogging) {
-        console.log('✅ Stake completato con successo:', result);
-      }
-      
-      // Resetta il form
-      if (tokenIdInput) {
-        tokenIdInput.value = '';
-      }
-      
-      // Mostra messaggio di successo
-      showMessage(`NFT #${tokenId} staked con successo!`, false);
-      
-      // Ricarica gli NFT staked per aggiornare la vista
-      loadStakedNFTs(currentWalletAddress);
-      
-    } catch (error) {
-      console.error('Errore durante lo stake:', error);
-      showMessage(`Errore durante lo stake: ${error.message || 'Errore sconosciuto'}`);
-    } finally {
-      if (domElements.loadingIndicator) {
-        domElements.loadingIndicator.style.display = 'none';
-      }
-    }
-  }
-
-  /**
-   * Gestisce il processo di unstake di un NFT
-   * @param {HTMLElement} button - Il pulsante che ha attivato l'unstake
+   * Gestisce la funzionalità di unstake quando l'utente clicca il pulsante
+   * @param {HTMLElement} button - Il pulsante di unstake cliccato
    */
   function handleUnstake(button) {
     if (!button) return;
@@ -1006,116 +736,176 @@
       .then(response => response.json())
       .then(data => {
         const stakes = data.stakes || [];
-        const stake = stakes.find(s => 
-          (s.tokenId === tokenId || s.token_id === tokenId) && 
-          (!stakeId || s.id === stakeId)
-        );
+        
+        // Trova lo stake corrispondente
+        const stake = stakes.find(s => {
+          const id = s.tokenId || s.token_id || "";
+          return id.toString() === tokenId.toString();
+        });
         
         if (stake) {
-          // Verifica se esiste la funzione openUnstakeModal in staking.html
+          // Usa la funzione global window.openUnstakeModal
           if (typeof window.openUnstakeModal === 'function') {
             window.openUnstakeModal(tokenId, stake);
           } else {
-            // Se non è definita globalmente, cerca il modale HTML fisso
-            const unstakeModal = document.getElementById('unstakeModal');
-            if (unstakeModal) {
-              // Utilizza direttamente il modale HTML fisso
-              unstakeModal.setAttribute('data-token-id', tokenId);
-              unstakeModal.setAttribute('data-stake-id', stake.id || '');
-              
-              // Aggiorna elementi UI nel modal
-              const unstakeNftTitle = document.getElementById('unstakeNftTitle');
-              const unstakeNftId = document.getElementById('unstakeNftId');
-              const unstakeNftRewards = document.getElementById('unstakeNftRewards');
-              
-              if (unstakeNftTitle) unstakeNftTitle.textContent = `IASE Unit #${tokenId}`;
-              if (unstakeNftId) unstakeNftId.textContent = `Token ID: ${tokenId}`;
-              if (unstakeNftRewards) unstakeNftRewards.textContent = `${calculateRewards(stake)} IASE`;
-              
-              // Mostra il modal
-              unstakeModal.style.display = 'block';
-            } else {
-              // Se non esiste neanche il modale HTML, usa quello definito in questo file
-              openUnstakeModal(tokenId, stake);
-            }
+            console.error('La funzione window.openUnstakeModal non esiste a livello globale');
+            showMessage('Errore: Funzione di unstake non disponibile');
           }
         } else {
-          showMessage('NFT non trovato negli NFT in staking');
+          showMessage('NFT non trovato nei tuoi asset in staking');
         }
       })
       .catch(error => {
-        console.error('Errore durante il recupero dei dati dell\'NFT:', error);
-        showMessage(`Errore: ${error.message || 'Errore sconosciuto'}`);
+        console.error('Errore nel recupero degli NFT:', error);
+        showMessage('Errore nel recupero delle informazioni NFT');
       });
   }
 
-  // Inizializzazione quando il DOM è caricato
-  document.addEventListener('DOMContentLoaded', function() {
-    // Controlla se il wallet è già connesso
-    if (window.isWalletConnected && window.ethereum && window.ethereum.selectedAddress) {
-      currentWalletAddress = window.ethereum.selectedAddress;
-      walletConnected = true;
-      updateUIState();
+  /**
+   * Richiede gli ultimi dati di ricompensa dal server
+   */
+  async function updateRewardsFromDatabase() {
+    if (!currentWalletAddress) return;
+    
+    try {
+      // Richiedi dati aggiornati delle ricompense
+      const response = await fetch(`${config.apiBaseUrl}/api/rewards/${currentWalletAddress}`);
+      
+      if (!response.ok) {
+        throw new Error(`Errore API: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (config.enableLogging) {
+        console.log('📊 Dati ricompense dal database:', data);
+      }
+      
+      // Aggiorna i contatori con i dati ricevuti
+      if (data.totalRewards !== undefined && domElements.totalRewards) {
+        domElements.totalRewards.textContent = parseFloat(data.totalRewards).toFixed(2);
+      }
+      
+      if (data.dailyRewards !== undefined && domElements.dailyRewards) {
+        domElements.dailyRewards.textContent = parseFloat(data.dailyRewards).toFixed(2);
+      }
+      
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento delle ricompense:', error);
+      // Non mostriamo errori all'utente in questa funzione perché è automatica
+    }
+  }
+
+  /**
+   * Registra un nuovo NFT in staking
+   * @param {Event} event - L'evento del form submit
+   */
+  async function submitStakeForm(event) {
+    if (event) event.preventDefault();
+    
+    if (!domElements.stakingForm) {
+      console.error('Form di staking non trovato!');
+      return;
     }
     
-    // Aggiungi event listener per il pulsante di connessione wallet
+    // Ottieni l'ID del token dal form
+    const tokenIdInput = domElements.stakingForm.querySelector('input[name="tokenId"]');
+    if (!tokenIdInput || !tokenIdInput.value) {
+      showMessage('Inserisci un ID token valido per lo staking');
+      return;
+    }
+    
+    const tokenId = tokenIdInput.value.trim();
+    
+    try {
+      if (domElements.loadingIndicator) {
+        domElements.loadingIndicator.style.display = 'block';
+      }
+      
+      if (config.enableLogging) {
+        console.log(`🔄 Invio richiesta di stake per NFT #${tokenId}`);
+      }
+      
+      // Prepara i dati per la richiesta
+      const requestData = {
+        tokenId: tokenId,
+        walletAddress: currentWalletAddress
+      };
+      
+      // Verifica se l'NFT è già in staking
+      const checkResponse = await fetch(`${config.apiBaseUrl}/api/check-staked-nft?tokenId=${tokenId}`);
+      const checkData = await checkResponse.json();
+      
+      if (checkData.isStaked) {
+        showMessage(`NFT #${tokenId} è già in staking!`, true);
+        return;
+      }
+      
+      // Effettua la richiesta API per stake
+      const response = await fetch(`${config.apiBaseUrl}/api/stake`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Errore API: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Reset del form
+      tokenIdInput.value = '';
+      
+      // Mostra messaggio di successo
+      showMessage(`NFT #${tokenId} messo in staking con successo!`, false);
+      
+      // Aggiorna l'elenco degli NFT staked
+      loadStakedNFTs(currentWalletAddress);
+      
+    } catch (error) {
+      console.error('Errore nello staking:', error);
+      showMessage(`Errore nello staking: ${error.message || 'Errore sconosciuto'}`);
+    } finally {
+      if (domElements.loadingIndicator) {
+        domElements.loadingIndicator.style.display = 'none';
+      }
+    }
+  }
+
+  // Inizializzazione
+  function init() {
+    // Aggiungi event listener per connessione wallet
     if (domElements.connectWalletBtn) {
       domElements.connectWalletBtn.addEventListener('click', connectWallet);
     }
     
-    // Aggiungi event listener per il form di stake
+    // Aggiungi event listener per form di staking
     if (domElements.stakingForm) {
-      domElements.stakingForm.addEventListener('submit', handleStake);
+      domElements.stakingForm.addEventListener('submit', submitStakeForm);
     }
     
-    // Inizializza l'interfaccia
-    updateUIState();
-    
-    // Aggiungi event listener per l'evento personalizzato staking:loadNFTs da staking.html
-    document.addEventListener('staking:loadNFTs', function() {
-      if (config.enableLogging) {
-        console.log('📋 Ricevuto evento staking:loadNFTs da staking.html');
-      }
-      
-      // Se il wallet è connesso, carica gli NFT in staking
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        loadStakedNFTs(window.ethereum.selectedAddress);
-      } else {
-        console.log('⚠️ Wallet non connesso, impossibile caricare gli NFT in staking');
-      }
-    });
-    
-    // Event listener per l'evento di aggiornamento (refresh)
-    document.addEventListener('staking:refresh', function() {
-      if (config.enableLogging) {
-        console.log('📋 Ricevuto evento staking:refresh da staking.html');
-      }
-      
-      // Se il wallet è connesso, aggiorna gli NFT in staking
-      if (window.ethereum && window.ethereum.selectedAddress) {
-        loadStakedNFTs(window.ethereum.selectedAddress);
-      }
-    });
-    
-    if (config.enableLogging) {
-      console.log('✅ Inizializzazione staking completata');
+    // Controlla se il wallet è già connesso (utile in caso di refresh)
+    if (window.ethereum && window.ethereum.selectedAddress) {
+      walletConnected = true;
+      currentWalletAddress = window.ethereum.selectedAddress;
+      updateUIState();
     }
-  });
+    
+    // Esporta funzioni pubbliche
+    window.refreshStakingData = () => loadStakedNFTs(currentWalletAddress);
+    window.calculateRewards = calculateRewards;
+    window.closeClaimModal = closeClaimModal;
+    window.confirmClaim = confirmClaim;
+  }
 
-  // Esporta funzioni globali per uso esterno
-  window.handleStake = handleStake;
-  window.handleUnstake = handleUnstake;
-  window.confirmUnstake = confirmUnstake;
-  window.confirmClaim = confirmClaim;
-  window.loadStakedNFTs = loadStakedNFTs;
-  window.closeUnstakeModal = function(safeId) {
-    const modalElement = document.getElementById(`unstakeModal_${safeId}`);
-    if (modalElement) {
-      const modalContainer = modalElement.parentElement;
-      if (modalContainer) {
-        modalContainer.innerHTML = ''; // Rimuove la modal
-      }
-    }
-  };
-  window.closeClaimModal = function() {};
+  // Avvia inizializzazione quando DOM è pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

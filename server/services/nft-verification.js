@@ -148,7 +148,9 @@ export async function calculateDailyReward(tokenId, rarityTier) {
  */
 export async function verifyNftOwnership(walletAddress, tokenId) {
   try {
-    console.log(`🔍 Verifica NFT #${tokenId} per wallet ${walletAddress}`);
+    // Estrai solo il numero dal tokenId (es. "ETH_123" -> "123")
+    const cleanTokenId = tokenId.toString().replace(/[^0-9]/g, '');
+    console.log(`🔍 Verifica NFT #${tokenId} (clean: ${cleanTokenId}) per wallet ${walletAddress}`);
     
     // Normalizza gli indirizzi (caso insensitivo)
     const normalizedWalletAddress = walletAddress.toLowerCase();
@@ -156,11 +158,11 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
     // Prova prima con Alchemy API se abilitato
     if (ETH_CONFIG.useAlchemyApi) {
       try {
-        console.log(`🔍 Verifica NFT #${tokenId} tramite Alchemy API`);
+        console.log(`🔍 Verifica NFT #${cleanTokenId} tramite Alchemy API`);
         
         // Costruisci l'URL per la chiamata Alchemy API
-        // Poiché vogliamo verificare un token specifico, useremo proprio il tokenId
-        const alchemyUrl = `${ETH_CONFIG.alchemyApiUrl}/getNFTMetadata?contractAddress=${ETH_CONFIG.nftContractAddress}&tokenId=${tokenId}`;
+        // Poiché vogliamo verificare un token specifico, useremo il cleanTokenId numerico
+        const alchemyUrl = `${ETH_CONFIG.alchemyApiUrl}/getNFTMetadata?contractAddress=${ETH_CONFIG.nftContractAddress}&tokenId=${cleanTokenId}`;
         
         // Invia la richiesta all'API
         const response = await fetch(alchemyUrl);
@@ -171,26 +173,26 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
         }
         
         const data = await response.json();
-        console.log(`✅ Risposta Alchemy ricevuta per NFT #${tokenId}`);
+        console.log(`✅ Risposta Alchemy ricevuta per NFT #${cleanTokenId}`);
         
         // Verifichiamo il proprietario
         if (data.owner) {
           const normalizedOwner = data.owner.toLowerCase();
           const isOwner = normalizedOwner === normalizedWalletAddress;
           
-          console.log(`${isOwner ? '✅' : '❌'} NFT #${tokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress} (via Alchemy API)`);
+          console.log(`${isOwner ? '✅' : '❌'} NFT #${cleanTokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress} (via Alchemy API)`);
           return isOwner;
         } else {
-          console.log(`⚠️ Risposta Alchemy senza info proprietario per NFT #${tokenId}, fallback a metodo tradizionale`);
+          console.log(`⚠️ Risposta Alchemy senza info proprietario per NFT #${cleanTokenId}, fallback a metodo tradizionale`);
         }
       } catch (alchemyError) {
         console.error(`❌ Errore con Alchemy API:`, alchemyError);
-        console.log(`⚠️ Fallback a metodo tradizionale per NFT #${tokenId}`);
+        console.log(`⚠️ Fallback a metodo tradizionale per NFT #${cleanTokenId}`);
       }
     }
     
     // Fallback al metodo tradizionale con ethers.js
-    console.log(`🔄 Usando metodo tradizionale per NFT #${tokenId}`);
+    console.log(`🔄 Usando metodo tradizionale per NFT #${cleanTokenId}`);
     
     // Connetti al provider Ethereum con fallback
     let provider;
@@ -210,8 +212,8 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
       provider
     );
     
-    // Ottieni il proprietario attuale del token
-    const currentOwner = await nftContract.ownerOf(tokenId);
+    // Ottieni il proprietario attuale del token usando il cleanTokenId numerico
+    const currentOwner = await nftContract.ownerOf(cleanTokenId);
     
     // Converti gli indirizzi in formato consistente (lowercase)
     const normalizedCurrentOwner = currentOwner.toLowerCase();
@@ -219,11 +221,11 @@ export async function verifyNftOwnership(walletAddress, tokenId) {
     // Verifica se il wallet è ancora proprietario
     const isOwner = normalizedCurrentOwner === normalizedWalletAddress;
     
-    console.log(`${isOwner ? '✅' : '❌'} NFT #${tokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress} (via ethers.js)`);
+    console.log(`${isOwner ? '✅' : '❌'} NFT #${cleanTokenId} ${isOwner ? 'appartiene' : 'non appartiene'} a ${walletAddress} (via ethers.js)`);
     
     return isOwner;
   } catch (error) {
-    console.error(`⚠️ Errore nella verifica dell'NFT #${tokenId}:`, error);
+    console.error(`⚠️ Errore nella verifica dell'NFT #${cleanTokenId}:`, error);
     // In caso di errore, assumiamo che la verifica sia fallita
     return false;
   }

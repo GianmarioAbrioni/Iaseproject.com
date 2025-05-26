@@ -782,6 +782,9 @@
   
   <!-- UI Interaction Scripts -->
   <script>
+// Variabile per evitare rendering multipli
+let isRenderingStaked = false;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Aggiungi listener per ricevere dati degli NFT staking da staking.js
     document.addEventListener('stakedNFTsDataReady', function(event) {
@@ -1170,12 +1173,18 @@ if (stakedTokenIds.length > 0) {
    * Uses data from staking.js via window.currentStakedNFTs or fetches from API if needed
    */
   async function renderStakedNFTs() {
+    if (isRenderingStaked) {
+      console.log("🔄 Render già in corso, salto questa chiamata");
+      return;
+    }
+    
     const container = document.getElementById('stakedNftsContainer');
     if (!container) {
       console.error("❌ Staked NFTs container not found");
       return;
     }
     
+    isRenderingStaked = true;
     console.log("🔄 Rendering staked NFTs...");
     container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading staked NFTs...</p></div>';
     
@@ -1248,37 +1257,51 @@ if (stakedTokenIds.length > 0) {
       const allNftsResult = await loadAllIASENFTs();
       const allNfts = allNftsResult.nfts || [];
       
-      // Filtriamo gli NFT duplicati prima del rendering
-      // Usa un Map per tracciare gli NFT e tenere solo la prima istanza di ogni ID
-      const uniqueNFTs = new Map();
+      // Reset completo prima di renderizzare per evitare qualsiasi duplicazione
+      console.log(`🔄 Preparazione rendering ${stakedNfts.length} NFT...`);
       
-      // Deduplica gli NFT conservando solo il primo con ogni ID
-      for (const stakedNft of stakedNfts) {
-        // Estrai tokenId in modo robusto, accettando diversi formati
-        let tokenId = stakedNft.tokenId || stakedNft.token_id || stakedNft.nftId;
-        if (!tokenId) {
-          console.warn('NFT senza ID trovato, salto...', stakedNft);
-          continue;
+      // Se la lista è vuota, non fare nulla
+      if (!stakedNfts.length) {
+        console.log("Lista NFT staking vuota, nessuna deduplicazione necessaria");
+      } else {
+        // Filtriamo gli NFT duplicati prima del rendering
+        // Crea un set per memorizzare gli ID già visti
+        const seenIds = new Set();
+        
+        // Crea un nuovo array filtrato
+        const filteredNFTs = [];
+        
+        // Elabora ogni NFT
+        for (const stakedNft of stakedNfts) {
+          // Estrai tokenId in modo robusto, accettando diversi formati
+          const tokenId = (stakedNft.tokenId || stakedNft.token_id || stakedNft.nftId || '').toString();
+          
+          // Se l'NFT non ha un ID valido, saltalo
+          if (!tokenId) {
+            console.warn('NFT senza ID trovato, saltato', stakedNft);
+            continue;
+          }
+          
+          // Se questo ID è già stato visto, salta l'NFT
+          if (seenIds.has(tokenId)) {
+            console.log(`⚠️ NFT duplicato #${tokenId} rimosso per evitare duplicazioni`);
+            continue;
+          }
+          
+          // Altrimenti aggiungi l'ID al set e l'NFT all'array filtrato
+          seenIds.add(tokenId);
+          filteredNFTs.push(stakedNft);
         }
         
-        // Converti sempre a stringa
-        tokenId = tokenId.toString();
+        // Stampa informazioni sul filtraggio
+        console.log(`✅ Filtrati ${filteredNFTs.length} NFT unici da ${stakedNfts.length} totali`);
         
-        // Se questo NFT non è ancora nella mappa, aggiungilo
-        if (!uniqueNFTs.has(tokenId)) {
-          uniqueNFTs.set(tokenId, stakedNft);
-          console.log(`NFT #${tokenId} aggiunto alla lista di rendering`);
-        } else {
-          console.log(`NFT duplicato #${tokenId} saltato`);
-        }
+        // Sostituisci l'array originale con quello filtrato
+        stakedNfts = filteredNFTs;
       }
       
-      // Sostituisci l'array originale con quello deduplicato
-      const deduplicatedNFTs = Array.from(uniqueNFTs.values());
-      console.log(`Rendering di ${deduplicatedNFTs.length} NFT unici su ${stakedNfts.length} totali`);
-      
-      // Sostituisci l'array originale
-      stakedNfts = deduplicatedNFTs;
+      // Svuota completamente il container prima di renderizzare
+      container.innerHTML = '';
       
       // Ora procedi con il rendering degli NFT deduplicati
       for (const stakedNft of stakedNfts) {
@@ -1412,6 +1435,8 @@ if (stakedTokenIds.length > 0) {
           <h3>Error Loading Staked NFTs</h3>
           <p>An error occurred while loading your staked NFTs. Please try again later.</p>
         </div>`;
+    } finally {
+      isRenderingStaked = false;
     }
   }
   

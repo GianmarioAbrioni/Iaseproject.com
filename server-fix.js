@@ -16,6 +16,11 @@ import express from "express";
 // Applica configurazione per variabili d'ambiente
 dotenvConfig();
 
+// Configura le chiavi API per la blockchain
+process.env.ALCHEMY_API_KEY = 'uAZ1tPYna9tBMfuTa616YwMcgptV_1vB';
+process.env.ETH_NETWORK_URL = 'https://mainnet.infura.io/v3/84ed164327474b4499c085d2e4345a66';
+process.env.NFT_CONTRACT_ADDRESS = '0x8792beF25cf04bD5B1B30c47F937C8e287c4e79F';
+
 // Importa direttamente il server già pronto da routes.js
 
 const app = express();

@@ -1935,16 +1935,16 @@ if (stakedTokenIds.length > 0) {
           return;
         }
         
-        // Usa la stessa API della Dashboard che calcola correttamente totalRewards
-        const response = await fetch(`/api/dashboard/${walletAddress}`);
+        // Usa l'API rewards che esiste davvero
+        const response = await fetch(`/api/rewards/${walletAddress}`);
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
         
-        const data = await response.json();
+        const rewardsData = await response.json();
         
-        // Usa il totalRewards dall'API dashboard che funziona correttamente
-        const totalPending = data.totalRewards || 0;
+        // Usa esattamente la stessa logica della Dashboard
+        const totalPending = parseFloat(rewardsData.totalRewards || 0);
         const hasUnclaimedRewards = totalPending > 0;
         
         // Aggiorna l'UI

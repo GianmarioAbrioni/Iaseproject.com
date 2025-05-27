@@ -544,6 +544,32 @@
       walletConnected = true;
       currentWalletAddress = window.ethereum.selectedAddress;
       updateUIState();
+      // Carica i dati se il wallet è già connesso (risolve il problema dell'aggiornamento pagina)
+      loadStakedNFTs(currentWalletAddress);
+    }
+    
+    // Event listener per cambi di account del wallet
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length === 0) {
+          // Wallet disconnesso
+          walletConnected = false;
+          currentWalletAddress = null;
+          updateUIState();
+          console.log('Wallet disconnesso');
+        } else {
+          // Wallet riconnesso o account cambiato
+          const newAddress = accounts[0];
+          if (newAddress !== currentWalletAddress) {
+            walletConnected = true;
+            currentWalletAddress = newAddress;
+            updateUIState();
+            // Carica i dati per il nuovo account
+            loadStakedNFTs(currentWalletAddress);
+            console.log('Account wallet cambiato:', newAddress);
+          }
+        }
+      });
     }
     
     // Esporta funzioni pubbliche

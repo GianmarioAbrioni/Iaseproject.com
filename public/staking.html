@@ -2028,37 +2028,15 @@ if (stakedTokenIds.length > 0) {
         const confirmClaim = confirm(`You are about to claim ${totalToClaim.toFixed(2)} IASE tokens. Continue?`);
         if (!confirmClaim) return;
         
-        // Ottieni configurazione contratto
-        const { rewardContractAddress } = getClaimConfig();
+        // Ottieni configurazione contratto da claim-service.js
+        const { rewardContractAddress, contractAbi } = getClaimConfig();
         
         // Crea istanza Web3
         const web3 = new Web3(window.ethereum);
         
-        // ABI minimo per claimReward
-        const rewardAbi = [
-          {
-            "inputs": [
-              {
-                "internalType": "address",
-                "name": "to",
-                "type": "address"
-              },
-              {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-              }
-            ],
-            "name": "claimReward",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          }
-        ];
-        
         // Crea istanza contratto
         const rewardContract = new web3.eth.Contract(
-          rewardAbi,
+          contractAbi,
           rewardContractAddress
         );
         

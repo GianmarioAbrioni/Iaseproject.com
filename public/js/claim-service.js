@@ -15,6 +15,28 @@ const CONFIG = {
   }
 };
 
+// ABI del contratto verificato su BSCScan
+const REWARD_CONTRACT_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "claimReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
 /**
  * Restituisce la configurazione del servizio di claim
  */
@@ -22,7 +44,8 @@ function getClaimConfig() {
   return {
     rewardContractAddress: CONFIG.staking.rewardDistributorContract,
     networkRpc: CONFIG.bsc.rpcUrl,
-    tokenAddress: CONFIG.bsc.tokenAddress
+    tokenAddress: CONFIG.bsc.tokenAddress,
+    contractAbi: REWARD_CONTRACT_ABI
   };
 }
 

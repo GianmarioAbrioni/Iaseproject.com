@@ -1388,16 +1388,16 @@ if (stakedTokenIds.length > 0) {
             <div class="nft-id">Token ID: ${stakedNft.tokenId}</div>
             <div class="rarity-badge ${rarityClass}">${rarityName}</div>
             
-            <div class="reward-details">
+            <div class="reward-details" style="margin-top: 10px;">
+              <div class="staking-info">
+                <span>Staked For:</span>
+                <span class="duration-value">${stakingDays}d ${stakingHours}h</span>
+              </div>
               <div class="reward-rate">
                 <span>Daily Rate:</span>
                 <span class="rate-value">
                   ${stakedNft.dailyReward} IASE
                 </span>
-              </div>
-              <div class="staking-info">
-                <span>Staked For:</span>
-                <span class="duration-value">${stakingDays}d ${stakingHours}h</span>
               </div>
             </div>
             

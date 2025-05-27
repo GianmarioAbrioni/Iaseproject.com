@@ -217,9 +217,12 @@ class DatabaseStorage {
       // Otteniamo gli ID degli stake
       const stakeIds = stakes.map(stake => stake.id);
       
-      // Recuperiamo tutte le ricompense per gli stake
+      // Recuperiamo tutte le ricompense per gli stake con JOIN per ottenere nftId e walletAddress
       const result = await pool.query(
-        `SELECT * FROM staking_rewards WHERE "stakeId" = ANY($1)`,
+        `SELECT r.*, s."nftId", s."walletAddress" 
+         FROM staking_rewards r
+         JOIN nft_stakes s ON r."stakeId" = s."id"
+         WHERE r."stakeId" = ANY($1)`,
         [stakeIds]
       );
       
@@ -361,9 +364,11 @@ class DatabaseStorage {
   async getRewardsByStakeId(stakeId) {
     try {
       const result = await pool.query(
-        `SELECT * FROM staking_rewards 
-         WHERE "stakeId" = $1 
-         ORDER BY "rewardDate" DESC`,
+        `SELECT r.*, s."nftId", s."walletAddress" 
+         FROM staking_rewards r
+         JOIN nft_stakes s ON r."stakeId" = s."id"
+         WHERE r."stakeId" = $1 
+         ORDER BY r."rewardDate" DESC`,
         [stakeId]
       );
       
@@ -446,9 +451,11 @@ class DatabaseStorage {
   async getClaimedRewardsByStakeId(stakeId) {
     try {
       const result = await pool.query(
-        `SELECT * FROM staking_rewards 
-         WHERE "stakeId" = $1 AND "claimed" = true
-         ORDER BY "rewardDate" DESC`,
+        `SELECT r.*, s."nftId", s."walletAddress" 
+         FROM staking_rewards r
+         JOIN nft_stakes s ON r."stakeId" = s."id"
+         WHERE r."stakeId" = $1 AND r."claimed" = true
+         ORDER BY r."rewardDate" DESC`,
         [stakeId]
       );
       

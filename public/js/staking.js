@@ -429,6 +429,11 @@
     // Aggiorna le ricompense dal database per valori più accurati
     updateRewardsFromDatabase(currentWalletAddress);
     
+    // Aggiorna immediatamente i Total Rewards con i valori calcolati localmente
+    if (domElements.totalRewards && totalRewards > 0) {
+      domElements.totalRewards.textContent = `${totalRewards.toFixed(2)} IASE`;
+    }
+    
     // Passa i dati globalmente per staking.html
     window.currentStakedNFTs = validStakedNfts;
     
@@ -548,6 +553,17 @@
       loadStakedNFTs(currentWalletAddress);
     }
     
+    // Event listener per la prima connessione del wallet
+    document.addEventListener('wallet:connected', (event) => {
+      const { address } = event.detail;
+      console.log('🟢 Wallet connected event received:', address);
+      walletConnected = true;
+      currentWalletAddress = address;
+      updateUIState();
+      // Carica i dati staking alla prima connessione
+      loadStakedNFTs(currentWalletAddress);
+    });
+
     // Event listener per cambi di account del wallet
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', (accounts) => {

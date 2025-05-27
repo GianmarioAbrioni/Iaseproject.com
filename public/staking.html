@@ -1935,24 +1935,17 @@ if (stakedTokenIds.length > 0) {
           return;
         }
         
-        // Ottieni le rewards dal server
-        const response = await fetch(`/api/rewards/${walletAddress}`);
+        // Usa la stessa API della Dashboard che calcola correttamente totalRewards
+        const response = await fetch(`/api/dashboard/${walletAddress}`);
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
         
-        const rewards = await response.json();
+        const data = await response.json();
         
-        // Calcola il totale delle rewards non reclamate
-        let totalPending = 0;
-        let hasUnclaimedRewards = false;
-        
-        rewards.forEach(reward => {
-          if (!reward.claimed) {
-            totalPending += reward.totalReward;
-            hasUnclaimedRewards = true;
-          }
-        });
+        // Usa il totalRewards dall'API dashboard che funziona correttamente
+        const totalPending = data.totalRewards || 0;
+        const hasUnclaimedRewards = totalPending > 0;
         
         // Aggiorna l'UI
         const pendingRewardsElement = document.getElementById('pendingRewards');

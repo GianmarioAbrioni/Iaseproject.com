@@ -2001,21 +2001,23 @@ if (stakedTokenIds.length > 0) {
         }
         
         // Ottieni le rewards disponibili
-        const response = await fetch(`/api/claim/rewards/${walletAddress}`);
+        const response = await fetch(`/api/rewards/${walletAddress}`);
         if (!response.ok) throw new Error(`API error: ${response.status}`);
         
-        const rewards = await response.json();
+        const rewardsData = await response.json();
         
-        // Calcola totale claim e stake IDs
-        let totalToClaim = 0;
+        // Usa il totalRewards dall'API che contiene il valore corretto
+        const totalToClaim = parseFloat(rewardsData.totalRewards || 0);
+        
+        // Raccogli tutti gli stakeIds per il database update
         const stakeIds = [];
-        
-        rewards.forEach(reward => {
-          if (!reward.claimed) {
-            totalToClaim += reward.totalReward;
-            stakeIds.push(reward.stakeId);
-          }
-        });
+        if (rewardsData.rewards && Array.isArray(rewardsData.rewards)) {
+          rewardsData.rewards.forEach(reward => {
+            if (!reward.claimed && reward.stakeId) {
+              stakeIds.push(reward.stakeId);
+            }
+          });
+        }
         
         if (totalToClaim <= 0) {
           alert('No rewards available to claim');

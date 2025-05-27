@@ -2123,6 +2123,25 @@ if (stakedTokenIds.length > 0) {
     
     // Iniziale aggiornamento rewards
     updatePendingRewards();
+    
+    // Aggiorna rewards quando si connette il wallet
+    document.addEventListener('wallet:connected', (event) => {
+      updatePendingRewards();
+    });
+    
+    // Aggiorna rewards quando si disconnette il wallet
+    document.addEventListener('wallet:disconnected', (event) => {
+      const pendingRewardsElement = document.getElementById('pendingRewards');
+      if (pendingRewardsElement) {
+        pendingRewardsElement.textContent = '0 IASE';
+      }
+      claimAllBtn.disabled = true;
+    });
+    
+    // Aggiorna rewards quando cambiano i dati degli NFT in staking
+    document.addEventListener('stakedNFTsDataReady', (event) => {
+      updatePendingRewards();
+    });
   }
 
   // Inizializza rewards tab quando il DOM è caricato

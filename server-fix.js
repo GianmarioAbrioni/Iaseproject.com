@@ -288,14 +288,6 @@ import('./server/routes.js').then(async (module) => {
             
             console.log(`⏰ Job di verifica staking pianificato per la prossima mezzanotte (tra ${hoursToMidnight} ore)`);
             console.log('⏰ Scheduler verifica staking configurato con successo');
-            
-            // Esecuzione di test in ambiente di sviluppo
-            if (process.env.NODE_ENV !== 'production') {
-                setTimeout(function() { 
-                    console.log('🧪 Esecuzione di test del job di staking (solo in development)');
-                    runStakingJob();
-                }, 30000); // 30 secondi
-            }
         }).catch(error => {
             console.error('❌ Errore durante l\'importazione del modulo nft-verification:', error);
         });

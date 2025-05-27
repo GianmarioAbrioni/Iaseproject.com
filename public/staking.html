@@ -1959,6 +1959,30 @@ if (stakedTokenIds.length > 0) {
       }
     }
     
+    // Controlla la rete corrente e nascondi sezioni non appropriate
+    async function checkNetworkAndHideSections() {
+      try {
+        if (window.ethereum) {
+          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+          const stakingDashboard = document.querySelector('.staking-dashboard');
+          const nftTabs = document.querySelector('.nft-tabs');
+          
+          if (chainId === '0x38') { // BSC - mostra solo rewards
+            if (stakingDashboard) stakingDashboard.style.display = 'none';
+            if (nftTabs) nftTabs.style.display = 'none';
+          } else { // Ethereum - mostra tutto
+            if (stakingDashboard) stakingDashboard.style.display = 'block';
+            if (nftTabs) nftTabs.style.display = 'block';
+          }
+        }
+      } catch (error) {
+        console.log('Network check failed:', error);
+      }
+    }
+    
+    // Esegui il controllo rete al caricamento
+    checkNetworkAndHideSections();
+    
     // Aggiungi l'event listener al pulsante claim all
     claimAllBtn.addEventListener('click', async function() {
       try {
@@ -1980,6 +2004,9 @@ if (stakedTokenIds.length > 0) {
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: '0x38' }],
             });
+            
+            // Ricarica la pagina dopo il cambio rete per evitare conflitti
+            setTimeout(() => location.reload(), 1000);
           } catch (switchError) {
             // Rete non configurata, aggiungiamola
             if (switchError.code === 4902) {
@@ -1993,6 +2020,9 @@ if (stakedTokenIds.length > 0) {
                   blockExplorerUrls: ['https://bscscan.com/']
                 }]
               });
+              
+              // Ricarica la pagina dopo aver aggiunto la rete
+              setTimeout(() => location.reload(), 1000);
             } else {
               throw switchError;
             }

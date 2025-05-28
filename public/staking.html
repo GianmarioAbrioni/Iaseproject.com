@@ -338,12 +338,38 @@
       </div>
       
       <div class="tab-content" id="rewardsTab">
-        <div class="tab-redirect-message">
-          <div class="empty-state">
-            <i class="ri-arrow-down-line"></i>
-            <h3>Rewards Section Moved</h3>
-            <p>The rewards management has been moved to a dedicated section below for better accessibility.</p>
-            <p>Scroll down to find the "Rewards Management" section.</p>
+        <div class="rewards-summary">
+          <div class="pending-rewards">
+            <h3>Pending Rewards</h3>
+            <div class="reward-amount" id="pendingRewards">0 IASE</div>
+            <button id="claimAllBtn" class="btn primary-btn" disabled onclick="redirectToClaim()">
+              <i class="ri-coin-line"></i> Claim All Rewards
+            </button>
+          </div>
+        </div>
+        
+        <div class="rewards-history">
+          <h3>Rewards History</h3>
+          <div class="rewards-table-container">
+            <table class="rewards-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>NFT ID</th>
+                  <th>Reward Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="rewardsHistoryBody">
+                <!-- Rewards history will be displayed here -->
+              </tbody>
+            </table>
+            
+            <div id="rewardsEmptyState" class="empty-state">
+              <i class="ri-history-line"></i>
+              <h3>No Rewards History</h3>
+              <p>You haven't earned any rewards yet. Stake your IASE Units to start earning IASE tokens.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -518,48 +544,7 @@
     </div>
   </section>
 
-  <!-- Rewards Management Section - Always Visible -->
-  <section class="rewards-management-section">
-    <div class="container">
-      <h2 class="section-title">Rewards Management</h2>
-      <p class="section-description">Manage and claim your IASE staking rewards. This section works independently of wallet connection.</p>
-      
-      <div class="rewards-summary">
-        <div class="pending-rewards">
-          <h3>Pending Rewards</h3>
-          <div class="reward-amount" id="pendingRewards">0 IASE</div>
-          <button id="claimAllBtn" class="btn primary-btn" disabled>
-            <i class="ri-coin-line"></i> Claim All Rewards
-          </button>
-        </div>
-      </div>
-      
-      <div class="rewards-history">
-        <h3>Rewards History</h3>
-        <div class="rewards-table-container">
-          <table class="rewards-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>NFT ID</th>
-                <th>Reward Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="rewardsHistoryBody">
-              <!-- Rewards history will be displayed here -->
-            </tbody>
-          </table>
-          
-          <div id="rewardsEmptyState" class="empty-state">
-            <i class="ri-history-line"></i>
-            <h3>No Rewards History</h3>
-            <p>You haven't earned any rewards yet. Stake your IASE Units to start earning IASE tokens.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+
 
   <!-- Footer Area -->
   <footer class="footer-area">
@@ -1925,6 +1910,39 @@ if (stakedTokenIds.length > 0) {
     } catch (error) {
       console.error('❌ Errore durante il claim:', error);
       alert(`Claim error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Reindirizza alla pagina claim con i parametri necessari
+   */
+  async function redirectToClaim() {
+    try {
+      const walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        alert('Please connect your wallet to claim rewards');
+        return;
+      }
+      
+      // Ottieni le rewards disponibili
+      const response = await fetch(`/api/rewards/${walletAddress}`);
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      
+      const rewardsData = await response.json();
+      const totalToClaim = parseFloat(rewardsData.totalRewards || 0);
+      
+      if (totalToClaim <= 0) {
+        alert('No rewards available to claim');
+        return;
+      }
+      
+      // Reindirizza alla pagina claim con parametri
+      const claimUrl = `claim.html?rewards=${totalToClaim}&wallet=${walletAddress}`;
+      window.location.href = claimUrl;
+      
+    } catch (error) {
+      console.error('❌ Errore nella preparazione del claim:', error);
+      alert(`Error preparing claim: ${error.message}`);
     }
   }
 

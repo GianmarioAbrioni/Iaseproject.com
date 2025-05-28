@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claim Rewards - IASE Project</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Remix Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="menu.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="css/parallax.css">
+  <link rel="stylesheet" href="css/staking.css">
+  <link rel="stylesheet" href="css/wallet.css">
+</head>
+<body>
+  <!-- Main Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">
+        <i class="ri-home-3-line"></i> IASE 🛰️
+      </a>
+      <button class="navbar-toggler" data-bs-target="#navbarContent" data-bs-toggle="collapse" type="button" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="staking.html">Back to Staking</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Claim Rewards Section -->
+  <section class="claim-section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="claim-container">
+            <div class="claim-header text-center mb-4">
+              <h1 class="claim-title">
+                <i class="ri-coin-line me-2"></i>
+                Claim Your IASE Rewards
+              </h1>
+              <p class="claim-description">
+                This page automatically switches to Binance Smart Chain (BSC) to claim your rewards.
+              </p>
+            </div>
+
+            <!-- Wallet Status -->
+            <div class="wallet-status mb-4">
+              <div class="wallet-status-indicator status-red">
+                <div id="walletIndicator" class="indicator disconnected">
+                  <i class="ri-wallet-3-line"></i>
+                </div>
+                <div class="wallet-info">
+                  <div id="walletStatusText">Wallet not connected</div>
+                  <div id="walletAddress" class="wallet-address"></div>
+                </div>
+              </div>
+              
+              <div class="wallet-controls text-center">
+                <button id="connectBSCBtn" class="btn primary-btn">
+                  <i class="ri-plug-line"></i> Connect to BSC
+                </button>
+                <button id="disconnectWalletBtn" class="btn secondary-btn hidden" onclick="disconnectWallet()">
+                  <i class="ri-link-unlink-m"></i> Disconnect
+                </button>
+              </div>
+            </div>
+
+            <!-- Network Warning -->
+            <div id="wrong-network-alert" class="alert alert-warning d-none">
+              <i class="ri-alert-line me-2"></i>
+              <span>Please switch to Binance Smart Chain (BSC) to claim rewards.</span>
+              <button id="switch-to-bsc-btn" class="btn btn-sm btn-warning mt-2">Switch to BSC</button>
+            </div>
+
+            <!-- Rewards Summary -->
+            <div class="rewards-claim-summary">
+              <div class="claim-rewards-box">
+                <h3>Total Pending Rewards</h3>
+                <div class="total-reward-amount" id="totalPendingRewards">0 IASE</div>
+                <div class="claim-info">
+                  <p class="mb-3">You're about to claim all your accumulated staking rewards.</p>
+                  <button id="claimRewardsBtn" class="btn primary-btn btn-lg" disabled>
+                    <i class="ri-coin-line"></i> Claim All Rewards
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transaction Status -->
+            <div id="txStatus" class="transaction-status d-none">
+              <div class="status-icon">
+                <i class="ri-loader-4-line spin"></i>
+              </div>
+              <div class="status-text">
+                <h4>Processing Transaction...</h4>
+                <p>Please confirm the transaction in your wallet and wait for confirmation.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Back to Staking -->
+  <section class="back-section text-center py-4">
+    <div class="container">
+      <a href="staking.html" class="btn btn-secondary">
+        <i class="ri-arrow-left-line"></i> Back to Staking Dashboard
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer-area">
+    <div class="main-footer-area">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-12 text-center">
+            <div class="footer-widget">
+              <p>© 2025 IASE Project – All Rights Reserved</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  
+  <script>
+    // Configurazione BSC
+    const BSC_CONFIG = {
+      chainId: '0x38',
+      chainName: 'Binance Smart Chain',
+      rpcUrls: ['https://bsc-dataseed.binance.org'],
+      nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+      blockExplorerUrls: ['https://bscscan.com']
+    };
+
+    const REWARD_CONTRACT_ADDRESS = '0x38C62fCFb6a6Bbce341B41bA6740B07739Bf6E1F';
+    const REWARD_CONTRACT_ABI = [{
+      "inputs": [{"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}],
+      "name": "claimReward",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }];
+
+    let currentWallet = '';
+    let totalRewards = 0;
+
+    // Inizializzazione
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 Inizializzazione pagina claim');
+      
+      // Ottieni parametri URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const rewardsAmount = urlParams.get('rewards');
+      const walletParam = urlParams.get('wallet');
+      
+      if (rewardsAmount) {
+        totalRewards = parseFloat(rewardsAmount);
+        document.getElementById('totalPendingRewards').textContent = `${totalRewards.toFixed(2)} IASE`;
+      }
+      
+      if (walletParam) {
+        currentWallet = walletParam;
+      }
+
+      // Event listeners
+      document.getElementById('connectBSCBtn').addEventListener('click', connectWallet);
+      document.getElementById('claimRewardsBtn').addEventListener('click', claimRewards);
+      document.getElementById('switch-to-bsc-btn').addEventListener('click', switchToBSC);
+    });
+
+    // Connetti wallet
+    async function connectWallet() {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length > 0) {
+          currentWallet = accounts[0];
+          console.log('✅ Wallet connesso:', currentWallet);
+          await checkNetwork();
+        }
+      } catch (error) {
+        console.error('❌ Errore connessione:', error);
+        alert('Errore nella connessione del wallet');
+      }
+    }
+
+    // Controlla rete
+    async function checkNetwork() {
+      try {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        
+        if (chainId === BSC_CONFIG.chainId) {
+          updateWalletUI(true);
+          document.getElementById('wrong-network-alert').classList.add('d-none');
+          document.getElementById('claimRewardsBtn').disabled = totalRewards <= 0;
+        } else {
+          updateWalletUI(false);
+          document.getElementById('wrong-network-alert').classList.remove('d-none');
+          document.getElementById('claimRewardsBtn').disabled = true;
+        }
+      } catch (error) {
+        console.error('Errore controllo rete:', error);
+      }
+    }
+
+    // Cambia a BSC
+    async function switchToBSC() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: BSC_CONFIG.chainId }]
+        });
+        await checkNetwork();
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BSC_CONFIG]
+            });
+            await checkNetwork();
+          } catch (addError) {
+            alert('Errore nell\'aggiunta della rete BSC');
+          }
+        } else {
+          alert('Errore nel cambio alla rete BSC');
+        }
+      }
+    }
+
+    // Aggiorna UI wallet
+    function updateWalletUI(isCorrectNetwork) {
+      const statusText = document.getElementById('walletStatusText');
+      const address = document.getElementById('walletAddress');
+      const indicator = document.getElementById('walletIndicator');
+      const connectBtn = document.getElementById('connectBSCBtn');
+      const disconnectBtn = document.getElementById('disconnectWalletBtn');
+
+      if (currentWallet) {
+        statusText.textContent = isCorrectNetwork ? 'Connected to BSC' : 'Connected (Wrong Network)';
+        address.textContent = `${currentWallet.slice(0, 6)}...${currentWallet.slice(-4)}`;
+        indicator.className = isCorrectNetwork ? 'indicator connected' : 'indicator warning';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'block';
+      }
+    }
+
+    // Claim ricompense
+    async function claimRewards() {
+      if (!currentWallet || totalRewards <= 0) {
+        alert('Connetti il wallet e assicurati di avere ricompense da claimare');
+        return;
+      }
+
+      try {
+        console.log('💰 Claim di', totalRewards, 'IASE');
+        
+        // Mostra loading
+        document.getElementById('txStatus').classList.remove('d-none');
+        document.getElementById('claimRewardsBtn').disabled = true;
+
+        // Connetti al contratto
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(REWARD_CONTRACT_ADDRESS, REWARD_CONTRACT_ABI, signer);
+
+        // Converti in wei
+        const amountWei = ethers.utils.parseEther(totalRewards.toString());
+
+        // Invia transazione
+        const tx = await contract.claimReward(currentWallet, amountWei);
+        console.log('📝 TX inviata:', tx.hash);
+
+        // Aspetta conferma
+        const receipt = await tx.wait();
+        console.log('✅ TX confermata:', receipt);
+
+        // Aggiorna database e resetta UI
+        await markRewardsAsClaimed(tx.hash);
+        
+        alert(`Ricompense claimate con successo! TX: ${tx.hash}`);
+        
+        // Torna a staking.html
+        window.location.href = 'staking.html';
+
+      } catch (error) {
+        console.error('❌ Errore claim:', error);
+        document.getElementById('txStatus').classList.add('d-none');
+        document.getElementById('claimRewardsBtn').disabled = false;
+        
+        if (error.code === 4001) {
+          alert('Transazione rifiutata dall\'utente');
+        } else {
+          alert(`Errore nel claim: ${error.message}`);
+        }
+      }
+    }
+
+    // Marca come claimed nel database
+    async function markRewardsAsClaimed(txHash) {
+      try {
+        const response = await fetch('/api/mark-claimed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: currentWallet,
+            txHash: txHash
+          })
+        });
+
+        if (response.ok) {
+          console.log('✅ Database aggiornato');
+        } else {
+          console.warn('⚠️ Errore aggiornamento database');
+        }
+      } catch (error) {
+        console.warn('⚠️ Errore API:', error);
+      }
+    }
+  </script>
+</body>
+</html>

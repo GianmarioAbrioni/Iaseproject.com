@@ -1914,7 +1914,7 @@ if (stakedTokenIds.length > 0) {
   }
 
   /**
-   * Reindirizza alla pagina claim con i parametri necessari
+   * Reindirizza alla pagina claim con solo il wallet (rewards letti dal database per sicurezza)
    */
   async function redirectToClaim() {
     try {
@@ -1924,7 +1924,7 @@ if (stakedTokenIds.length > 0) {
         return;
       }
       
-      // Ottieni le rewards disponibili
+      // Verifica che ci siano rewards da claimare
       const response = await fetch(`/api/rewards/${walletAddress}`);
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       
@@ -1936,8 +1936,8 @@ if (stakedTokenIds.length > 0) {
         return;
       }
       
-      // Reindirizza alla pagina claim con parametri
-      const claimUrl = `claim.html?rewards=${totalToClaim}&wallet=${walletAddress}`;
+      // Reindirizza alla pagina claim con solo il wallet (SICURO)
+      const claimUrl = `claim.html?wallet=${walletAddress}`;
       window.location.href = claimUrl;
       
     } catch (error) {

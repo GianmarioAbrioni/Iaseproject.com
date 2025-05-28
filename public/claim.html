@@ -170,18 +170,14 @@
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('🚀 Inizializzazione pagina claim');
       
-      // Ottieni parametri URL
+      // Ottieni parametri URL solo per wallet, rewards vengono letti dal database per sicurezza
       const urlParams = new URLSearchParams(window.location.search);
-      const rewardsAmount = urlParams.get('rewards');
       const walletParam = urlParams.get('wallet');
-      
-      if (rewardsAmount) {
-        totalRewards = parseFloat(rewardsAmount);
-        document.getElementById('totalPendingRewards').textContent = `${totalRewards.toFixed(2)} IASE`;
-      }
       
       if (walletParam) {
         currentWallet = walletParam;
+        // Carica rewards direttamente dal database per sicurezza
+        await loadRewardsFromDatabase();
       }
 
       // Event listeners
@@ -189,6 +185,48 @@
       document.getElementById('claimRewardsBtn').addEventListener('click', claimRewards);
       document.getElementById('switch-to-bsc-btn').addEventListener('click', switchToBSC);
     });
+
+    // Carica rewards dal database - IDENTICA LOGICA di updatePendingRewards() in staking.html
+    async function loadRewardsFromDatabase() {
+      try {
+        if (!currentWallet) return;
+        
+        // Usa stessa API e logica di staking.html
+        const response = await fetch(`/api/rewards/${currentWallet}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        
+        const rewardsData = await response.json();
+        console.log('📊 Rewards data received:', rewardsData);
+        
+        // STESSA IDENTICA LOGICA di updatePendingRewards()
+        let totalPending = 0;
+        let hasUnclaimedRewards = false;
+        
+        if (rewardsData.rewards && Array.isArray(rewardsData.rewards)) {
+          rewardsData.rewards.forEach(reward => {
+            if (!reward.claimed) {
+              totalPending += parseFloat(reward.amount || 0);
+              hasUnclaimedRewards = true;
+            }
+          });
+        }
+        
+        totalRewards = totalPending;
+        document.getElementById('totalPendingRewards').textContent = `${totalRewards.toFixed(2)} IASE`;
+        
+        // Abilita/disabilita il pulsante in base alla presenza di rewards
+        document.getElementById('claimRewardsBtn').disabled = !hasUnclaimedRewards;
+        
+        if (!hasUnclaimedRewards) {
+          alert('No rewards available to claim');
+        }
+        
+      } catch (error) {
+        console.error('❌ Errore caricamento rewards:', error);
+        document.getElementById('totalPendingRewards').textContent = '0 IASE';
+        document.getElementById('claimRewardsBtn').disabled = true;
+      }
+    }
 
     // Connetti wallet
     async function connectWallet() {
@@ -276,6 +314,14 @@
       try {
         console.log('💰 Claim di', totalRewards, 'IASE');
         
+        // Ricarica rewards dal database per sicurezza finale
+        await loadRewardsFromDatabase();
+        
+        if (totalRewards <= 0) {
+          alert('No rewards available to claim');
+          return;
+        }
+        
         // Mostra loading
         document.getElementById('txStatus').classList.remove('d-none');
         document.getElementById('claimRewardsBtn').disabled = true;
@@ -292,11 +338,18 @@
         const tx = await contract.claimReward(currentWallet, amountWei);
         console.log('📝 TX inviata:', tx.hash);
 
-        // Aspetta conferma
+        // Aspetta conferma - VERIFICA SUCCESSO TRANSAZIONE
         const receipt = await tx.wait();
-        console.log('✅ TX confermata:', receipt);
+        console.log('✅ TX receipt:', receipt);
 
-        // Aggiorna database e resetta UI
+        // VERIFICA CHE LA TRANSAZIONE SIA REALMENTE RIUSCITA
+        if (receipt.status !== 1) {
+          throw new Error('Transaction failed on blockchain');
+        }
+
+        console.log('✅ Transazione confermata e riuscita');
+
+        // SOLO DOPO VERIFICA SUCCESSO: Aggiorna database
         await markRewardsAsClaimed(tx.hash);
         
         alert(`Ricompense claimate con successo! TX: ${tx.hash}`);
@@ -310,6 +363,8 @@
         document.getElementById('claimRewardsBtn').disabled = false;
         
         if (error.code === 4001) {
+          alert('Transazione rifiutata dall\'utente');
+        } else if (error.code === 'ACTION_REJECTED') {
           alert('Transazione rifiutata dall\'utente');
         } else {
           alert(`Errore nel claim: ${error.message}`);

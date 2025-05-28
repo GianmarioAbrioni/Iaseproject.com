@@ -322,25 +322,16 @@
       try {
         if (!currentWallet) return;
         
-        // Usa stessa API e logica di staking.html
+        // Usa l'API rewards che esiste davvero - STESSO CODICE di updatePendingRewards()
         const response = await fetch(`/api/rewards/${currentWallet}`);
         if (!response.ok) throw new Error(`API error: ${response.status}`);
         
         const rewardsData = await response.json();
         console.log('📊 Rewards data received:', rewardsData);
         
-        // STESSA IDENTICA LOGICA di updatePendingRewards()
-        let totalPending = 0;
-        let hasUnclaimedRewards = false;
-        
-        if (rewardsData.rewards && Array.isArray(rewardsData.rewards)) {
-          rewardsData.rewards.forEach(reward => {
-            if (!reward.claimed) {
-              totalPending += parseFloat(reward.amount || 0);
-              hasUnclaimedRewards = true;
-            }
-          });
-        }
+        // Usa esattamente la stessa logica della Dashboard - IDENTICA!
+        const totalPending = parseFloat(rewardsData.totalRewards || 0);
+        const hasUnclaimedRewards = totalPending > 0;
         
         totalRewards = totalPending;
         document.getElementById('totalPendingRewards').textContent = `${totalRewards.toFixed(2)} IASE`;
